@@ -1,11 +1,30 @@
 import SourceView from "./components/SourceView";
+import ObjectViz from "./components/ObjectViz";
 import React from 'react';
 import { Layout, Model } from 'flexlayout-react';
 import "flexlayout-react/style/light.css";
 import InputFilePath from "./components/InputFilePath";
+import * as api from "./api";
 
 
 function App() {
+  const ObjectViz_data = {
+    setDotString: null
+  }
+
+  const [binaryFilePath, setBinaryFilePath] = React.useState("");
+  if (binaryFilePath.length !== 0) {
+    api.openExe(binaryFilePath)
+      .then((result) => {
+        if (result.message === "success") {
+          api.getDisassemblyDot().then((result) => {
+            ObjectViz_data.setDotString(result);
+          })
+        }
+      });
+  }
+
+
   const model = Model.fromJson({
     global: {
       tabBorderWidth: 10
@@ -69,7 +88,18 @@ function App() {
             {
               type: "tab",
               name: "Disassembly View",
-              component: "Disassembly View",
+              component: "DisassemblyView",
+            }
+          ]
+        },
+        {
+          type: "tabset",
+          weight: 2,
+          children: [
+            {
+              type: "tab",
+              name: "Object Visualization",
+              component: "ObjectViz",
             }
           ]
         }
@@ -83,16 +113,13 @@ function App() {
       case "SourceView":
         return <SourceView />;
       case "InputFilePath":
-        return <InputFilePath/>;
+        return <InputFilePath setBinaryFilePath={setBinaryFilePath} />;
+      case "ObjectViz":
+        return <ObjectViz onLoad={(data) => { ObjectViz_data.setDotString = data; }} />;
       default:
-        return <div>{component}<br/>(Stub!!!)</div>;
+        return <div>{component}<br />(Stub!!!)</div>;
     }
   }
-
-
-
-
-
 
 
 
@@ -104,6 +131,7 @@ function App() {
         factory={factory}
       />
     </div>
+
   );
 }
 
