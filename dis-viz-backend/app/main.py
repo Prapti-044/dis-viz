@@ -27,7 +27,7 @@ async def index():
     
 
 @app.post("/open")
-async def open(filepath: FilePath):
+async def open_binary(filepath: FilePath):
     sopt.decode(filepath.path)
     return { "message":  "success" }
 
@@ -39,8 +39,15 @@ async def getdisassembly():
 async def getsourcefiles():
     return json.loads(sopt.get_sourcefiles())
 
-@app.get("/jsonData")
-async def getjsondata():
+@app.post("/getsourcefile")
+async def getsourcefile(filepath: FilePath):
+    with open(filepath.path, "r") as f:
+        return {
+            "result": f.readlines()
+        }
+
+@app.get("/getdyninstinfo")
+async def getdyninstinfo():
     return json.loads(sopt.get_json())
 
 @app.get("/getdisassemblydot")

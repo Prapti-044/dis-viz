@@ -1,10 +1,7 @@
 import React from 'react'
 
-function ObjectViz({onLoad}) {
-
-  const [dotString, setDotString] = React.useState("");
-
-  onLoad(setDotString);
+function ObjectViz({dotString}) {
+  console.log("Loading ObjectViz")
 
   return (
     <div>{dotString}</div>

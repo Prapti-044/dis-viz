@@ -1,28 +1,55 @@
 import SourceView from "./components/SourceView";
+import ReactDetachableWindow from 'react-detachable-window'
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
 import { Layout, Model } from 'flexlayout-react';
 import "flexlayout-react/style/light.css";
 import InputFilePath from "./components/InputFilePath";
 import * as api from "./api";
+import DisassemblyView from "./components/DisassemblyView";
 
 
 function App() {
-  const ObjectViz_data = {
-    setDotString: null
-  }
+  console.log("Loading App")
 
   const [binaryFilePath, setBinaryFilePath] = React.useState("");
-  if (binaryFilePath.length !== 0) {
-    api.openExe(binaryFilePath)
-      .then((result) => {
-        if (result.message === "success") {
-          api.getDisassemblyDot().then((result) => {
-            ObjectViz_data.setDotString(result);
-          })
-        }
+  const [selectedSourceFile, setSelectedSourceFile] = React.useState("");
+  const [dotString, setDotString] = React.useState("");
+  const [sourceFiles, setSourceFiles] = React.useState([]);
+  const [disassemblyData, setDisassemblyData] = React.useState([]);
+  const [dyninstInfo, setDyninstInfo] = React.useState({});
+  const [sourceData, setSourceData] = React.useState({});
+
+  React.useEffect(() => {
+    console.log("Updating BinaryPath");
+    if (binaryFilePath.length === 0) return;
+    api.openExe(binaryFilePath).then((result) => {
+      if (result.message !== "success") return;
+      api.getDisassemblyDot().then((result) => {
+        setDotString(result);
       });
-  }
+
+      api.getSourceFiles().then((result) => {
+        setSourceFiles(result);
+      });
+
+      api.getDisassembly().then((result) => {
+        setDisassemblyData(result);
+      })
+      
+      api.getDyninstInfo().then((result) => {
+        setDyninstInfo(result);
+      })
+    });
+  }, [binaryFilePath]);
+
+  React.useEffect(() => {
+    console.log("Updating SourceFilePath")
+    if(selectedSourceFile.length === 0) return;
+    api.getSourceLines(selectedSourceFile).then((result) => {
+      setSourceData(result);
+    })
+  }, [binaryFilePath, selectedSourceFile])
 
 
   const model = Model.fromJson({
@@ -107,28 +134,64 @@ function App() {
     }
   });
 
-  const factory = (node) => {
+  const componentFactory = (node) => {
     var component = node.getComponent();
+    let reattachButton = (<button type='button'>Close!</button>)
+    let detachButton = (<button type='button'>Detach!</button>)
     switch (component) {
       case "SourceView":
-        return <SourceView />;
+        return <>
+          <ReactDetachableWindow
+            windowOptions={{ width: 800, height: 600 }}
+            reattachButton={reattachButton}i
+            detachButton={detachButton}>
+            <SourceView selectedSourceFile={selectedSourceFile} sourceData={sourceData}/>;
+          </ReactDetachableWindow>
+        </>
       case "InputFilePath":
-        return <InputFilePath setBinaryFilePath={setBinaryFilePath} />;
+        return <>
+          <ReactDetachableWindow
+            windowOptions={{ width: 800, height: 600 }}
+            reattachButton={reattachButton}i
+            detachButton={detachButton}>
+            <InputFilePath setBinaryFilePath={setBinaryFilePath} setSelectedSourceFile={setSelectedSourceFile} sourceFiles={sourceFiles} />;
+          </ReactDetachableWindow>
+        </>
       case "ObjectViz":
-        return <ObjectViz onLoad={(data) => { ObjectViz_data.setDotString = data; }} />;
+        return <>
+          <ReactDetachableWindow
+            windowOptions={{ width: 800, height: 600 }}
+            reattachButton={reattachButton}i
+            detachButton={detachButton}>
+            <ObjectViz dotString={dotString} />;
+          </ReactDetachableWindow>
+        </>
+      case "DisassemblyView":
+        return <>
+          <ReactDetachableWindow
+            windowOptions={{ width: 800, height: 600 }}
+            reattachButton={reattachButton}i
+            detachButton={detachButton}>
+            <DisassemblyView disassemblyData={disassemblyData} />;
+          </ReactDetachableWindow>
+        </>
       default:
-        return <div>{component}<br />(Stub!!!)</div>;
+        return <>
+          <ReactDetachableWindow
+            windowOptions={{ width: 800, height: 600 }}
+            reattachButton={reattachButton}i
+            detachButton={detachButton}>
+            <div>{component}<br />(Stub!!!)</div>;
+          </ReactDetachableWindow>
+        </>
     }
   }
-
-
-
 
   return (
     <div className="App">
       <Layout
         model={model}
-        factory={factory}
+        factory={componentFactory}
       />
     </div>
 

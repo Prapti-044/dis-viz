@@ -1,8 +1,10 @@
 import React from 'react';
 
-function SourceView() {
+function SourceView({ selectedSourceFile, sourceData }) {
+    console.log("Loading SourceView");
+
     return (
-        <div>SourceView</div>
+        <div>{sourceData}</div>
     )
 }
 

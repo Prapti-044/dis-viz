@@ -2,12 +2,13 @@ import React from 'react'
 import { Form, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
-function InputFilePath({setBinaryFilePath}) {
+function InputFilePath({ setBinaryFilePath, setSelectedSourceFile, sourceFiles }) {
+    console.log("Loading InputFilePath");
     const [filepath, setFilepath] = React.useState("/samples/hello");
+    const [activeSourceFile, setActiveSourceFile] = React.useState("");
 
-
-    return (
-        <Form style={{ margin: "25px" }} onSubmit={(event) => {
+    return <div style={{ margin: "25px" }}>
+        <Form onSubmit={(event) => {
             event.preventDefault();
             setBinaryFilePath(filepath);
         }}>
@@ -25,7 +26,21 @@ function InputFilePath({setBinaryFilePath}) {
                 Submit
             </Button>
         </Form>
-    )
+
+        <Form.Select
+            aria-label="Source File Selection"
+            onChange={(event) => {
+                setActiveSourceFile(event.target.value);
+                setSelectedSourceFile(event.target.value);
+            }}
+            defaultValue=""
+        >
+            {activeSourceFile===""?<option key={-1} value="">Select a source file to view</option>:<></>}
+            { sourceFiles.map((d, i) => 
+                <option key={i} value={d}>{d}</option>
+            )}
+        </Form.Select>
+    </div>
 }
 
 export default InputFilePath
