@@ -51,3 +51,9 @@ export async function getDyninstInfo() {
     const result = await response.json();
     return result;
 }
+
+export async function getBinaryList() {
+    const response = await fetch(apiURL + "binarylist");
+    const result = await response.json();
+    return result.binarylist;
+}

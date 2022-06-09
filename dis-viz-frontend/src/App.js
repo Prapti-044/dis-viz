@@ -1,5 +1,4 @@
 import SourceView from "./components/SourceView";
-import ReactDetachableWindow from 'react-detachable-window'
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
 import { Layout, Model } from 'flexlayout-react';
@@ -7,6 +6,8 @@ import "flexlayout-react/style/light.css";
 import InputFilePath from "./components/InputFilePath";
 import * as api from "./api";
 import DisassemblyView from "./components/DisassemblyView";
+
+import WinboxReact from './components/Winbox'
 
 
 function App() {
@@ -18,10 +19,10 @@ function App() {
   const [sourceFiles, setSourceFiles] = React.useState([]);
   const [disassemblyData, setDisassemblyData] = React.useState([]);
   const [dyninstInfo, setDyninstInfo] = React.useState({});
-  const [sourceData, setSourceData] = React.useState({});
+  const [sourceData, setSourceData] = React.useState([]);
+  const [disassemblyViewList, setDisassemblyViewList] = React.useState([]);
 
   React.useEffect(() => {
-    console.log("Updating BinaryPath");
     if (binaryFilePath.length === 0) return;
     api.openExe(binaryFilePath).then((result) => {
       if (result.message !== "success") return;
@@ -44,7 +45,6 @@ function App() {
   }, [binaryFilePath]);
 
   React.useEffect(() => {
-    console.log("Updating SourceFilePath")
     if(selectedSourceFile.length === 0) return;
     api.getSourceLines(selectedSourceFile).then((result) => {
       setSourceData(result);
@@ -102,20 +102,9 @@ function App() {
           children: [
             {
               type: "tab",
-              name: "Source View",
+              name: `Source View (${selectedSourceFile})`,
               enableClose: false,
               component: "SourceView",
-            }
-          ]
-        },
-        {
-          type: "tabset",
-          weight: 2,
-          children: [
-            {
-              type: "tab",
-              name: "Disassembly View",
-              component: "DisassemblyView",
             }
           ]
         },
@@ -136,66 +125,51 @@ function App() {
 
   const componentFactory = (node) => {
     var component = node.getComponent();
-    let reattachButton = (<button type='button'>Close!</button>)
-    let detachButton = (<button type='button'>Detach!</button>)
     switch (component) {
       case "SourceView":
         return <>
-          <ReactDetachableWindow
-            windowOptions={{ width: 800, height: 600 }}
-            reattachButton={reattachButton}i
-            detachButton={detachButton}>
-            <SourceView selectedSourceFile={selectedSourceFile} sourceData={sourceData}/>;
-          </ReactDetachableWindow>
+            <SourceView sourceData={sourceData}/>;
         </>
       case "InputFilePath":
         return <>
-          <ReactDetachableWindow
-            windowOptions={{ width: 800, height: 600 }}
-            reattachButton={reattachButton}i
-            detachButton={detachButton}>
-            <InputFilePath setBinaryFilePath={setBinaryFilePath} setSelectedSourceFile={setSelectedSourceFile} sourceFiles={sourceFiles} />;
-          </ReactDetachableWindow>
+            <InputFilePath
+              binaryFilePath={binaryFilePath}
+              setBinaryFilePath={setBinaryFilePath}
+              sourceFiles={sourceFiles}
+              selectedSourceFile={selectedSourceFile}
+              setSelectedSourceFile={setSelectedSourceFile}
+            />;
         </>
       case "ObjectViz":
         return <>
-          <ReactDetachableWindow
-            windowOptions={{ width: 800, height: 600 }}
-            reattachButton={reattachButton}i
-            detachButton={detachButton}>
             <ObjectViz dotString={dotString} />;
-          </ReactDetachableWindow>
-        </>
-      case "DisassemblyView":
-        return <>
-          <ReactDetachableWindow
-            windowOptions={{ width: 800, height: 600 }}
-            reattachButton={reattachButton}i
-            detachButton={detachButton}>
-            <DisassemblyView disassemblyData={disassemblyData} />;
-          </ReactDetachableWindow>
         </>
       default:
         return <>
-          <ReactDetachableWindow
-            windowOptions={{ width: 800, height: 600 }}
-            reattachButton={reattachButton}i
-            detachButton={detachButton}>
             <div>{component}<br />(Stub!!!)</div>;
-          </ReactDetachableWindow>
         </>
     }
   }
 
   return (
     <div className="App">
+      <WinboxReact
+          width="500px"
+          height="500px"
+          x="center"
+          y="center"
+          title="stub"
+          border="0"
+          className="modern"
+        >
+          <DisassemblyView disassemblyData={disassemblyData}/>
+        </WinboxReact>
       <Layout
         model={model}
         factory={componentFactory}
       />
     </div>
-
-  );
+  )
 }
 
 export default App;

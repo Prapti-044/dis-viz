@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+import json
 
 
 import json
@@ -53,3 +54,8 @@ async def getdyninstinfo():
 @app.get("/getdisassemblydot")
 async def getdisassemblydot():
     return {"dot": sopt.get_dot()}
+
+@app.get("/binarylist")
+async def binarylist():
+    with open('BinaryList.json') as f:
+        return json.load(f)

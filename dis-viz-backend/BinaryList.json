@@ -1,0 +1,20 @@
+{
+    "binarylist": [
+        {
+            "name": "RAJAPerf",
+            "executable_path": "/root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe"
+        },
+        {
+            "name": "LULESH 2.0",
+            "executable_path": "/root/LULESH/build/lulesh2.0"
+        },
+        {
+            "name": "Simple Printf",
+            "executable_path": "/samples/hello"
+        },
+        {
+            "name": "MultiSource Loop",
+            "executable_path": "/samples/multisource/hello"
+        }
+    ]
+}

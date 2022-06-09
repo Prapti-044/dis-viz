@@ -48,8 +48,13 @@ WORKDIR /
 RUN rm -rf /root/simple-optparser
 
 WORKDIR /samples
-COPY sample_inputs/* .
+COPY sample_inputs ./
 RUN g++ -g -o0 hello.cpp -o hello
+# hello exe is in /samples/hello
+
+WORKDIR /samples/multisource
+RUN gcc -g -o0 hello.c -o hello
+# hello exe is in /samples/multisource/hello
 
 WORKDIR /root/
 COPY requirements.txt .
@@ -59,6 +64,7 @@ RUN rm requirements.txt
 # Copy dis-viz
 WORKDIR /App
 COPY app app
+COPY BinaryList.json .
 
 EXPOSE 80
 ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]
