@@ -1,0 +1,5 @@
+.codeline:hover {
+    background-color: #ddd;
+    border: 2px solid black;
+    cursor: pointer;
+}
