@@ -6,8 +6,6 @@ import '../styles/sourceview.css'
 
 function SourceView({ sourceData, selectedLines, setSelectedLines }) {
 
-    // TODO: While converting from flex to new tile library, use tooltip buttons as settings for using line numbers
-    const [useLineNumbers, setUseLineNumbers] = React.useState(true);
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState({
@@ -32,13 +30,13 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
         <SyntaxHighlighter
             language="c++"
             style={docco}
-            showLineNumbers={useLineNumbers}
+            showLineNumbers
             showInlineLineNumbers
             wrapLines
             wrapLongLines={wrapLongLines}
-            codeTagProps={{
-                className: "codesegment"
-            }}
+            // codeTagProps={{
+            //     className: "codesegment"
+            // }}
             lineProps={ lineNum => {
                 let style = { display: "block", userSelect: "none" }
                 if(isSelecting?(lineNum >= onGoingSelection.start && lineNum <= onGoingSelection.end):(lineNum >= selectedLines.start && lineNum <= selectedLines.end)) {

@@ -7,23 +7,22 @@ import DisassemblyView from "./components/DisassemblyView";
 
 import { DockLayout, DockContextType } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
+import TabContent from "./components/TabContent";
 
 
 
 
-function App() {
+const App = () => {
 
   const [binaryFilePath, setBinaryFilePath] = React.useState("");
   const [selectedSourceFile, setSelectedSourceFile] = React.useState("");
-  const [dotString, setDotString] = React.useState("");
+  const [dotString, setDotString] = React.useState(null);
   const [sourceFiles, setSourceFiles] = React.useState([]);
-  const [disassemblyData, setDisassemblyData] = React.useState([]);
+  const [disassemblyData, setDisassemblyData] = React.useState(null);
   const [dyninstInfo, setDyninstInfo] = React.useState({});
   const [sourceData, setSourceData] = React.useState([]);
-  const [disassemblyViewList, setDisassemblyViewList] = React.useState([]);
+  const [disassemblyViewList, setDisassemblyViewList] = React.useState(null);
   const [sourceFileLineSelection, setSourceFileLineSelection] = React.useState({ start: -1, end: -1 });
-
-  console.log(sourceFileLineSelection);
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
@@ -61,20 +60,20 @@ function App() {
       case "SourceView":
         return {
           title: `Source View (${selectedSourceFile})`,
-          content: <SourceView sourceData={sourceData} selectedLines={sourceFileLineSelection} setSelectedLines={setSourceFileLineSelection} />,
+          content: <TabContent><SourceView sourceData={sourceData} selectedLines={sourceFileLineSelection} setSelectedLines={setSourceFileLineSelection} /></TabContent>,
           closable: true,
           id,
         }
       case "InputFilePath":
         return {
           title: "Input File",
-          content: <InputFilePath
+          content: <TabContent><InputFilePath
             setBinaryFilePath={setBinaryFilePath}
             setSelectedSourceFile={setSelectedSourceFile}
             sourceFiles={sourceFiles}
             binaryFilePath={binaryFilePath}
             selectedSourceFile={selectedSourceFile}
-          />,
+          /></TabContent>,
           closable: true,
           id,
           minHeight: 150,
@@ -83,30 +82,21 @@ function App() {
       case "ObjectView":
         return {
           title: "Object Visualization",
-          content: <ObjectViz dotString={dotString} />,
+          content: <TabContent><ObjectViz dotString={dotString} /></TabContent>,
           closable: true,
           id,
         }
       case "DisassemblyView":
         return {
-          title: `Disassembly View (${selectedSourceFile})`,
-          content: <DisassemblyView disassemblyData={disassemblyData} />,
+          title: 'Disassembly View',
+          content: <TabContent><DisassemblyView disassemblyData={disassemblyData} /></TabContent>,
           closable: true,
           id,
         }
-      case 'protect1' :
-        return {
-          id, title: 'Protect',
-          closable: true,
-          content: <div>
-            <p>Removal of this tab will be rejected</p>
-            This is done in the onLayoutChange callback
-          </div>
-        };
       default:
         return {
-          title: "Stub", 
-          content: <div>{id}<br />(Stub!!!)</div>,
+          title: id, 
+          content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
           closable: true,
           id,
         }
@@ -129,7 +119,8 @@ function App() {
             {
               tabs: [
                 { id: "VariableRenamer" },
-                { id: "Selection" }],
+                { id: "Selection" }
+              ],
             },
           ]
         },
@@ -158,8 +149,7 @@ function App() {
       children: [
         // {
         //   tabs: [
-        //     { id: 't9', title: 'Tab 9', content: <div>Float</div>, closable: true },
-        //     { id: 't10', title: 'Tab 10', content: <div>Binary</div>, closable: true },
+        //     { id: 't9', title: 'Tab 9', content: <div>Float</div>, closable: true }
         //   ],
         //   x: 300, y: 150, w: 400, h: 300
         // }
@@ -174,13 +164,13 @@ function App() {
   })
 
   const onLayoutChange = (newLayout, currentTabId, direction) => {
+    console.log(newLayout);
     setLayout(newLayout);
   };
 
-
   return (
     <div className="App">
-      <DockLayout ref={dockRef} layout={layout} loadTab={loadTab} onLayoutChange={onLayoutChange} style={{ position: 'absolute', left: 10, top: 10, right: 10, bottom: 10 }} />
+      <DockLayout ref={dockRef} layout={layout} loadTab={loadTab} onLayoutChange={onLayoutChange} style={{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5 }} />
     </div>
   )
 }

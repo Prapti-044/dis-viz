@@ -5,8 +5,6 @@ import * as api from "../api";
 
 function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, setSelectedSourceFile, sourceFiles }) {
 
-    console.log("binaryFilePath from InputFilePath : ", binaryFilePath);
-
     const [activeSourceFile, setActiveSourceFile] = React.useState("");
     const [binaryList, setBinaryList] = React.useState([]);
 
