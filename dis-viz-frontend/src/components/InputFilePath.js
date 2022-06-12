@@ -4,13 +4,12 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import * as api from "../api";
 
 function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, setSelectedSourceFile, sourceFiles }) {
-    console.log("Loading InputFilePath");
+
     const [activeSourceFile, setActiveSourceFile] = React.useState("");
     const [binaryList, setBinaryList] = React.useState([]);
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
-        console.log("InputFilePath: Fetching Binary List");
         const fetchBinaryList = async () => {
             const result =  await api.getBinaryList();
             setBinaryList(result);

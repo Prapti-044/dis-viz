@@ -1,31 +1,34 @@
 import SourceView from "./components/SourceView";
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
-import { Layout, Model } from 'flexlayout-react';
-import "flexlayout-react/style/light.css";
 import InputFilePath from "./components/InputFilePath";
 import * as api from "./api";
 import DisassemblyView from "./components/DisassemblyView";
 
-import WinboxReact from './components/Winbox'
+import { DockLayout, DockContextType } from 'rc-dock'
+import "rc-dock/dist/rc-dock.css";
+import TabContent from "./components/TabContent";
 
 
-function App() {
-  console.log("Loading App")
+
+
+const App = () => {
 
   const [binaryFilePath, setBinaryFilePath] = React.useState("");
   const [selectedSourceFile, setSelectedSourceFile] = React.useState("");
-  const [dotString, setDotString] = React.useState("");
+  const [dotString, setDotString] = React.useState(null);
   const [sourceFiles, setSourceFiles] = React.useState([]);
-  const [disassemblyData, setDisassemblyData] = React.useState([]);
+  const [disassemblyData, setDisassemblyData] = React.useState(null);
   const [dyninstInfo, setDyninstInfo] = React.useState({});
   const [sourceData, setSourceData] = React.useState([]);
-  const [disassemblyViewList, setDisassemblyViewList] = React.useState([]);
+  const [disassemblyViewList, setDisassemblyViewList] = React.useState(null);
+  const [sourceFileLineSelection, setSourceFileLineSelection] = React.useState({ start: -1, end: -1 });
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
     api.openExe(binaryFilePath).then((result) => {
       if (result.message !== "success") return;
+
       api.getDisassemblyDot().then((result) => {
         setDotString(result);
       });
@@ -37,7 +40,7 @@ function App() {
       api.getDisassembly().then((result) => {
         setDisassemblyData(result);
       })
-      
+
       api.getDyninstInfo().then((result) => {
         setDyninstInfo(result);
       })
@@ -45,129 +48,129 @@ function App() {
   }, [binaryFilePath]);
 
   React.useEffect(() => {
-    if(selectedSourceFile.length === 0) return;
+    if (selectedSourceFile.length === 0) return;
     api.getSourceLines(selectedSourceFile).then((result) => {
       setSourceData(result);
     })
   }, [binaryFilePath, selectedSourceFile])
 
 
-  const model = Model.fromJson({
-    global: {
-      tabBorderWidth: 10
-    },
-    borders: [],
-    layout: {
-      type: "row",
+  const loadTab = ({id}) => {
+    switch (id) {
+      case "SourceView":
+        return {
+          title: `Source View (${selectedSourceFile})`,
+          content: <TabContent><SourceView sourceData={sourceData} selectedLines={sourceFileLineSelection} setSelectedLines={setSourceFileLineSelection} /></TabContent>,
+          closable: true,
+          id,
+        }
+      case "InputFilePath":
+        return {
+          title: "Input File",
+          content: <TabContent><InputFilePath
+            setBinaryFilePath={setBinaryFilePath}
+            setSelectedSourceFile={setSelectedSourceFile}
+            sourceFiles={sourceFiles}
+            binaryFilePath={binaryFilePath}
+            selectedSourceFile={selectedSourceFile}
+          /></TabContent>,
+          closable: true,
+          id,
+          minHeight: 150,
+          minWidth: 250
+        }
+      case "ObjectView":
+        return {
+          title: "Object Visualization",
+          content: <TabContent><ObjectViz dotString={dotString} /></TabContent>,
+          closable: true,
+          id,
+        }
+      case "DisassemblyView":
+        return {
+          title: 'Disassembly View',
+          content: <TabContent><DisassemblyView disassemblyData={disassemblyData} /></TabContent>,
+          closable: true,
+          id,
+        }
+      default:
+        return {
+          title: id, 
+          content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
+          closable: true,
+          id,
+        }
+    }
+  }
+
+  const [layout, setLayout] = React.useState({
+    dockbox: {
+      mode: 'horizontal',
       children: [
         {
-          type: "row",
-          weight: 1,
+          mode: 'vertical',
+          size: 1,
           children: [
             {
-              type: "tabset",
-              children: [
-                {
-                  type: "tab",
-                  name: "Input Source",
-                  component: "InputFilePath"
-                }
-              ]
+              tabs: [
+                { id: "InputFilePath" },
+              ],
             },
             {
-              type: "tabset",
-              children: [
-                {
-                  type: "tab",
-                  name: "Selections",
-                  component: "Selection"
-                }
-              ]
+              tabs: [
+                { id: "VariableRenamer" },
+                { id: "Selection" }
+              ],
             },
-            {
-              type: "tabset",
-              children: [
-                {
-                  type: "tab",
-                  name: "Variable Renamer",
-                  component: "VarRenamer"
-                }
-              ]
-            }
           ]
         },
         {
-          type: "tabset",
-          weight: 2,
-          children: [
-            {
-              type: "tab",
-              name: `Source View (${selectedSourceFile})`,
-              enableClose: false,
-              component: "SourceView",
-            }
-          ]
+          size: 4,
+          tabs: [
+            { id: "SourceView" },
+          ],
         },
         {
-          type: "tabset",
-          weight: 2,
-          children: [
-            {
-              type: "tab",
-              name: "Object Visualization",
-              component: "ObjectViz",
-            }
-          ]
-        }
+          size: 4,
+          tabs: [
+            { id: "DisassemblyView"},
+          ],
+        },
+        {
+          size: 4,
+          tabs: [
+            { id: "ObjectView" },
+          ],
+        },
+      ]
+    },
+    floatbox: {
+      mode: 'float',
+      children: [
+        // {
+        //   tabs: [
+        //     { id: 't9', title: 'Tab 9', content: <div>Float</div>, closable: true }
+        //   ],
+        //   x: 300, y: 150, w: 400, h: 300
+        // }
       ]
     }
   });
 
-  const componentFactory = (node) => {
-    var component = node.getComponent();
-    switch (component) {
-      case "SourceView":
-        return <>
-            <SourceView sourceData={sourceData}/>;
-        </>
-      case "InputFilePath":
-        return <>
-            <InputFilePath
-              binaryFilePath={binaryFilePath}
-              setBinaryFilePath={setBinaryFilePath}
-              sourceFiles={sourceFiles}
-              selectedSourceFile={selectedSourceFile}
-              setSelectedSourceFile={setSelectedSourceFile}
-            />;
-        </>
-      case "ObjectViz":
-        return <>
-            <ObjectViz dotString={dotString} />;
-        </>
-      default:
-        return <>
-            <div>{component}<br />(Stub!!!)</div>;
-        </>
-    }
-  }
+  const dockRef = React.useRef();
+  React.useEffect(() => {
+    if(dockRef.current)
+      dockRef.current.loadLayout(layout);
+  })
+
+  const onLayoutChange = (newLayout, currentTabId, direction) => {
+    console.log(newLayout);
+    setLayout(newLayout);
+  };
 
   return (
     <div className="App">
-      <WinboxReact
-          width="500px"
-          height="500px"
-          x="center"
-          y="center"
-          title="stub"
-          border="0"
-          className="modern"
-        >
-          <DisassemblyView disassemblyData={disassemblyData}/>
-        </WinboxReact>
-      <Layout
-        model={model}
-        factory={componentFactory}
-      />
+      <DockLayout ref={dockRef} layout={layout} loadTab={loadTab} onLayoutChange={onLayoutChange} style={{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5 }} />
     </div>
   )
 }
