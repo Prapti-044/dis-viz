@@ -21,8 +21,8 @@ const App = () => {
   const [disassemblyData, setDisassemblyData] = React.useState(null);
   const [dyninstInfo, setDyninstInfo] = React.useState({});
   const [sourceData, setSourceData] = React.useState([]);
-  const [disassemblyViewList, setDisassemblyViewList] = React.useState(null);
   const [sourceFileLineSelection, setSourceFileLineSelection] = React.useState({ start: -1, end: -1 });
+  const [disassemblySelectedLines, setDisassemblySelectedLines] = React.useState({ start: -1, end: -1});
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
@@ -63,6 +63,8 @@ const App = () => {
           content: <TabContent><SourceView sourceData={sourceData} selectedLines={sourceFileLineSelection} setSelectedLines={setSourceFileLineSelection} /></TabContent>,
           closable: true,
           id,
+          minHeight: 150,
+          minWidth: 150
         }
       case "InputFilePath":
         return {
@@ -89,9 +91,11 @@ const App = () => {
       case "DisassemblyView":
         return {
           title: 'Disassembly View',
-          content: <TabContent><DisassemblyView disassemblyData={disassemblyData} /></TabContent>,
+          content: <TabContent><DisassemblyView disassemblyData={disassemblyData} setSelectedLines={setDisassemblySelectedLines} selectedLines={disassemblySelectedLines} /></TabContent>,
           closable: true,
           id,
+          minHeight: 150,
+          minWidth: 150
         }
       default:
         return {
@@ -99,6 +103,8 @@ const App = () => {
           content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
           closable: true,
           id,
+          minHeight: 150,
+          minWidth: 150
         }
     }
   }
@@ -164,13 +170,24 @@ const App = () => {
   })
 
   const onLayoutChange = (newLayout, currentTabId, direction) => {
-    console.log(newLayout);
     setLayout(newLayout);
   };
 
   return (
     <div className="App">
-      <DockLayout ref={dockRef} layout={layout} loadTab={loadTab} onLayoutChange={onLayoutChange} style={{ position: 'absolute', left: 5, top: 5, right: 5, bottom: 5 }} />
+      <DockLayout
+        ref={dockRef}
+        defaultLayout={layout}
+        loadTab={loadTab}
+        onLayoutChange={onLayoutChange}
+        style={{
+          position: 'absolute',
+          left: 5,
+          top: 5,
+          right: 5,
+          bottom: 5
+        }}
+        />
     </div>
   )
 }

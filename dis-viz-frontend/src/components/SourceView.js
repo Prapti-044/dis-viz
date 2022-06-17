@@ -6,6 +6,8 @@ import '../styles/sourceview.css'
 
 function SourceView({ sourceData, selectedLines, setSelectedLines }) {
 
+    console.log("rendered SOurceView");
+
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState({
@@ -34,9 +36,9 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
             showInlineLineNumbers
             wrapLines
             wrapLongLines={wrapLongLines}
-            // codeTagProps={{
-            //     className: "codesegment"
-            // }}
+            codeTagProps={{
+                className: "codesegment"
+            }}
             lineProps={ lineNum => {
                 let style = { display: "block", userSelect: "none" }
                 if(isSelecting?(lineNum >= onGoingSelection.start && lineNum <= onGoingSelection.end):(lineNum >= selectedLines.start && lineNum <= selectedLines.end)) {
@@ -44,8 +46,6 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
                     style.border = "1px solid grey";
                     style.cursor = "pointer";
                 }
-
-                let className = "codeline";
 
                 const onMouseDown = () => {
                     setIsSelecting(true);
@@ -73,7 +73,7 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
                     setSelectedLines(onGoingSelection)
                 }
 
-                return { style, 'class':className, onMouseUp, onMouseDown, onMouseOver }
+                return { style, onMouseUp, onMouseDown, onMouseOver }
             }}
         >
             {sourceCode}
