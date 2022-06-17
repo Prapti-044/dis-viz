@@ -56,7 +56,8 @@ const App = () => {
 
 
   const loadTab = ({id}) => {
-    switch (id) {
+    const [compName, compNum] = id.split(':')
+    switch (compName) {
       case "SourceView":
         return {
           title: `Source View (${selectedSourceFile})`,
@@ -119,13 +120,13 @@ const App = () => {
           children: [
             {
               tabs: [
-                { id: "InputFilePath" },
+                { id: "InputFilePath:1" },
               ],
             },
             {
               tabs: [
-                { id: "VariableRenamer" },
-                { id: "Selection" }
+                { id: "VariableRenamer:1" },
+                { id: "Selection:1" }
               ],
             },
           ]
@@ -133,19 +134,21 @@ const App = () => {
         {
           size: 4,
           tabs: [
-            { id: "SourceView" },
+            { id: "SourceView:1" },
           ],
         },
         {
           size: 4,
           tabs: [
-            { id: "DisassemblyView"},
+            { id: "DisassemblyView:1"},
+            { id: "DisassemblyView:2"},
+            { id: "DisassemblyView:3"},
           ],
         },
         {
           size: 4,
           tabs: [
-            { id: "ObjectView" },
+            { id: "ObjectView:1" },
           ],
         },
       ]
