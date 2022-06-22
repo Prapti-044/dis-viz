@@ -22,7 +22,14 @@ const App = () => {
   const [dyninstInfo, setDyninstInfo] = React.useState({});
   const [sourceData, setSourceData] = React.useState([]);
   const [sourceFileLineSelection, setSourceFileLineSelection] = React.useState({ start: -1, end: -1 });
-  const [disassemblySelectedLines, setDisassemblySelectedLines] = React.useState({ start: -1, end: -1});
+
+  const [disassemblySelectedLines, setDisassemblySelectedLines] = React.useState({ start: -1, end: -1 });
+  const [disassemblyViewStates, setDisassemblyViewStates] = React.useState([
+    { id: 1, lineSelection: { start: -1, end: -1 } }
+  ]);
+  const dockRef = React.useRef();
+
+
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
@@ -55,7 +62,7 @@ const App = () => {
   }, [binaryFilePath, selectedSourceFile])
 
 
-  const loadTab = ({id}) => {
+  const loadTab = ({ id }) => {
     const [compName, compNum] = id.split(':')
     switch (compName) {
       case "SourceView":
@@ -92,7 +99,11 @@ const App = () => {
       case "DisassemblyView":
         return {
           title: 'Disassembly View',
-          content: <TabContent><DisassemblyView disassemblyData={disassemblyData} setSelectedLines={setDisassemblySelectedLines} selectedLines={disassemblySelectedLines} /></TabContent>,
+          content: <TabContent><DisassemblyView
+            disassemblyData={disassemblyData}
+            setSelectedLines={setDisassemblySelectedLines}
+            selectedLines={disassemblySelectedLines}
+          /></TabContent>,
           closable: true,
           id,
           minHeight: 150,
@@ -100,7 +111,7 @@ const App = () => {
         }
       default:
         return {
-          title: id, 
+          title: id,
           content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
           closable: true,
           id,
@@ -109,6 +120,60 @@ const App = () => {
         }
     }
   }
+
+  const addNewDisassembly = (panelData, context) => {
+    const newId = disassemblyViewStates[disassemblyViewStates.length - 1].id + 1;
+    const disassemblyViewStatesCopy = [...disassemblyViewStates]
+    disassemblyViewStatesCopy.push({
+      id: newId,
+      lineSelection: { start: -1, end: -1 }
+    })
+
+    context.dockMove(loadTab({ id: "DisassemblyView:" + newId }), panelData, 'middle')
+
+    // Changing states like this is not recommended. But could not find a better way
+    disassemblyViewStates.push(disassemblyViewStatesCopy[disassemblyViewStatesCopy.length - 1])
+    setDisassemblyViewStates(disassemblyViewStatesCopy)
+  }
+
+  function moveToNewWindow(panelData, context) {
+    if (!('isDocked' in panelData) || panelData['isDocked']) {
+      panelData.h = 700;
+      panelData.w = 512;
+      panelData.x = 200;
+      panelData.y = 200;
+      panelData['isDocked'] = false;
+      context.dockMove(panelData, panelData, 'new-window')
+    }
+    else {
+      panelData['isDocked'] = true;
+      panelData.h = 700;
+      panelData.w = 512;
+      panelData.x = 200;
+      panelData.y = 200;
+      context.dockMove(panelData, panelData, 'float')
+    }
+  }
+
+  const panelLockData = {
+    panelExtra: (panelData, context) => (<>
+      <button
+        style={{
+          margin: "4px"
+        }}
+        onClick={(event) => { addNewDisassembly(panelData, context) }}
+      >
+        +
+      </button>
+      <button
+        style={{
+          margin: "4px"
+        }}
+        onClick={(event) => { moveToNewWindow(panelData, context) }}
+      >
+      </button>
+    </>)
+  };
 
   const [layout, setLayout] = React.useState({
     dockbox: {
@@ -139,11 +204,9 @@ const App = () => {
         },
         {
           size: 4,
-          tabs: [
-            { id: "DisassemblyView:1"},
-            { id: "DisassemblyView:2"},
-            { id: "DisassemblyView:3"},
-          ],
+          tabs: disassemblyViewStates.map(viewState => ({ id: "DisassemblyView:"+viewState.id})),
+          id: "DisassemblyViewPanel",
+          panelLock: panelLockData,
         },
         {
           size: 4,
@@ -153,27 +216,53 @@ const App = () => {
         },
       ]
     },
-    floatbox: {
-      mode: 'float',
-      children: [
-        // {
-        //   tabs: [
-        //     { id: 't9', title: 'Tab 9', content: <div>Float</div>, closable: true }
-        //   ],
-        //   x: 300, y: 150, w: 400, h: 300
-        // }
-      ]
-    }
   });
 
-  const dockRef = React.useRef();
+  function addPanelLockToLayout(newLayout, panelData) {
+    function addPanelLockToLayoutRecurse(newLayout, panelData) {
+      if (typeof newLayout == "object" && newLayout !== null) {
+        // if (!newLayout.hasOwnProperty('tabs')) return; 
+        if ('tabs' in newLayout) {
+          let foundDisassemblyView = false;
+          for(let tab in newLayout.tabs) {
+            if(tab.id.split(':')[0] === 'DisassemblyView') {
+              foundDisassemblyView = true;
+              break
+            }
+          }
+          if (foundDisassemblyView) {
+            newLayout['panelLock'] = panelData;
+          }
+        }
+        else if ('children' in newLayout) {
+          for(let panelChild in newLayout.children) {
+            addPanelLockToLayoutRecurse(panelChild, panelData);
+          }
+        }
+      }
+    }
+    const newLayoutCopy = {...newLayout};
+    for(let key in newLayoutCopy) {
+      addPanelLockToLayoutRecurse(newLayoutCopy[key], panelData);
+    }
+    console.log("New Layout Copy")
+    console.log(newLayoutCopy);
+    return newLayoutCopy;
+  }
+
+
+  console.log("Layout")
+  console.log(layout);
   React.useEffect(() => {
-    if(dockRef.current)
+    console.log("calling laodlayout")
+    if (dockRef.current)
       dockRef.current.loadLayout(layout);
   })
 
+
   const onLayoutChange = (newLayout, currentTabId, direction) => {
-    setLayout(newLayout);
+    console.log("Called onLayoutChange")
+    setLayout(addPanelLockToLayout(newLayout, panelLockData));
   };
 
   return (
@@ -190,7 +279,7 @@ const App = () => {
           right: 5,
           bottom: 5
         }}
-        />
+      />
     </div>
   )
 }

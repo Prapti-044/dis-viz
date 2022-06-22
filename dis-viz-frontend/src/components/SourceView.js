@@ -6,8 +6,6 @@ import '../styles/sourceview.css'
 
 function SourceView({ sourceData, selectedLines, setSelectedLines }) {
 
-    console.log("rendered SOurceView");
-
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState({

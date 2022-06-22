@@ -9,7 +9,7 @@ function DisassemblyView({ disassemblyData, selectedLines, setSelectedLines }) {
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState({
         start: -1, end: -1
-    });
+    })
 
     const marginHorizontal = '10px'
     const marginVertical = '50px'
@@ -41,8 +41,9 @@ function DisassemblyView({ disassemblyData, selectedLines, setSelectedLines }) {
         setSelectedLines(onGoingSelection)
     }
 
-    return <>{disassemblyData ? <div>
-        {disassemblyData.blocks.map((block, i) => (
+    return <>
+        {disassemblyData ? <div>
+            {disassemblyData.blocks.map((block, i) => (
                 <Card key={i} style={{
                     marginLeft: marginHorizontal,
                     marginRight: marginHorizontal,
@@ -64,15 +65,15 @@ function DisassemblyView({ disassemblyData, selectedLines, setSelectedLines }) {
                     <ListGroup variant="flush" style={{
                         paddingLeft: '10px',
                     }}>
-                        {block['B'+i].map((ins, j) => {
-                            return <DisassemblyLine selectedLines={selectedLines} mouseEvents={{onMouseDown, onMouseOver, onMouseUp}} key={i.toString()+j.toString()} instruction={ins} isSelecting={isSelecting} onGoingSelection={onGoingSelection} />
+                        {block['B' + i].map((ins, j) => {
+                            return <DisassemblyLine selectedLines={selectedLines} mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }} key={i.toString() + j.toString()} instruction={ins} isSelecting={isSelecting} onGoingSelection={onGoingSelection} />
                         })}
                     </ListGroup>
 
                 </Card>
             )
-        )}</div> :
-        <div></div>}
+            )}</div> :
+            <div></div>}
     </>
 }
 

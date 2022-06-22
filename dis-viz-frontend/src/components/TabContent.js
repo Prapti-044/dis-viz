@@ -4,7 +4,7 @@ function TabContent({children}) {
   return (
     <div style={{
         overflow: 'auto',
-        height: '100%'
+        height: '100%',
     }}>
         {children}
     </div>
