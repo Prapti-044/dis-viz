@@ -1,13 +1,18 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
 
-function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting, onGoingSelection }) {
+function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting, onGoingSelection, color }) {
     let instruction_address = instruction.address.toString(16).toUpperCase();
     while (instruction_address.length < 4)
         instruction_address = '0' + instruction_address;
 
     let selectionStyle = { display: "block", userSelect: "none" }
-    if(isSelecting?(instruction.address >= onGoingSelection.start && instruction.address <= onGoingSelection.end):(instruction.address >= selectedLines.start && instruction.address <= selectedLines.end)) {
+    if(instruction.address >= selectedLines.start && instruction.address <= selectedLines.end) {
+        selectionStyle.backgroundColor = color;
+        selectionStyle.border = "1px solid grey";
+        selectionStyle.cursor = "pointer";
+    }
+    if(isSelecting && instruction.address >= onGoingSelection.start && instruction.address <= onGoingSelection.end) {
         selectionStyle.backgroundColor = "#eee";
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";

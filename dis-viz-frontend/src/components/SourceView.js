@@ -2,9 +2,11 @@ import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import '../styles/sourceview.css'
+import { codeColors } from '../utils';
 
 
-function SourceView({ sourceData, selectedLines, setSelectedLines }) {
+function SourceView({ sourceData, viewState, setNewSelection }) {
+    console.log('sourceViewState', viewState)
 
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);
@@ -39,7 +41,17 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
             }}
             lineProps={ lineNum => {
                 let style = { display: "block", userSelect: "none" }
-                if(isSelecting?(lineNum >= onGoingSelection.start && lineNum <= onGoingSelection.end):(lineNum >= selectedLines.start && lineNum <= selectedLines.end)) {
+
+                // Highlight for different disassemblyViewId
+                for(let i in viewState) {
+                    if(lineNum >= viewState[i].lineSelection.start && lineNum <= viewState[i].lineSelection.end) {
+                        style.backgroundColor = codeColors[viewState[i].id];
+                        style.border = "1px solid grey";
+                        style.cursor = "pointer";
+                    }
+                }
+                
+                if(isSelecting && lineNum >= onGoingSelection.start && lineNum <= onGoingSelection.end) {
                     style.backgroundColor = "#eee";
                     style.border = "1px solid grey";
                     style.cursor = "pointer";
@@ -68,7 +80,7 @@ function SourceView({ sourceData, selectedLines, setSelectedLines }) {
                         ...onGoingSelection,
                         end: lineNum<onGoingSelection.start?onGoingSelection.start:lineNum
                     })
-                    setSelectedLines(onGoingSelection)
+                    setNewSelection(onGoingSelection)
                 }
 
                 return { style, onMouseUp, onMouseDown, onMouseOver }
