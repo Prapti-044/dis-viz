@@ -92,10 +92,6 @@ function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting,
 
         {parsedTokens}
 
-        {/* {instruction.instruction.split(' ').map((word, i) => <span key={i} style={{
-                fontStyle: i===0?'italic':'bold',
-                color: i===0?'maroon':'black'
-            }}>{word} </span>)} */}
     </code>
 }
 

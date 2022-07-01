@@ -5,8 +5,7 @@ import '../styles/sourceview.css'
 import { codeColors } from '../utils';
 
 
-function SourceView({ sourceData, viewState, setNewSelection }) {
-    console.log('sourceViewState', viewState)
+function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
 
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);

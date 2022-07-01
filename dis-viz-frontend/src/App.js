@@ -104,6 +104,7 @@ const App = () => {
               }
               setSourceViewStates(sourceViewStatesCopy);
             }}
+            dyninstInfo={dyninstInfo}
           /></TabContent>,
           closable: true,
           id,
@@ -242,7 +243,10 @@ const App = () => {
     panelExtra: (panelData, context) => (<>
       <button
         style={{
-          margin: "4px"
+          margin: "4px",
+          background: "white",
+          border: "1px solid black",
+          borderRadius: '5px'
         }}
         onClick={(event) => { addNewDisassembly(panelData, context) }}
       >
@@ -250,7 +254,8 @@ const App = () => {
       </button>
       <button
         style={{
-          margin: "4px"
+          margin: "4px",
+          background: "url('../assets/icons8-external-link-64.png')",
         }}
         onClick={(event) => { moveToNewWindow(panelData, context) }}
       >
@@ -271,12 +276,12 @@ const App = () => {
                 { id: "InputFilePath:1" },
               ],
             },
-            {
-              tabs: [
-                { id: "VariableRenamer:1" },
-                { id: "Selection:1" }
-              ],
-            },
+            // {
+            //   tabs: [
+            //     { id: "VariableRenamer:1" },
+            //     { id: "Selection:1" }
+            //   ],
+            // },
           ]
         },
         {

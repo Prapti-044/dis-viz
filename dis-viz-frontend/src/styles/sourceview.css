@@ -1,10 +1,10 @@
-.codesegment > span:hover {
+.codesegment>span:hover {
     background-color: #ddd;
     border: 2px solid black;
     cursor: pointer;
 }
 
-.codesegment > span:hover::before {
+/* .codesegment > span:hover::before {
     content: '';
     background: url('../assets/icons8-external-link-64.png');
     background-size: 20px 20px;
@@ -12,4 +12,37 @@
     float: right;
     width: 20px;
     height: 20px;
+} */
+
+.center {
+    text-align: center;
+}
+
+.pagination {
+    display: inline-block;
+}
+
+.pagination button {
+    background: none;
+    font: inherit;
+    cursor: pointer;
+    outline: inherit;
+
+    color: black;
+    float: left;
+    padding: 8px 16px;
+    text-decoration: none;
+    transition: background-color .3s;
+    border: 1px solid #ddd;
+    margin: 0 4px;
+}
+
+.pagination a.active {
+    background-color: #4CAF50;
+    color: white;
+    border: 1px solid #4CAF50;
+}
+
+.pagination a:hover:not(.active) {
+    background-color: #ddd;
 }

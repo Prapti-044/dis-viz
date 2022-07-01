@@ -150,8 +150,6 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                     }}>
                         {block['B' + i].map((ins, j) => {
     
-
-
                             const variables = [];
                             allVars.forEach(variable => {
                                 let found = false;
@@ -165,8 +163,6 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                                 });
                                 if (found) return;
                             });
-
-
 
                             return <DisassemblyLine
                                 selectedLines={viewState.lineSelection}
@@ -185,6 +181,13 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
             )
             )}</div> :
             <div></div>}
+
+            <div className="pagination">
+                <button>&laquo;</button>
+                <button>1</button>
+                <button>&raquo;</button>
+            </div>
+
     </>
 }
 
