@@ -38,7 +38,6 @@ WORKDIR /root/LULESH/build
 RUN make
 # lulesh exe is in /root/LULESH/build/lulesh2.0
 
-
 # # Install simple-optparser (comment this if optparser is used)
 WORKDIR /root/
 COPY simple-optparser simple-optparser
@@ -47,15 +46,7 @@ RUN python3 setup.py install
 WORKDIR /
 RUN rm -rf /root/simple-optparser
 
-WORKDIR /samples
-COPY sample_inputs ./
-RUN g++ -g -o0 hello.cpp -o hello
-# hello exe is in /samples/hello
-
-WORKDIR /samples/multisource
-RUN gcc -g -o0 hello.c -o hello
-# hello exe is in /samples/multisource/hello
-
+# Install fastapi requirements
 WORKDIR /root/
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir --upgrade -r requirements.txt
@@ -66,5 +57,18 @@ WORKDIR /App
 COPY app app
 COPY BinaryList.json .
 
+WORKDIR /samples
+COPY sample_inputs ./
+RUN g++ -g -o0 hello.cpp -o hello
+# hello exe is in /samples/hello
+
+RUN g++ -g -o0 bubble_sort.cpp -o bubble
+# bubble exe is in /samples/bubble
+
+WORKDIR /samples/multisource
+RUN gcc -g -o0 hello.c -o hello
+# hello exe is in /samples/multisource/hello
+
+WORKDIR /App
 EXPOSE 80
 ENTRYPOINT ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "80"]

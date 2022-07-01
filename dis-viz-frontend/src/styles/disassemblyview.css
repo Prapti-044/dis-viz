@@ -4,6 +4,47 @@
     cursor: pointer;
 }
 
+mark {
+    background-color: transparent;
+}
+
+mark[data-type="mnemonic"] {
+    font-style: italic;
+    color: maroon;
+}
+
+mark[data-type='register'] {
+    color: purple;
+}
+
+mark[data-type='variable'] {
+    display: inline-block;
+    border-radius: 0.3em;
+    border: 1px solid;
+    background: rgba(67, 198, 252, 0.2);
+    border-color: rgb(67, 198, 252); 
+}
+
+mark[data-type='variable']::after {
+    box-sizing: border-box;
+    content: attr(data-varname);
+    font-size: 0.8em;
+    line-height: 1;
+    padding: 0.35em;
+    border-radius: 0.35em;
+    display: inline-block;
+    vertical-align: middle;
+    margin: 0px 0px 0.1rem 0.5rem;
+    background: rgb(67, 198, 252); 
+}
+
+span.hex-number {
+    text-decoration: underline;
+    text-decoration-style: wavy;
+    text-decoration-color: #fcd7d4;
+}
+
+/* For toggle of focus */
 .toggle {
     --width: 80px;
     --height: calc(var(--width) / 3);

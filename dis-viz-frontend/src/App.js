@@ -18,7 +18,7 @@ const App = () => {
   const [dotString, setDotString] = React.useState(null);
   const [sourceFiles, setSourceFiles] = React.useState([]);
   const [disassemblyData, setDisassemblyData] = React.useState(null);
-  const [dyninstInfo, setDyninstInfo] = React.useState({});
+  const [dyninstInfo, setDyninstInfo] = React.useState(null);
   const [sourceData, setSourceData] = React.useState([]);
 
   const [sourceViewStates, setSourceViewStates] = React.useState([
@@ -143,8 +143,6 @@ const App = () => {
             disassemblyData={disassemblyData}
             viewState={disassemblyViewStates[compNum]}
             setNewSelection={(newSelection) => {
-
-
               // get the corresponding assembly address from newSelection
               const sourceLineSelection = dyninstInfo.lines
                 .filter(data => data.file === selectedSourceFile)
@@ -176,6 +174,7 @@ const App = () => {
               }
               setDisassemblyViewStates(disassemblyViewStatesCopy);
             }}
+            dyninstInfo={dyninstInfo}
           /></TabContent>,
           closable: true,
           id,

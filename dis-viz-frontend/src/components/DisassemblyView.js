@@ -5,7 +5,7 @@ import DisassemblyLine from './DisassemblyLine';
 
 
 
-function DisassemblyView({ disassemblyData, active, setActive, viewState, setNewSelection }) {
+function DisassemblyView({ disassemblyData, active, setActive, viewState, setNewSelection, dyninstInfo }) {
 
     if(viewState === undefined) {
         viewState = {id: -1, lineSelection: {start:-1, end:-1}}
@@ -48,10 +48,6 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
         setNewSelection(onGoingSelection);
     }
 
-    const disassemblyLineRefs = {}
-    disassemblyData && disassemblyData.blocks.map((block, i) => block['B'+i]).flat().forEach(ins => {
-        disassemblyLineRefs[ins.address] = React.createRef();
-    });
     const disassemblyBlockRefs = {}
     disassemblyData && disassemblyData.blocks.forEach((block, i) => {
         disassemblyBlockRefs[block['B'+i][0].address] = React.createRef();
@@ -82,6 +78,35 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
         activeRef.current.checked = active;
     }, [active])
 
+
+
+    // Variable Renamer
+    let allVars = [];
+    if (dyninstInfo) {
+        allVars = dyninstInfo["functions"].map(f => f.vars).filter(d => d.length !== 0).flat();
+        console.log(disassemblyData)
+        console.log(allVars)
+    }
+
+
+    // Hidables
+    // const hidables = dyninstInfo["functions"].map(d => d.hidables).filter(d => d && d.length !== 0).flat();
+    // let finalData = [];
+    // for(let i = 0; i<assemblyArray.length; i++) {
+    //     const assembly = assemblyArray[i];
+    //     let hidable = hidables.filter(hiddable => hiddable.start === assembly.id);
+    //     let hidableAllLines = hidables.filter(hiddable => hiddable.start <= assembly.id && hiddable.end >= assembly.id);
+    //     if(hidable.length !== 0) {
+    //     finalData.push({
+    //         "type": "button",
+    //         "lines": hidable
+    //     });
+    //     }
+    //     assembly.type = "line";
+    //     assembly.hidden = hidableAllLines.length !== 0;
+    //     finalData.push(assembly);
+    // }
+
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -105,7 +130,7 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                     marginRight: marginHorizontal,
                     marginTop: marginVertical,
                     marginBottom: marginVertical,
-                    maxWidth: '350px',
+                    maxWidth: '400px',
                     textAlign: 'center'
                 }}
                 ref={disassemblyBlockRefs[Object.keys(disassemblyBlockRefs)[i]]}
@@ -124,6 +149,25 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                         paddingLeft: '10px',
                     }}>
                         {block['B' + i].map((ins, j) => {
+    
+
+
+                            const variables = [];
+                            allVars.forEach(variable => {
+                                let found = false;
+                                variable.locations.forEach(location => {
+                                    if (ins.address >= parseInt(location.start, 16) && ins.address <= parseInt(location.end, 16) && ins.instruction.includes(location.location)) {
+                                        variables.push(variable);
+                                        // ins.instruction = d.code.replace(location.location, "VAR(" + variable.name + ")");
+                                        found = true;
+                                        return;
+                                    }
+                                });
+                                if (found) return;
+                            });
+
+
+
                             return <DisassemblyLine
                                 selectedLines={viewState.lineSelection}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
@@ -132,6 +176,7 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                                 isSelecting={isSelecting}
                                 onGoingSelection={onGoingSelection}
                                 color={codeColors[viewState.id]}
+                                variables={variables}
                             />
                         })}
                     </ListGroup>

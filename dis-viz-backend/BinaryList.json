@@ -15,6 +15,10 @@
         {
             "name": "MultiSource Loop",
             "executable_path": "/samples/multisource/hello"
+        },
+        {
+            "name": "Bubble Sort",
+            "executable_path": "/samples/bubble"
         }
     ]
 }
