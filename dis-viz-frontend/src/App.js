@@ -298,12 +298,12 @@ const App = () => {
           id: "DisassemblyViewPanel",
           panelLock: panelLockData,
         },
-        {
-          size: 4,
-          tabs: [
-            { id: "ObjectView:1" },
-          ],
-        },
+        // {
+        //   size: 4,
+        //   tabs: [
+        //     { id: "ObjectView:1" },
+        //   ],
+        // },
       ]
     },
   });

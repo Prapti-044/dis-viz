@@ -7,6 +7,9 @@ import DisassemblyLine from './DisassemblyLine';
 
 function DisassemblyView({ disassemblyData, active, setActive, viewState, setNewSelection, dyninstInfo }) {
 
+    console.log('updated disassembly data')
+    console.log(disassemblyData)
+
     if(viewState === undefined) {
         viewState = {id: -1, lineSelection: {start:-1, end:-1}}
         setNewSelection = (lineSelection) => {}
@@ -18,7 +21,8 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
     })
 
     const marginHorizontal = '10px'
-    const marginVertical = '50px'
+    const marginSameVertical = '10px'
+    const marginDifferentVertical = '100px'
                 
 
     const onMouseDown = (lineNum) => {
@@ -84,28 +88,34 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
     let allVars = [];
     if (dyninstInfo) {
         allVars = dyninstInfo["functions"].map(f => f.vars).filter(d => d.length !== 0).flat();
-        console.log(disassemblyData)
-        console.log(allVars)
     }
+
+    // Remove all other functions than active functions
 
 
     // Hidables
-    // const hidables = dyninstInfo["functions"].map(d => d.hidables).filter(d => d && d.length !== 0).flat();
-    // let finalData = [];
-    // for(let i = 0; i<assemblyArray.length; i++) {
-    //     const assembly = assemblyArray[i];
-    //     let hidable = hidables.filter(hiddable => hiddable.start === assembly.id);
-    //     let hidableAllLines = hidables.filter(hiddable => hiddable.start <= assembly.id && hiddable.end >= assembly.id);
-    //     if(hidable.length !== 0) {
-    //     finalData.push({
-    //         "type": "button",
-    //         "lines": hidable
-    //     });
-    //     }
-    //     assembly.type = "line";
-    //     assembly.hidden = hidableAllLines.length !== 0;
-    //     finalData.push(assembly);
-    // }
+    if(dyninstInfo) {
+        const hidables = dyninstInfo["functions"].map(d => d.hidables).filter(d => d && d.length !== 0).flat();
+        console.log(hidables);
+        let finalData = [];
+        for(let i = 0; i<disassemblyData.blocks.length; i++) {
+            const assembly = disassemblyData.blocks[i]
+            let hidable = hidables.filter(hiddable => hiddable.start === assembly.id)
+            let hidableAllLines = hidables.filter(hiddable => hiddable.start <= assembly.id && hiddable.end >= assembly.id);
+            if(hidable.length !== 0) {
+                finalData.push({
+                    "type": "button",
+                    "lines": hidable
+                });
+            }
+            assembly.type = "line";
+            assembly.hidden = hidableAllLines.length !== 0;
+            finalData.push(assembly);
+        }
+
+    }
+
+
 
     return <>
         <label className="toggle" style={{
@@ -128,8 +138,7 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                 <Card key={i} style={{
                     marginLeft: marginHorizontal,
                     marginRight: marginHorizontal,
-                    marginTop: marginVertical,
-                    marginBottom: marginVertical,
+                    marginTop: (i > 0 && disassemblyData.blocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
                     maxWidth: '400px',
                     textAlign: 'center'
                 }}
@@ -180,7 +189,9 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
                 </Card>
             )
             )}</div> :
-            <div></div>}
+            <div>
+                <h1>Please select a binary file to get disassembly code here.</h1>
+            </div>}
 
             <div className="pagination">
                 <button>&laquo;</button>

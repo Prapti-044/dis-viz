@@ -39,7 +39,7 @@ function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
                 className: "codesegment"
             }}
             lineProps={ lineNum => {
-                let style = { display: "block", userSelect: "none" }
+                let style = { display: "block", userSelect: "none", marginTop: '0' }
 
                 // Highlight for different disassemblyViewId
                 for(let i in viewState) {

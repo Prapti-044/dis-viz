@@ -59,14 +59,17 @@ COPY BinaryList.json .
 
 WORKDIR /samples
 COPY sample_inputs ./
-RUN g++ -g -o0 hello.cpp -o hello
+RUN g++ -g -O0 hello.cpp -o hello-O0
+RUN g++ -g -O3 hello.cpp -o hello-O3
 # hello exe is in /samples/hello
 
-RUN g++ -g -o0 bubble_sort.cpp -o bubble
+RUN g++ -g -O0 bubble_sort.cpp -o bubble-O0
+RUN g++ -g -O3 bubble_sort.cpp -o bubble-O3
 # bubble exe is in /samples/bubble
 
 WORKDIR /samples/multisource
-RUN gcc -g -o0 hello.c -o hello
+RUN gcc -g -O0 hello.c -o hello-O0
+RUN gcc -g -O3 hello.c -o hello-O3
 # hello exe is in /samples/multisource/hello
 
 WORKDIR /App

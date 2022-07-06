@@ -9,16 +9,28 @@
             "executable_path": "/root/LULESH/build/lulesh2.0"
         },
         {
-            "name": "Simple Printf",
-            "executable_path": "/samples/hello"
+            "name": "[-O0] Simple Printf",
+            "executable_path": "/samples/hello-O0"
         },
         {
-            "name": "MultiSource Loop",
-            "executable_path": "/samples/multisource/hello"
+            "name": "[-O3] Simple Printf",
+            "executable_path": "/samples/hello-O3"
         },
         {
-            "name": "Bubble Sort",
-            "executable_path": "/samples/bubble"
+            "name": "[-O0] MultiSource Loop",
+            "executable_path": "/samples/multisource/hello-O0"
+        },
+        {
+            "name": "[-O3] MultiSource Loop",
+            "executable_path": "/samples/multisource/hello-O3"
+        },
+        {
+            "name": "[-O0] Bubble Sort",
+            "executable_path": "/samples/bubble-O0"
+        },
+        {
+            "name": "[-O3] Bubble Sort",
+            "executable_path": "/samples/bubble-O3"
         }
     ]
 }

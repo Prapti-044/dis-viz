@@ -1,4 +1,6 @@
-const apiURL = "http://0.0.0.0:80/"
+import { getUrls } from './config'
+
+const apiURL = getUrls().backend + '/'
 
 export async function openExe(filepath) {
     const response = await fetch(
