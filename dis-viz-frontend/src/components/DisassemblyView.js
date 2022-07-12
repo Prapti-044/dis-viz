@@ -4,14 +4,13 @@ import { codeColors } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
 
 
+const TOTAL_INS_PER_PAGE = 50
 
 function DisassemblyView({ disassemblyData, active, setActive, viewState, setNewSelection, dyninstInfo }) {
 
-    console.log('updated disassembly data')
-    console.log(disassemblyData)
 
     if(viewState === undefined) {
-        viewState = {id: -1, lineSelection: {start:-1, end:-1}}
+        viewState = {id: -1, lineSelection: {start:-1, end:-1}, currentPageStartAddress: -1}
         setNewSelection = (lineSelection) => {}
     }
 
@@ -115,7 +114,32 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
 
     }
 
+    const blocksInPages = [];
+    let currentPageIndex = 0;
+    if(disassemblyData) {
+        if(viewState.currentPageStartAddress === -1) {
+            viewState.currentPageStartAddress = disassemblyData.blocks[0]['B0'].address
+        }
 
+        let instructionCounter = 0
+        let currentPage = []
+        for(let i in disassemblyData.blocks) {
+            const block = disassemblyData.blocks[i]
+            currentPage.push(block)
+            instructionCounter += block['B'+i].length
+            if (instructionCounter > TOTAL_INS_PER_PAGE) {
+                instructionCounter = 0
+                blocksInPages.push(currentPage)
+                currentPage = []
+            }
+
+            if(block['B'+i][0].address <= viewState.currentPageStartAddress)
+                currentPageIndex = blocksInPages.length-1
+        }
+    }
+
+
+    const blocksInCurrentPage = blocksInPages[currentPageIndex];
 
     return <>
         <label className="toggle" style={{
@@ -131,14 +155,14 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>
-        {disassemblyData ? <div style={{
+        {blocksInCurrentPage ? <div style={{
             ...borderStyle
         }}>
-            {disassemblyData.blocks.map((block, i) => (
+            {blocksInCurrentPage.map((block, i) => (
                 <Card key={i} style={{
                     marginLeft: marginHorizontal,
                     marginRight: marginHorizontal,
-                    marginTop: (i > 0 && disassemblyData.blocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
+                    marginTop: (i > 0 && blocksInCurrentPage[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
                     maxWidth: '400px',
                     textAlign: 'center'
                 }}
@@ -195,7 +219,7 @@ function DisassemblyView({ disassemblyData, active, setActive, viewState, setNew
 
             <div className="pagination">
                 <button>&laquo;</button>
-                <button>1</button>
+                {blocksInPages.map((page, i) => <button key={"block"+i}>{i}</button>)}
                 <button>&raquo;</button>
             </div>
 

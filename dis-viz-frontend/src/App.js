@@ -26,9 +26,11 @@ const App = () => {
   ]);
 
   const [activeDisassemblyView, setActiveDisassemblyView] = React.useState(0);
-  const [disassemblyViewStates, setDisassemblyViewStates] = React.useState([
-    { id: 0, lineSelection: { start: -1, end: -1 } }
-  ]);
+  const [disassemblyViewStates, setDisassemblyViewStates] = React.useState([{
+      id: 0,
+      lineSelection: { start: -1, end: -1 }, 
+      currentPageStartAddress: -1
+  }]);
   const dockRef = React.useRef();
 
   React.useEffect(() => {
