@@ -16,8 +16,16 @@ export async function openExe(filepath) {
     return result;
 }
 
-export async function getSourceFiles() {
-    const response = await fetch(apiURL + "sourcefiles");
+export async function getSourceFiles(filepath) {
+    const response = await fetch(
+        apiURL + "sourcefiles", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
     const result = await response.json();
     return result.map(d => d.file);
 }
@@ -36,20 +44,44 @@ export async function getSourceLines(sourceFile) {
     return result.result;
 }
 
-export async function getDisassembly() {
-    const response = await fetch(apiURL + "getdisassembly");
+export async function getDisassembly(filepath) {
+    const response = await fetch(
+        apiURL + "getdisassembly", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
     const result = await response.json();
     return result;
 }
 
-export async function getDisassemblyDot() {
-    const response = await fetch(apiURL + "getdisassemblydot");
+export async function getDisassemblyDot(filepath) {
+    const response = await fetch(
+        apiURL + "getdisassemblydot", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
     const result = await response.json();
     return result.dot;
 }
 
-export async function getDyninstInfo() {
-    const response = await fetch(apiURL + "getdyninstinfo");
+export async function getDyninstInfo(filepath) {
+    const response = await fetch(
+        apiURL + "getdyninstinfo", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
     const result = await response.json();
     return result;
 }

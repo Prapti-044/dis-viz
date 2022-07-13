@@ -36,19 +36,19 @@ const App = () => {
     api.openExe(binaryFilePath).then((result) => {
       if (result.message !== "success") return;
 
-      api.getDisassemblyDot().then((result) => {
+      api.getDisassemblyDot(binaryFilePath).then((result) => {
         setDotString(result);
       });
 
-      api.getSourceFiles().then((result) => {
+      api.getSourceFiles(binaryFilePath).then((result) => {
         setSourceFiles(result);
       });
 
-      api.getDisassembly().then((result) => {
+      api.getDisassembly(binaryFilePath).then((result) => {
         setDisassemblyData(result);
       })
 
-      api.getDyninstInfo().then((result) => {
+      api.getDyninstInfo(binaryFilePath).then((result) => {
         setDyninstInfo(result);
       })
     });
