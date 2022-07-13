@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from typing import Protocol
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
@@ -6,21 +7,11 @@ from fastapi.middleware.cors import CORSMiddleware
 import json
 from functools import lru_cache
 import simpleoptparser as sopt
+from .instructions import BlockPage, DisassemblyChunk, Instruction, InstructionBlock
 
 
 class FilePath(BaseModel):
     path: str
-    
-@dataclass
-class Instruction:
-    address: int
-    instruction: str
-
-@dataclass
-class InstructionBlock:
-    def __init__(self, block_number: int, function_name: str, instructions: list[Instruction], hidden: bool = False):
-        self.block_number = block_number
-        self.function_name = function_name
 
 
 
@@ -31,6 +22,13 @@ def decode_cache_binary(filepath: str):
     disassembly = json.loads(sopt.get_assembly())
 
     print(disassembly)
+    blocks = [InstructionBlock(
+        block_number = 1,
+        function_name = '',
+        instructions = [Instruction() for instruction in block['']]
+    ) for block in disassembly['blocks']]
+
+    links = []
 
 
     source_files = json.loads(sopt.get_sourcefiles())
