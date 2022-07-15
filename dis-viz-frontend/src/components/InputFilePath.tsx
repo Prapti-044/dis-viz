@@ -3,10 +3,19 @@ import { Form, Button } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as api from "../api";
 
-function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, setSelectedSourceFile, sourceFiles }) {
+function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, setSelectedSourceFile, sourceFiles }:{
+    binaryFilePath: string,
+    setBinaryFilePath: (path: string) => void,
+    selectedSourceFile: string,
+    setSelectedSourceFile: (path: string) => void,
+    sourceFiles: string[]
+}) {
 
     const [activeSourceFile, setActiveSourceFile] = React.useState("");
-    const [binaryList, setBinaryList] = React.useState([]);
+    const [binaryList, setBinaryList] = React.useState<{
+        name: string,
+        executable_path: string
+    }[]>([]);
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -22,8 +31,8 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, 
             <Form.Label>Binary File Path</Form.Label>
             <Form.Select
                 aria-label="Binary File Selection"
-                onChange={(event) => {
-                    setBinaryFilePath(event.target.value);
+                onChange={(event: React.FormEvent<HTMLSelectElement>) => {
+                    setBinaryFilePath((event.target as HTMLSelectElement).value);
                 }}
                 value={binaryFilePath}
             >
@@ -36,9 +45,9 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, 
 
         <Form.Select
             aria-label="Source File Selection"
-            onChange={(event) => {
-                setActiveSourceFile(event.target.value);
-                setSelectedSourceFile(event.target.value);
+            onChange={(event: React.FormEvent<HTMLSelectElement>) => {
+                setActiveSourceFile((event.target as HTMLSelectElement).value);
+                setSelectedSourceFile((event.target as HTMLSelectElement).value);
             }}
             value={selectedSourceFile}
         >

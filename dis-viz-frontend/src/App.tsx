@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import SourceView from "./components/SourceView";
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
@@ -8,6 +9,8 @@ import DisassemblyView from "./components/DisassemblyView";
 import { DockLayout, DockContextType } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./components/TabContent";
+import { LineCorrespondence, SourceSelection, DisassemblyLineSelection } from './types';
+
 
 
 
@@ -15,42 +18,40 @@ const App = () => {
 
   const [binaryFilePath, setBinaryFilePath] = React.useState("");
   const [selectedSourceFile, setSelectedSourceFile] = React.useState("");
-  const [dotString, setDotString] = React.useState(null);
-  const [sourceFiles, setSourceFiles] = React.useState([]);
-  const [disassemblyData, setDisassemblyData] = React.useState(null);
-  const [dyninstInfo, setDyninstInfo] = React.useState(null);
-  const [sourceData, setSourceData] = React.useState([]);
+  const [dotString, setDotString] = React.useState<string | null>(null);
+  const [sourceFiles, setSourceFiles] = React.useState<string[]>([]);
+  const [dyninstInfo, setDyninstInfo] = React.useState<{
+    line_correspondence: LineCorrespondence[],
+    functions: Function[],
+  }>({
+    line_correspondence: [],
+    functions: []
+  });
+  const [sourceData, setSourceData] = React.useState<string[]>([]);
 
   const [sourceViewStates, setSourceViewStates] = React.useState([
     { id: 0, lineSelection: { start: -1, end: -1 } }
   ]);
 
   const [activeDisassemblyView, setActiveDisassemblyView] = React.useState(0);
+
   const [disassemblyViewStates, setDisassemblyViewStates] = React.useState([
-    { id: 0, lineSelection: { start: -1, end: -1 } }
+    { id: 0, lineSelection: { start_address: -1, end_address: -1 } }
   ]);
+
   const dockRef = React.useRef();
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
-    api.openExe(binaryFilePath).then((result) => {
-      if (result.message !== "success") return;
-
-      api.getDisassemblyDot(binaryFilePath).then((result) => {
-        setDotString(result);
-      });
-
-      api.getSourceFiles(binaryFilePath).then((result) => {
-        setSourceFiles(result);
-      });
-
-      api.getDisassembly(binaryFilePath).then((result) => {
-        setDisassemblyData(result);
-      })
-
-      api.getDyninstInfo(binaryFilePath).then((result) => {
-        setDyninstInfo(result);
-      })
+    Promise.all([
+      api.getDisassemblyDot(binaryFilePath),
+      api.getSourceFiles(binaryFilePath),
+      api.getDyninstInfo(binaryFilePath),
+    ]).then(([resultDot, resultSourceFiles, resultDyninstInfo]) => {
+      setDotString(resultDot);
+      setSourceFiles(resultSourceFiles);
+      setDisassemblyData(resultDisassemblyPage);
+      setDyninstInfo(resultDyninstInfo);
     });
   }, [binaryFilePath]);
 
@@ -135,23 +136,28 @@ const App = () => {
         }
       case "DisassemblyView":
         return {
-          title: `Disassembly View (${parseInt(compNum)+1})`,
+          title: `Disassembly View (${parseInt(compNum) + 1})`,
           content: <TabContent><DisassemblyView
-            active={activeDisassemblyView===parseInt(compNum)}
+            binaryFilePath={binaryFilePath}
+            active={activeDisassemblyView === parseInt(compNum)}
             setActive={disassemblyViewId => {
               setActiveDisassemblyView(disassemblyViewId)
             }}
-            disassemblyData={disassemblyData}
+
             viewState={disassemblyViewStates[compNum]}
+            id={disassemblyViewStates[compNum].id}
+            lineSelection={disassemblyViewStates[compNum].lineSelection}
+            page={-1}
+
             setNewSelection={(newSelection) => {
               // get the corresponding assembly address from newSelection
               const sourceLineSelection = dyninstInfo.lines
                 .filter(data => data.file === selectedSourceFile)
-                .filter(data => (data.from <= newSelection.start && newSelection.start < data.to) || (data.from <= newSelection.end && newSelection.end < data.to))
+                .filter(data => (data.from <= newSelection.start_address && newSelection.start_address < data.to) || (data.from <= newSelection.end_address && newSelection.end_address < data.to))
                 .reduce((acc, data) => ({
                   from: Math.min(acc.from, data.line),
                   to: Math.max(acc.to, data.line)
-                }), {from:9999999, to:-1})
+                }), { from: 9999999, to: -1 })
 
               // Update active disassemblyViewState
               const sourceViewStatesCopy = [...sourceViewStates];
@@ -169,8 +175,8 @@ const App = () => {
               disassemblyViewStatesCopy[activeDisassemblyView] = {
                 ...disassemblyViewStatesCopy[activeDisassemblyView],
                 lineSelection: {
-                  start: newSelection.start,
-                  end: newSelection.end
+                  start: newSelection.start_address,
+                  end: newSelection.end_address
                 }
               }
               setDisassemblyViewStates(disassemblyViewStatesCopy);
@@ -293,7 +299,7 @@ const App = () => {
         {
           size: 4,
           tabs: disassemblyViewStates.map(viewState => ({
-            id: "DisassemblyView:"+viewState.id
+            id: "DisassemblyView:" + viewState.id
           })),
           id: "DisassemblyViewPanel",
           panelLock: panelLockData,
@@ -314,8 +320,8 @@ const App = () => {
         // if (!newLayout.hasOwnProperty('tabs')) return; 
         if ('tabs' in newLayout) {
           let foundDisassemblyView = false;
-          for(let tab in newLayout.tabs) {
-            if(newLayout.tabs[tab].id.split(':')[0] === 'DisassemblyView') {
+          for (let tab in newLayout.tabs) {
+            if (newLayout.tabs[tab].id.split(':')[0] === 'DisassemblyView') {
               foundDisassemblyView = true;
               break
             }
@@ -325,14 +331,14 @@ const App = () => {
           }
         }
         else if ('children' in newLayout) {
-          for(let panelChild in newLayout.children) {
+          for (let panelChild in newLayout.children) {
             addPanelLockToLayoutRecurse(newLayout.children[panelChild], panelData);
           }
         }
       }
     }
-    const newLayoutCopy = {...newLayout};
-    for(let key in newLayoutCopy) {
+    const newLayoutCopy = { ...newLayout };
+    for (let key in newLayoutCopy) {
       addPanelLockToLayoutRecurse(newLayoutCopy[key], panelData);
     }
     return newLayoutCopy;

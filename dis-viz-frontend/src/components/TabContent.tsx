@@ -1,6 +1,6 @@
 import React from 'react'
 
-function TabContent({children}) {
+function TabContent({children}:{children: React.ReactNode}) {
   return (
     <div style={{
         overflow: 'auto',

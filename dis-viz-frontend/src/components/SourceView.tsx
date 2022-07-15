@@ -2,15 +2,24 @@ import React from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import '../styles/sourceview.css'
+import { LineCorrespondence, Function, SourceSelection } from '../types';
 import { codeColors } from '../utils';
 
-
-function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
+function SourceView({ sourceData, setNewSelection, dyninstInfo, lineSelections, activeDisassemblyView }:{
+    sourceData: string[],
+    setNewSelection: (selection: SourceSelection) => void,
+    dyninstInfo: {
+        line_correspondence: LineCorrespondence[],
+        functions: Function[],
+    },
+    lineSelections: SourceSelection[]
+    activeDisassemblyView: number
+}) {
 
     const [wrapLongLines, setWrapLongLines] = React.useState(false);
     const [isSelecting, setIsSelecting] = React.useState(false);
-    const [onGoingSelection, setOnGoingSelection] = React.useState({
-        start: -1, end: -1
+    const [onGoingSelection, setOnGoingSelection] = React.useState<SourceSelection>({
+        start: -1, end: -1, id: -1
     });
 
     let sourceCode = "";
@@ -39,12 +48,12 @@ function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
                 className: "codesegment"
             }}
             lineProps={ lineNum => {
-                let style = { display: "block", userSelect: "none", marginTop: '0' }
+                let style: {[style: string]: string} = { display: "block", userSelect: "none", marginTop: '0' }
 
                 // Highlight for different disassemblyViewId
-                for(let i in viewState) {
-                    if(lineNum >= viewState[i].lineSelection.start && lineNum <= viewState[i].lineSelection.end) {
-                        style.backgroundColor = codeColors[viewState[i].id];
+                for(let i in lineSelections) {
+                    if(lineNum >= lineSelections[i].start && lineNum <= lineSelections[i].end) {
+                        style.backgroundColor = codeColors[lineSelections[i].id];
                         style.border = "1px solid grey";
                         style.cursor = "pointer";
                     }
@@ -60,7 +69,8 @@ function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
                     setIsSelecting(true);
                     setOnGoingSelection({
                         start: lineNum,
-                        end: lineNum
+                        end: lineNum,
+                        id: activeDisassemblyView
                     })
                 }
 
@@ -79,7 +89,7 @@ function SourceView({ sourceData, viewState, setNewSelection, dyninstInfo }) {
                         ...onGoingSelection,
                         end: lineNum<onGoingSelection.start?onGoingSelection.start:lineNum
                     })
-                    setNewSelection(onGoingSelection)
+                    setNewSelection({...onGoingSelection, id: activeDisassemblyView})
                 }
 
                 return { style, onMouseUp, onMouseDown, onMouseOver }
