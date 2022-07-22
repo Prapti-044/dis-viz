@@ -1,0 +1,6 @@
+make --dry-run --always-make --keep-going --print-directory
+make: Entering directory '/home/prapti/RA Kate/dis-viz'
+make: Leaving directory '/home/prapti/RA Kate/dis-viz'
+ 
+make: *** No targets specified and no makefile found.  Stop.
+

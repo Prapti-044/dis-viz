@@ -3,16 +3,16 @@ import '../styles/disassemblyview.css'
 
 import { Instruction, DisassemblyLineSelection, Variable } from '../types'
 
-function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting, onGoingSelection, color, variables }:{
+function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, variables }:{
     instruction: Instruction,
-    selectedLines: DisassemblyLineSelection,
+    isHighlighted: boolean,
     mouseEvents: {
         onMouseDown: (lineNumber: number) => void
         onMouseOver: (lineNumber: number) => void
         onMouseUp: (lineNumber: number) => void
     },
     isSelecting: boolean,
-    onGoingSelection: DisassemblyLineSelection,
+    onGoingSelection: DisassemblyLineSelection|null,
     color: string,
     variables: Variable[]
 }) {
@@ -24,12 +24,12 @@ function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting,
         instruction_address = '0' + instruction_address;
 
     let selectionStyle: {[style: string]: string} = { display: "block", userSelect: "none" }
-    if(instruction.address >= selectedLines.start_address && instruction.address <= selectedLines.end_address) {
+    if(isHighlighted) {
         selectionStyle.backgroundColor = color;
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";
     }
-    if(isSelecting && instruction.address >= onGoingSelection.start_address && instruction.address <= onGoingSelection.end_address) {
+    if(isSelecting && instruction.address >= onGoingSelection!.start_address && instruction.address <= onGoingSelection!.end_address) {
         selectionStyle.backgroundColor = "#eee";
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";

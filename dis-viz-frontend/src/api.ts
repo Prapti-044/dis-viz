@@ -1,6 +1,6 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
-import { BlockPage, LineCorrespondence, Function } from './types'
+import { BlockPage, LineCorrespondence, Function, DyninstInfo } from './types'
 
 
 
@@ -80,7 +80,7 @@ export async function getDisassemblyDot(filepath: string): Promise<string>{
     return result.dot.dot;
 }
 
-export async function getDyninstInfo(filepath: string): Promise<{'line_correspondence': LineCorrespondence[], 'functions': Function[]}>{
+export async function getDyninstInfo(filepath: string): Promise<DyninstInfo>{
     const response = await fetch(
         apiURL + "getdyninstinfo", {
             method: 'POST',

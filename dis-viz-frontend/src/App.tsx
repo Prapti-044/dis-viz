@@ -2,274 +2,176 @@ import 'reflect-metadata';
 import SourceView from "./components/SourceView";
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
-import InputFilePath from "./components/InputFilePath";
 import * as api from "./api";
 import DisassemblyView from "./components/DisassemblyView";
 
-import { DockLayout, DockContextType } from 'rc-dock'
+import { DockLayout, DockContextType, LayoutData, LayoutBase, DropDirection, TabData, PanelData, TabBase } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./components/TabContent";
-import { LineCorrespondence, SourceSelection, DisassemblyLineSelection } from './types';
+import { LineCorrespondence, Function, SourceViewData, DyninstInfo, DisassemblyLineSelection } from './types';
+import * as ComponentFactory from './ComponentFactory';
+
 
 
 
 
 const App = () => {
 
+  console.log("Module Loading")
+
   const [binaryFilePath, setBinaryFilePath] = React.useState("");
-  const [selectedSourceFile, setSelectedSourceFile] = React.useState("");
-  const [dotString, setDotString] = React.useState<string | null>(null);
-  const [sourceFiles, setSourceFiles] = React.useState<string[]>([]);
-  const [dyninstInfo, setDyninstInfo] = React.useState<{
-    line_correspondence: LineCorrespondence[],
-    functions: Function[],
+  const [binaryData, setBinaryData] = React.useState<{
+    dotString: string|null,
+    dyninstInfo: DyninstInfo,
   }>({
-    line_correspondence: [],
-    functions: []
-  });
-  const [sourceData, setSourceData] = React.useState<string[]>([]);
+    dotString: null,
+    dyninstInfo: {
+      line_correspondence: [],
+      functions: []
+    }
+  })
 
-  const [sourceViewStates, setSourceViewStates] = React.useState([
-    { id: 0, lineSelection: { start: -1, end: -1 } }
-  ]);
+  const [activeSourceView, setActiveSourceView] = React.useState<number|null>(null)
+  const [sourceViewStates, setSourceViewStates] = React.useState<SourceViewData[]>([])
 
-  const [activeDisassemblyView, setActiveDisassemblyView] = React.useState(0);
+  const [activeDisassemblyView, setActiveDisassemblyView] = React.useState<number|null>(null);
+  const [disassemblyViewStates, setDisassemblyViewStates] = React.useState<{
+    id: number,
+    lineSelection: DisassemblyLineSelection|null
+  }[]>([]);
 
-  const [disassemblyViewStates, setDisassemblyViewStates] = React.useState([
-    { id: 0, lineSelection: { start_address: -1, end_address: -1 } }
-  ]);
+  let dockRef: DockLayout | null;
 
-  const dockRef = React.useRef();
+  console.log("activeDisassemblyView", activeDisassemblyView)
 
   React.useEffect(() => {
     if (binaryFilePath.length === 0) return;
+    console.log("Binary File Updated")
     Promise.all([
       api.getDisassemblyDot(binaryFilePath),
       api.getSourceFiles(binaryFilePath),
       api.getDyninstInfo(binaryFilePath),
     ]).then(([resultDot, resultSourceFiles, resultDyninstInfo]) => {
-      setDotString(resultDot);
-      setSourceFiles(resultSourceFiles);
-      setDisassemblyData(resultDisassemblyPage);
-      setDyninstInfo(resultDyninstInfo);
-    });
+      setBinaryData({
+        dotString: resultDot,
+        dyninstInfo: resultDyninstInfo
+      })
+      setSourceViewStates(resultSourceFiles.map<SourceViewData>(sourceFile => ({
+        file_name: sourceFile,
+        lineSelection: null,
+        opened: false
+      })))
+      setDisassemblyViewStates([{
+        id: 1,
+        lineSelection: null
+      }])
+
+    })
   }, [binaryFilePath]);
 
   React.useEffect(() => {
-    if (selectedSourceFile.length === 0) return;
-    api.getSourceLines(selectedSourceFile).then((result) => {
-      setSourceData(result);
-    })
-  }, [binaryFilePath, selectedSourceFile])
+    if (dockRef === null) return;
+    disassemblyViewStates
+      .map<TabData>(disassemblyViewState => ({
+        id: "DisassemblyView:"+disassemblyViewState.id,
+        title: "Disassembly View: " + disassemblyViewState.id,
+        content: ComponentFactory.CreateDisassemblyView(
+          disassemblyViewState.id,
+          binaryFilePath,
+          activeDisassemblyView,
+          setActiveDisassemblyView,
+          disassemblyViewState.lineSelection,
+          1,
+          newSelection => {
+            const disassemblyViewStateCopy = [...disassemblyViewStates]
+            const stateIndex = disassemblyViewStateCopy.findIndex(disState => disState.id === disassemblyViewState.id)
+            disassemblyViewStateCopy[stateIndex] = {
+              id: disassemblyViewState.id,
+              lineSelection: newSelection
+            }
+            setDisassemblyViewStates(disassemblyViewStateCopy)
+          },
+          binaryData.dyninstInfo
+        ),
+        closable: true
+      }))
+      .forEach(disassemblyViewComponent => {
+        const tabData = dockRef!.find(disassemblyViewComponent.id!)
+        if (tabData !== undefined) {
+          dockRef!.updateTab(tabData.id!.toString(), disassemblyViewComponent);
+        }
+        else {
+          const newPanel: PanelData = {
+            tabs: [disassemblyViewComponent],
+            x: 10, y: 10, w: 400, h: 400
+          }
+          dockRef!.dockMove(newPanel, null, 'float')
+        }
+      })
+  }, [disassemblyViewStates])
 
 
-  const loadTab = ({ id }) => {
+  const loadTab = ({ id }: { id: string }): TabData => {
     const [compName, compNum] = id.split(':')
     switch (compName) {
-      case "SourceView":
-        return {
-          title: `Source View (${selectedSourceFile})`,
-          content: <TabContent><SourceView
-            sourceData={sourceData}
-            viewState={sourceViewStates}
-            setNewSelection={(newSelection) => {
-
-              // get the corresponding assembly address from newSelection
-              const disassemblyLineSelection = dyninstInfo.lines
-                .filter(data => data.file === selectedSourceFile)
-                .filter(data => newSelection.start <= data.line && data.line <= newSelection.end)
-                .reduce((acc, data) => ({
-                  from: Math.min(acc.from, data.from),
-                  to: Math.max(acc.to, data.to)
-                }))
-
-              // Update active disassemblyViewState
-              const disassemblyViewStatesCopy = [...disassemblyViewStates];
-              disassemblyViewStatesCopy[activeDisassemblyView] = {
-                ...disassemblyViewStatesCopy[activeDisassemblyView],
-                lineSelection: {
-                  start: disassemblyLineSelection.from,
-                  end: disassemblyLineSelection.to
-                }
-              }
-              setDisassemblyViewStates(disassemblyViewStatesCopy);
-
-              // Update sourceFileView state
-              const sourceViewStatesCopy = [...sourceViewStates];
-              sourceViewStatesCopy[activeDisassemblyView] = {
-                ...sourceViewStatesCopy[activeDisassemblyView],
-                lineSelection: {
-                  start: newSelection.start,
-                  end: newSelection.end
-                }
-              }
-              setSourceViewStates(sourceViewStatesCopy);
-            }}
-            dyninstInfo={dyninstInfo}
-          /></TabContent>,
-          closable: true,
-          id,
-          minHeight: 150,
-          minWidth: 150
-        }
       case "InputFilePath":
         return {
+          id: "InputFilePath:1",
+          cached: true,
           title: "Input File",
-          content: <TabContent><InputFilePath
-            setBinaryFilePath={setBinaryFilePath}
-            setSelectedSourceFile={setSelectedSourceFile}
-            sourceFiles={sourceFiles}
-            binaryFilePath={binaryFilePath}
-            selectedSourceFile={selectedSourceFile}
-          /></TabContent>,
-          closable: true,
-          id,
+          content: ComponentFactory.CreateInputFilePath(binaryFilePath, setBinaryFilePath, sourceViewStates),
+          closable: false,
           minHeight: 150,
-          minWidth: 250
+          minWidth: 250,
         }
       case "ObjectView":
         return {
-          title: "Object Visualization",
-          content: <TabContent><ObjectViz dotString={dotString} /></TabContent>,
-          closable: true,
           id,
+          title: "Object Visualization",
+          cached: true,
+          content: <TabContent><ObjectViz dotString={binaryData.dotString} /></TabContent>,
+          closable: true,
         }
       case "DisassemblyView":
         return {
-          title: `Disassembly View (${parseInt(compNum) + 1})`,
-          content: <TabContent><DisassemblyView
-            binaryFilePath={binaryFilePath}
-            active={activeDisassemblyView === parseInt(compNum)}
-            setActive={disassemblyViewId => {
-              setActiveDisassemblyView(disassemblyViewId)
-            }}
-
-            viewState={disassemblyViewStates[compNum]}
-            id={disassemblyViewStates[compNum].id}
-            lineSelection={disassemblyViewStates[compNum].lineSelection}
-            page={-1}
-
-            setNewSelection={(newSelection) => {
-              // get the corresponding assembly address from newSelection
-              const sourceLineSelection = dyninstInfo.lines
-                .filter(data => data.file === selectedSourceFile)
-                .filter(data => (data.from <= newSelection.start_address && newSelection.start_address < data.to) || (data.from <= newSelection.end_address && newSelection.end_address < data.to))
-                .reduce((acc, data) => ({
-                  from: Math.min(acc.from, data.line),
-                  to: Math.max(acc.to, data.line)
-                }), { from: 9999999, to: -1 })
-
-              // Update active disassemblyViewState
-              const sourceViewStatesCopy = [...sourceViewStates];
-              sourceViewStatesCopy[activeDisassemblyView] = {
-                ...sourceViewStatesCopy[activeDisassemblyView],
-                lineSelection: {
-                  start: sourceLineSelection.from,
-                  end: sourceLineSelection.to
-                }
+          id:"DisassemblyView:"+compNum,
+          title: "Disassembly View: " + compNum,
+          cached: true,
+          content: ComponentFactory.CreateDisassemblyView(
+            parseInt(compNum),
+            binaryFilePath,
+            activeDisassemblyView,
+            setActiveDisassemblyView,
+            disassemblyViewStates.find(disState => disState.id === parseInt(compNum))!.lineSelection,
+            1,
+            (newSelection) => { 
+              const disassemblyViewStateCopy = [...disassemblyViewStates]
+              const stateIndex = disassemblyViewStateCopy.findIndex(disState => disState.id === parseInt(compNum))
+              disassemblyViewStateCopy[stateIndex] = {
+                id: parseInt(compNum),
+                lineSelection: newSelection
               }
-              setSourceViewStates(sourceViewStatesCopy);
-
-              // Update sourceFileView state
-              const disassemblyViewStatesCopy = [...disassemblyViewStates];
-              disassemblyViewStatesCopy[activeDisassemblyView] = {
-                ...disassemblyViewStatesCopy[activeDisassemblyView],
-                lineSelection: {
-                  start: newSelection.start_address,
-                  end: newSelection.end_address
-                }
-              }
-              setDisassemblyViewStates(disassemblyViewStatesCopy);
-            }}
-            dyninstInfo={dyninstInfo}
-          /></TabContent>,
+              setDisassemblyViewStates(disassemblyViewStateCopy)
+            },
+            binaryData.dyninstInfo
+          ),
           closable: true,
-          id,
           minHeight: 150,
           minWidth: 150
         }
       default:
         return {
+          id,
           title: id,
           content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
           closable: true,
-          id,
           minHeight: 150,
           minWidth: 150
         }
     }
   }
 
-  const addNewDisassembly = (panelData, context) => {
-    const newId = disassemblyViewStates[disassemblyViewStates.length - 1].id + 1;
-
-    const disassemblyViewStatesCopy = [...disassemblyViewStates]
-    const newDisassemblyViewState = {
-      id: newId,
-      lineSelection: { start: -1, end: -1 }
-    }
-    disassemblyViewStatesCopy.push(newDisassemblyViewState)
-    setDisassemblyViewStates(disassemblyViewStatesCopy)
-
-    const sourceViewStatesCopy = [...sourceViewStates]
-    const newSourceViewState = {
-      id: newId,
-      lineSelection: { start: -1, end: -1 }
-    }
-    sourceViewStatesCopy.push(newSourceViewState)
-    setSourceViewStates(sourceViewStatesCopy)
-
-
-    // I shouldn't be writing this, but without this, it is not working
-    context.dockMove(loadTab({
-      id: "DisassemblyView:" + newId
-    }), panelData, 'middle')
-  }
-
-  function moveToNewWindow(panelData, context) {
-    if (!('isDocked' in panelData) || panelData['isDocked']) {
-      panelData.h = 700;
-      panelData.w = 512;
-      panelData.x = 200;
-      panelData.y = 200;
-      panelData['isDocked'] = false;
-      context.dockMove(panelData, panelData, 'new-window')
-    }
-    else {
-      panelData['isDocked'] = true;
-      panelData.h = 700;
-      panelData.w = 512;
-      panelData.x = 200;
-      panelData.y = 200;
-      context.dockMove(panelData, panelData, 'float')
-    }
-  }
-
-  const panelLockData = {
-    panelExtra: (panelData, context) => (<>
-      <button
-        style={{
-          margin: "4px",
-          background: "white",
-          border: "1px solid black",
-          borderRadius: '5px'
-        }}
-        onClick={(event) => { addNewDisassembly(panelData, context) }}
-      >
-        +
-      </button>
-      <button
-        style={{
-          margin: "4px",
-          background: "url('../assets/icons8-external-link-64.png')",
-        }}
-        onClick={(event) => { moveToNewWindow(panelData, context) }}
-      >
-      </button>
-    </>)
-  };
-
-  const [layout, setLayout] = React.useState({
+  const [layout, setLayout] = React.useState<LayoutData>({
     dockbox: {
       mode: 'horizontal',
       children: [
@@ -279,86 +181,55 @@ const App = () => {
           children: [
             {
               tabs: [
-                { id: "InputFilePath:1" },
+                // { id: "InputFilePath:1" } as TabData
+                {
+                  id: "InputFilePath:1",
+                  title: "Input File",
+                  content: ComponentFactory.CreateInputFilePath(binaryFilePath, setBinaryFilePath, sourceViewStates),
+                  closable: false,
+                  minHeight: 150,
+                  minWidth: 250
+                }
               ],
             },
-            // {
-            //   tabs: [
-            //     { id: "VariableRenamer:1" },
-            //     { id: "Selection:1" }
-            //   ],
-            // },
           ]
         },
         {
+          mode: 'vertical',
           size: 4,
-          tabs: [
-            { id: "SourceView:1" },
-          ],
-        },
-        {
-          size: 4,
-          tabs: disassemblyViewStates.map(viewState => ({
-            id: "DisassemblyView:" + viewState.id
-          })),
-          id: "DisassemblyViewPanel",
-          panelLock: panelLockData,
-        },
-        // {
-        //   size: 4,
-        //   tabs: [
-        //     { id: "ObjectView:1" },
-        //   ],
-        // },
+          children: [{
+            id: 'DisassemblyViewPanel',
+            tabs: [],
+            panelLock: {
+              minWidth: 300,
+              minHeight: 300,
+              panelExtra: (panelData) => (
+                <button onClick={() => {
+                  console.log(panelData)
+                }}>
+                  add
+                </button>
+              )
+
+            }
+          }]
+        }
       ]
     },
   });
 
-  function addPanelLockToLayout(newLayout, panelData) {
-    function addPanelLockToLayoutRecurse(newLayout, panelData) {
-      if (typeof newLayout == "object" && newLayout !== null) {
-        // if (!newLayout.hasOwnProperty('tabs')) return; 
-        if ('tabs' in newLayout) {
-          let foundDisassemblyView = false;
-          for (let tab in newLayout.tabs) {
-            if (newLayout.tabs[tab].id.split(':')[0] === 'DisassemblyView') {
-              foundDisassemblyView = true;
-              break
-            }
-          }
-          if (foundDisassemblyView) {
-            newLayout['panelLock'] = panelData;
-          }
-        }
-        else if ('children' in newLayout) {
-          for (let panelChild in newLayout.children) {
-            addPanelLockToLayoutRecurse(newLayout.children[panelChild], panelData);
-          }
-        }
-      }
-    }
-    const newLayoutCopy = { ...newLayout };
-    for (let key in newLayoutCopy) {
-      addPanelLockToLayoutRecurse(newLayoutCopy[key], panelData);
-    }
-    return newLayoutCopy;
-  }
-
-
-  React.useEffect(() => {
-    if (dockRef.current)
-      dockRef.current.loadLayout(layout);
-  })
-
-
-  const onLayoutChange = (newLayout, currentTabId, direction) => {
-    setLayout(addPanelLockToLayout(newLayout, panelLockData));
+  const onLayoutChange = (newLayout: LayoutData, currentTabId: string, direction: DropDirection) => {
+    console.log("Layout Change Called")
+    console.log("    currentTabId", currentTabId)
+    console.log("    direction", direction)
+    console.log("    newLayout", newLayout)
+    setLayout(newLayout)
   };
 
   return (
     <div className="App">
       <DockLayout
-        ref={dockRef}
+        ref={(r) => {dockRef = r}}
         defaultLayout={layout}
         loadTab={loadTab}
         onLayoutChange={onLayoutChange}

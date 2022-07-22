@@ -3,33 +3,36 @@ import { Card, ListGroup } from 'react-bootstrap';
 import { codeColors } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
 
-import { BlockPage, LineCorrespondence, Function, Variable, DisassemblyLineSelection } from '../types'
+
+import { LineCorrespondence, Function, Variable, DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
 
-function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection, page, setNewSelection, dyninstInfo }:{
+function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection, pageNo, setNewSelection, dyninstInfo }:{
     binaryFilePath: string,
     active: boolean,
-    setActive: (id: number) => void,
+    setActive: (id: number|null) => void,
     id: number,
-    lineSelection: DisassemblyLineSelection,
-    page: number,
-    setNewSelection: (lineSelection: DisassemblyLineSelection) => void
+    lineSelection: DisassemblyLineSelection|null,
+    setNewSelection: (lineSelection: DisassemblyLineSelection|null) => void,
+    pageNo: number|null,
     dyninstInfo: {
         line_correspondence: LineCorrespondence[],
         functions: Function[]
     }
 }) {
 
+    console.assert(lineSelection || pageNo)
+
+    console.log("Active dis", active)
+    console.log("Id from dis", id)
+
     const [isSelecting, setIsSelecting] = React.useState(false);
-    const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection>({
-        start_address: -1, end_address: -1
-    })
-    const [currentPage, setCurrentPage] = React.useState<BlockPage>();
+    const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
+    const [pages, setPages] = React.useState<BlockPage[]>([]);
 
     const marginHorizontal = '10px'
     const marginSameVertical = '10px'
     const marginDifferentVertical = '100px'
-                
 
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
@@ -42,8 +45,8 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     const onMouseOver = (lineNum: number) => {
         if(isSelecting) {
             setOnGoingSelection({
-                ...onGoingSelection,
-                end_address: lineNum<onGoingSelection.start_address?onGoingSelection.start_address:lineNum
+                ...onGoingSelection!,
+                end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
             })
         }
     }
@@ -51,50 +54,47 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     const onMouseUp = (lineNum: number) => {
         setIsSelecting(false);
         setOnGoingSelection({
-            ...onGoingSelection,
-            end_address: lineNum<onGoingSelection.start_address?onGoingSelection.start_address:lineNum
+            ...onGoingSelection!,
+            end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
         })
-
         setNewSelection(onGoingSelection);
     }
 
     React.useEffect(() => {
-        if (binaryFilePath.length !== 0) {
-            if (page === -1 && lineSelection.start_address === -1) {
-                page = 0
-            }
-            if (page !== -1) {
-                api.getDisassemblyPage(binaryFilePath, 0).then((blockPage) => {
-                    setCurrentPage(blockPage)
-                })
-            }
-            else {
-                api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.start_address).then((blockPage) => {
-                    setCurrentPage(blockPage)
-                })
-            }
+        if(lineSelection) {
+            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.start_address).then(page => {
+                setPages([page])
+            })
         }
-    }, [binaryFilePath])
+        else {
+            api.getDisassemblyPage(binaryFilePath, pageNo!).then(page => {
+                setPages([page])
+            })
+        }
+    }, [pageNo, lineSelection])
 
-    const disassemblyBlockRefs: {[start_address: number]: React.RefObject<HTMLDivElement>} = {}
-    currentPage && currentPage.blocks.forEach((block, i) => {
-        disassemblyBlockRefs[block.start_address] = React.createRef();
+    const addNewPage = (newPageNo: number) => {
+        api.getDisassemblyPage(binaryFilePath, newPageNo).then(page => {
+            let pagesCopy = [...pages]
+            pagesCopy.push(page)
+            pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
+            setPages(pagesCopy)
+        })
+    }
 
-    })
-
+    const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
     React.useEffect(() => {
+        console.log("useEffect lineSelection 2")
+        if (!lineSelection) return;
         const firstFocusLine = lineSelection.start_address;
-        if(firstFocusLine !== -1) {
-            const scrollRef = disassemblyBlockRefs[
-                Object.keys(disassemblyBlockRefs).map(Number).reverse().find(key => key <= firstFocusLine )!
-            ].current;
+        if(firstFocusLine in disassemblyBlockRefs) {
+            const scrollRef = disassemblyBlockRefs.current[firstFocusLine].ref;
 
-            if(scrollRef)
-                scrollRef.scrollIntoView({
-                    behavior: 'smooth'
-                })
+            scrollRef?.scrollIntoView({
+                behavior: 'smooth'
+            })
+
         }
-
     }, [lineSelection])
 
     const borderStyle: {[style: string]: string} = {}
@@ -103,13 +103,11 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     }
 
     const activeRef = React.useRef<HTMLInputElement>(null);
-
     React.useEffect(() => {
+        console.log("useEffect active ref")
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
-
-
 
     // Variable Renamer
     let allVars: Variable[] = [];
@@ -141,8 +139,6 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     //     }
     // }
 
-
-
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -157,18 +153,23 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>
-        {currentPage ? <div style={{
-            ...borderStyle
-        }}>
-            {currentPage.blocks.map((block, i) => (
+        {pages ?  
+        <div style={{
+            ...borderStyle,
+        }}
+        >
+            {pages.length > 0 && pages[0].page_no > 1?<button onClick={e => {addNewPage(pages[0].page_no-1)}}>
+                Load more
+            </button>:<></>}
+            {pages.map(page => page.blocks).flat().map((block, i, allBlocks) => (
                 <Card key={i} style={{
                     marginLeft: marginHorizontal,
                     marginRight: marginHorizontal,
-                    marginTop: (i > 0 && currentPage.blocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
+                    marginTop: (i > 0 && allBlocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
                     maxWidth: '400px',
                     textAlign: 'center'
                 }}
-                ref={disassemblyBlockRefs[Number(Object.keys(disassemblyBlockRefs)[i])]}
+                ref={(thisRef: HTMLDivElement) => {disassemblyBlockRefs.current[block.start_address] = {ref: thisRef}}}
                 >
                     <Card.Header style={{
                         background: '#ddd',
@@ -177,7 +178,7 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
                         padding: '2px',
                         paddingLeft: '10px'
                     }}>
-                        B{i} ({block.function_name})
+                        B{block.block_number} ({block.function_name})(page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>)
                     </Card.Header>
 
                     <ListGroup variant="flush" style={{
@@ -200,7 +201,7 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
                             });
 
                             return <DisassemblyLine
-                                selectedLines={lineSelection}
+                                isHighlighted={lineSelection?ins.address >= lineSelection.start_address && ins.address <= lineSelection.end_address:false}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                                 key={i.toString() + j.toString()}
                                 instruction={ins}
@@ -211,20 +212,16 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
                             />
                         })}
                     </ListGroup>
-
                 </Card>
             )
-            )}</div> :
+            )}
+            {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
+                Load more
+            </button>:<></>}
+            </div> :
             <div>
                 <h1>Please select a binary file to get disassembly code here.</h1>
             </div>}
-
-            <div className="pagination">
-                <button>&laquo;</button>
-                <button>1</button>
-                <button>&raquo;</button>
-            </div>
-
     </>
 }
 

@@ -1,12 +1,13 @@
-import React from 'react';
-import SyntaxHighlighter from 'react-syntax-highlighter';
-import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import React from 'react'
+import SyntaxHighlighter from 'react-syntax-highlighter'
+import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import '../styles/sourceview.css'
-import { LineCorrespondence, Function, SourceSelection } from '../types';
-import { codeColors } from '../utils';
+import { LineCorrespondence, Function, SourceSelection } from '../types'
+import { codeColors } from '../utils'
+import * as api from '../api'
 
-function SourceView({ sourceData, setNewSelection, dyninstInfo, lineSelections, activeDisassemblyView }:{
-    sourceData: string[],
+function SourceView({ sourceFileName, setNewSelection, dyninstInfo, lineSelections, activeDisassemblyView }:{
+    sourceFileName: string,
     setNewSelection: (selection: SourceSelection) => void,
     dyninstInfo: {
         line_correspondence: LineCorrespondence[],
@@ -16,16 +17,23 @@ function SourceView({ sourceData, setNewSelection, dyninstInfo, lineSelections, 
     activeDisassemblyView: number
 }) {
 
-    const [wrapLongLines, setWrapLongLines] = React.useState(false);
-    const [isSelecting, setIsSelecting] = React.useState(false);
+    const [wrapLongLines, setWrapLongLines] = React.useState(false)
+    const [isSelecting, setIsSelecting] = React.useState(false)
     const [onGoingSelection, setOnGoingSelection] = React.useState<SourceSelection>({
         start: -1, end: -1, id: -1
-    });
-
-    let sourceCode = "";
-    sourceData.forEach((line) => {
-        sourceCode += line;
     })
+    const [sourceCode, setSourceCode] = React.useState("")
+
+    React.useEffect(() => {
+        if (sourceFileName.length === 0) return;
+        api.getSourceLines(sourceFileName).then((result) => {
+            let tmpSourceCode = "";
+            result.forEach((line) => {
+                tmpSourceCode += line;
+            })
+            setSourceCode(tmpSourceCode);
+        })
+    }, [sourceFileName])
 
     return <>
         <div>
@@ -47,7 +55,7 @@ function SourceView({ sourceData, setNewSelection, dyninstInfo, lineSelections, 
             codeTagProps={{
                 className: "codesegment"
             }}
-            lineProps={ lineNum => {
+            lineProps={ (lineNum: number) => {
                 let style: {[style: string]: string} = { display: "block", userSelect: "none", marginTop: '0' }
 
                 // Highlight for different disassemblyViewId

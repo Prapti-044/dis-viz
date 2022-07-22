@@ -177,3 +177,17 @@ export type SourceSelection = {
     end: number,
     id: number
 }
+
+export type SourceViewData = {
+    file_name: string,
+    lineSelection: {
+        start_line: number,
+        end_line: number,
+    } | null
+    opened: boolean
+}
+
+export type DyninstInfo = {
+    line_correspondence: LineCorrespondence[],
+    functions: Function[]
+}
