@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import ObjectViz from "./components/ObjectViz";
 import React from 'react';
 import * as api from "./api";
@@ -6,122 +5,74 @@ import * as api from "./api";
 import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./components/TabContent";
-import { SourceViewData, DyninstInfo, DisassemblyLineSelection, ReactContext } from './types';
-import * as ComponentFactory from './ComponentFactory';
+import { DyninstInfo } from './types';
+// import * as ComponentFactory from './ComponentFactory';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { useAppSelector, useAppDispatch } from './app/hooks';
-import { selectActiveDisassemblyView, setActiveDisassemblyView } from './features/active-disassembly-view/activeDisassemblyViewSlice'
-import { selectSelections, initializeSourceFiles, setSourceLineSelection } from './features/selections/selectionsSlice'
-
-
-export const Context = React.createContext<ReactContext>({
-  binaryFilePath: "",
-  setBinaryFilePath: _ => {},
-  binaryData: {
-    dotString: null,
-    dyninstInfo: { line_correspondence: [], functions: [] }
-  },
-  setBinaryData: _ => {},
-  sourceViewStates: [],
-  setSourceViewStates: _ => {},
-  activeDisassemblyView: null,
-  setActiveDisassemblyView: _ => {},
-  disassemblyViewStates: [],
-  setDisassemblyViewStates: _ => {}
-});
+import { selectSelections, selectActiveDisassemblyView, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from './features/selections/selectionsSlice'
+import { selectBinaryFilePath } from './features/binary-data/binaryDataSlice'
+import DisassemblyView from './components/DisassemblyView';
+import SourceView from './components/SourceView';
+import InputFilePath from './components/InputFilePath';
 
 
 const App = () => {
 
   const dispatch = useAppDispatch();
 
-  const [binaryFilePath, setBinaryFilePath] = React.useState("");
-  const [binaryData, setBinaryData] = React.useState<{
-    dotString: string|null,
-    dyninstInfo: DyninstInfo,
-  }>({
-    dotString: null,
-    dyninstInfo: {
-      line_correspondence: [],
-      functions: []
-    }
-  })
-
-  // const [sourceViewStates, setSourceViewStates] = React.useState<SourceViewData[]>([])
-  // const [activeDisassemblyView, setActiveDisassemblyView] = React.useState<number|null>(null);
-  // const [disassemblyViewStates, setDisassemblyViewStates] = React.useState<{
-  //   id: number,
-  //   lineSelection: DisassemblyLineSelection|null
-  // }[]>([]);
-
-  const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
-
-  console.log("From App:")
-  // console.log("    sourceViewStates", sourceViewStates)
-  // console.log("    disassemblyViewStates", disassemblyViewStates)
-  console.log("    activeDisassemblyView", activeDisassemblyView)
+  const [sourceViewStates, setSourceViewStates] = React.useState<{
+    file_name: string,
+    status: "opened" | "opening" | "closed"
+  }[]>([])
+  const selections = useAppSelector(selectSelections)
 
   let dockRef: DockLayout | null;
+  const binaryFilePath = useAppSelector(selectBinaryFilePath)
 
-  // Gets all info if binary file is changed
+  // Automatically create a disassemblyView if there is none but binaryFilePath is selected
   React.useEffect(() => {
-    if (binaryFilePath.length === 0) return;
-    Promise.all([
-      api.getDisassemblyDot(binaryFilePath),
-      api.getSourceFiles(binaryFilePath),
-      api.getDyninstInfo(binaryFilePath),
-    ]).then(([resultDot, resultSourceFiles, resultDyninstInfo]) => {
-      setBinaryData({
-        dotString: resultDot,
-        dyninstInfo: resultDyninstInfo
-      })
-      dispatch(initializeSourceFiles(resultSourceFiles))
-      // setSourceViewStates(resultSourceFiles.map<SourceViewData>(sourceFile => ({
-      //   file_name: sourceFile,
-      //   lineSelections: [],
-      //   status: "closed"
-      // })))
-      // setDisassemblyViewStates([{
-      //   id: 1,
-      //   lineSelection: null
-      // }])
+    if(binaryFilePath.length === 0) return;
 
+    api.getSourceFiles(binaryFilePath).then(files => {
+      setSourceViewStates(files.map(file_name => ({
+        file_name,
+        status: "closed"
+      })))
     })
-  }, [binaryFilePath]);
+
+    if(Object.keys(selections).length !== 0) return
+    dispatch(addDisassemblyView())
+  }, [binaryFilePath])
+
+  React.useEffect(() => {
+    console.log("SourceView State", sourceViewStates)
+    dockRef!.updateTab("InputFilePath:1", {
+      id: "InputFilePath:1",
+      title: "Input File",
+      content: <TabContent><InputFilePath
+        sourceViewData={sourceViewStates}
+        setSourceViewData={setSourceViewStates}
+      /></TabContent>,
+      closable: false,
+      minHeight: 150,
+      minWidth: 250,
+    })
+  }, [sourceViewStates])
 
   // Consolidates disassemblyViewState and dis-views
   React.useEffect(() => {
-    if (dockRef === null) return;
-    disassemblyViewStates
-      .map<TabData>(disassemblyViewState => ({
-        id: "DisassemblyView:"+disassemblyViewState.id,
-        title: "Disassembly View: " + disassemblyViewState.id,
-        content: ComponentFactory.CreateDisassemblyView(
-          disassemblyViewState.id,
-          binaryFilePath,
-          activeDisassemblyView,
-          (newActiveDisView) => { dispatch(setActiveDisassemblyView(newActiveDisView)) },
-          disassemblyViewState.lineSelection,
-          1,
-          newSelection => {
-            // set disassembly line selection
-            const disassemblyViewStateCopy = [...disassemblyViewStates]
-            const stateIndex = disassemblyViewStateCopy.findIndex(disState => disState.id === disassemblyViewState.id)
-            disassemblyViewStateCopy[stateIndex] = {
-              id: disassemblyViewState.id,
-              lineSelection: newSelection
-            }
-            setDisassemblyViewStates(disassemblyViewStateCopy)
-
-            // set corresponding source line selection
-            // const sourceViewStatesCopy = [...sourceViewStates]
-            
-          },
-          binaryData.dyninstInfo,
-          Context
-        ),
+    if (dockRef === null || Object.keys(selections).length === 0) return;
+    Object.keys(selections)
+      .map<TabData>(disId => ({
+        id: "DisassemblyView:"+disId,
+        title: "Disassembly View: " + disId,
+        content: <TabContent><DisassemblyView
+                key={"DisassemblyView:" + disId}
+                id={parseInt(disId)}
+                pageNo={null}
+            /></TabContent>,
         closable: true
       }))
       .forEach(disassemblyViewComponent => {
@@ -138,75 +89,39 @@ const App = () => {
         }
       })
       // set it active if there is only one disview
-      if (disassemblyViewStates.length === 1) {
-        dispatch(setActiveDisassemblyView(disassemblyViewStates[0].id))
+      if (Object.keys(selections).length === 1) {
+        dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
       }
-
-  }, [disassemblyViewStates])
-
-  const addNewLineSelection = (newLineSelection: {start: number, end: number}, sourceViewI: number) => {
-                      // set source line selection
-                      console.log("Inside newLineSelection:")
-                      console.log("    activeDisView", activeDisassemblyView)
-                      // I had to use setState hook to get the latest value of activeDisassemblyView
-                      const sourceViewStatesCopy = [...sourceViewStates]
-                      const oldLineSelections = sourceViewStatesCopy[sourceViewI].lineSelections
-                      const oldLineSelectionIndex = oldLineSelections.findIndex(selection => selection.disassemblyViewId === activeDisassemblyView)
-
-                      if (oldLineSelectionIndex === -1) {
-                        sourceViewStatesCopy[sourceViewI].lineSelections.push({
-                          ...newLineSelection,
-                          disassemblyViewId: activeDisassemblyView
-                        })
-                      }
-                      else {
-                        sourceViewStatesCopy[sourceViewI].lineSelections[oldLineSelectionIndex] = {
-                          ...newLineSelection,
-                          disassemblyViewId: activeDisassemblyView
-                        }
-                      }
-                      setSourceViewStates(sourceViewStatesCopy)
-
-                      // set disassembly line selection
-                      api.getSourceCorresponding(binaryFilePath, sourceViewStates[sourceViewI].file_name, newLineSelection.start, newLineSelection.end).then(newDisLine => {
-                        const disassemblyViewStateCopy = [...disassemblyViewStates]
-                        console.log('    disassemblyViewStatesCOpy', disassemblyViewStateCopy)
-                        const stateIndex = disassemblyViewStateCopy.findIndex(disState => disState.id === activeDisassemblyView)
-                        console.log('    stateIndex', stateIndex)
-                        disassemblyViewStateCopy[stateIndex].lineSelection = newDisLine
-                        setDisassemblyViewStates(disassemblyViewStateCopy)
-                      })
-
-  }
+  }, [selections])
 
   // Consolidates sourceViewStates and source-views
   React.useEffect(() => {
-    let changed = false
+    if (!dockRef) return;
+    let changedSourceViewStates = false;
     const sourceViewStatesCopy = [...sourceViewStates]
     sourceViewStatesCopy
-        .filter(daton => daton.status === "opening")
-        .forEach((sourceViewDaton, sourceViewI) => {
-            changed = true
-            const tab: TabData = {
-                id: "SourceView:"+sourceViewDaton.file_name,
-                title: "Source: " + sourceViewDaton.file_name,
-                content: ComponentFactory.CreateSourceView(
-                    sourceViewDaton,
-                    newLineSelection => addNewLineSelection(newLineSelection, sourceViewI),
-                ),
-                closable: true
-            }
+      .filter(sourceViewState => sourceViewState.status === "opening")
+      .forEach(sourceViewDaton => {
+        changedSourceViewStates = true;
+        const tab: TabData = {
+            id: "SourceView:"+sourceViewDaton.file_name,
+            title: "Source: " + sourceViewDaton.file_name,
+            content: <TabContent><SourceView
+              file_name={sourceViewDaton.file_name}
+            />
+            </TabContent>,
+            closable: true
+        }
 
-            const newPanel: PanelData = {
-                tabs: [tab],
-                x: 10, y: 10, w: 400, h: 400
-            }
-            dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
-            sourceViewDaton.status = 'opened'
-        })
-      
-      if(changed)
-        setSourceViewStates(sourceViewStatesCopy)
+        const newPanel: PanelData = {
+            tabs: [tab],
+            x: 10, y: 10, w: 400, h: 400
+        }
+        dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
+        sourceViewDaton.status = "opened"
+    });
+    if(changedSourceViewStates)
+      setSourceViewStates(sourceViewStatesCopy);
   }, [sourceViewStates])
 
   const loadTab = ({ id }: { id: string }): TabData => {
@@ -216,7 +131,10 @@ const App = () => {
         return {
           id: "InputFilePath:1",
           title: "Input File",
-          content: ComponentFactory.CreateInputFilePath(binaryFilePath, setBinaryFilePath, sourceViewStates, Context),
+          content: <TabContent><InputFilePath
+            sourceViewData={sourceViewStates}
+            setSourceViewData={setSourceViewStates}
+          /></TabContent>,
           closable: false,
           minHeight: 150,
           minWidth: 250,
@@ -225,37 +143,9 @@ const App = () => {
         return {
           id,
           title: "Object Visualization",
-          content: <TabContent><ObjectViz dotString={binaryData.dotString} /></TabContent>,
+          content: <TabContent><ObjectViz /></TabContent>,
           closable: true,
         }
-      // case "DisassemblyView":
-      //   console.log("Creating DisView from loadTab")
-      //   return {
-      //     id:"DisassemblyView:"+compNum,
-      //     title: "Disassembly View: " + compNum,
-      //     content: ComponentFactory.CreateDisassemblyView(
-      //       parseInt(compNum),
-      //       binaryFilePath,
-      //       activeDisassemblyView,
-      //       setActiveDisassemblyView,
-      //       disassemblyViewStates.find(disState => disState.id === parseInt(compNum))!.lineSelection,
-      //       1,
-      //       (newSelection) => { 
-      //         const disassemblyViewStateCopy = [...disassemblyViewStates]
-      //         const stateIndex = disassemblyViewStateCopy.findIndex(disState => disState.id === parseInt(compNum))
-      //         disassemblyViewStateCopy[stateIndex] = {
-      //           id: parseInt(compNum),
-      //           lineSelection: newSelection
-      //         }
-      //         setDisassemblyViewStates(disassemblyViewStateCopy)
-      //       },
-      //       binaryData.dyninstInfo,
-      //       Context
-      //     ),
-      //     closable: true,
-      //     minHeight: 150,
-      //     minWidth: 150
-      //   }
       default:
         return {
           id,
@@ -278,11 +168,13 @@ const App = () => {
           children: [
             {
               tabs: [
-                // { id: "InputFilePath:1" } as TabData
                 {
                   id: "InputFilePath:1",
                   title: "Input File",
-                  content: ComponentFactory.CreateInputFilePath(binaryFilePath, setBinaryFilePath, sourceViewStates, Context),
+                  content: <TabContent><InputFilePath
+                    sourceViewData={sourceViewStates}
+                    setSourceViewData={setSourceViewStates}
+                  /></TabContent>,
                   closable: false,
                   minHeight: 150,
                   minWidth: 250
@@ -316,36 +208,13 @@ const App = () => {
               minWidth: 300,
               minHeight: 300,
               panelExtra: (panelData) => (
-                <Context.Consumer>
-                  {val => (
                     <button onClick={e => {
-                      if (val.binaryFilePath.length === 0) {
-                        toast.error('Please select a binary file first!', {
-                          position: "bottom-center",
-                          autoClose: 5000,
-                          hideProgressBar: false,
-                          closeOnClick: true,
-                          pauseOnHover: true,
-                          draggable: true,
-                          progress: undefined,
-                        });
-                        return
-                      };
-                      const disassemblyViewStateCopy = [...val.disassemblyViewStates]
-                      const newId = Math.max(...disassemblyViewStateCopy.map(disState => disState.id))+1
-                      disassemblyViewStateCopy.push({
-                        id: newId,
-                        lineSelection: null
-                      })
-                      dispatch(setActiveDisassemblyView(newId))
-                      setDisassemblyViewStates(disassemblyViewStateCopy)
+                      dispatch(addDisassemblyView())
                     }}>
                       add
                     </button>
-                  )}
-                </Context.Consumer>
-              )
-            }
+                  )
+                }
           }]
         },
       ]
@@ -366,11 +235,7 @@ const App = () => {
         setSourceViewStates(sourceViewStatesCopy)
       }
       else if (currentTabId.split(':')[0] === 'DisassemblyView') {
-        const disViewId = parseInt(currentTabId.split(':')[1])
-        const disViewStatesCopy = [...disassemblyViewStates]
-        const index = disViewStatesCopy.findIndex(disState => disState.id === disViewId)
-        disViewStatesCopy.splice(index, 1)
-        setDisassemblyViewStates(disViewStatesCopy)
+        dispatch(removeDisassemblyView(parseInt(currentTabId.split(":")[1])))
       }
     }
     setLayout(newLayout)
@@ -389,24 +254,11 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <Context.Provider value={{
-        binaryFilePath,
-        setBinaryFilePath,
-        binaryData,
-        setBinaryData,
-        sourceViewStates,
-        setSourceViewStates,
-        activeDisassemblyView,
-        setActiveDisassemblyView,
-        disassemblyViewStates,
-        setDisassemblyViewStates,
-      }}>
-
       <DockLayout
         ref={(r) => {dockRef = r}}
         defaultLayout={layout}
-        loadTab={loadTab}
-        // onLayoutChange={onLayoutChange}
+        // loadTab={loadTab}
+        onLayoutChange={onLayoutChange}
         style={{
           position: 'absolute',
           left: 5,
@@ -415,7 +267,6 @@ const App = () => {
           bottom: 5
         }}
       />
-      </Context.Provider>
     </div>
   )
 }

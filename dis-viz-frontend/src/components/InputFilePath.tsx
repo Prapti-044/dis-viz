@@ -4,21 +4,21 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import * as api from "../api";
 import { SourceViewData } from '../types';
 import '../styles/inputsourcefilepath.css'
-import { PanelData, TabData } from 'rc-dock';
-import * as ComponentFactory from '../ComponentFactory';
+import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { useAppSelector, useAppDispatch } from '../app/hooks';
 
-function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData, setSourceViewData, activeDisassemblyView }:{
-    binaryFilePath: string,
-    setBinaryFilePath: (path: string) => void,
-    sourceViewData: SourceViewData[],
-    setSourceViewData: (_: SourceViewData[]) => void,
-    activeDisassemblyView: number|null,
+function InputFilePath({ sourceViewData, setSourceViewData }:{
+    sourceViewData: { file_name: string, status: "opened" | "closed" | "opening" }[],
+    setSourceViewData: (_: { file_name: string, status: "opened" | "closed" | "opening" }[]) => void,
 }) {
 
     const [binaryList, setBinaryList] = React.useState<{
         name: string,
         executable_path: string
     }[]>([]);
+
+    const dispatch = useAppDispatch();
+    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -43,7 +43,7 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData, setS
             <Form.Select
                 aria-label="Binary File Selection"
                 onChange={(event: React.FormEvent<HTMLSelectElement>) => {
-                    setBinaryFilePath((event.target as HTMLSelectElement).value);
+                    dispatch(setBinaryFilePath((event.target as HTMLSelectElement).value))
                 }}
                 value={binaryFilePath}
             >

@@ -2,28 +2,29 @@ import React, { ReactElement }  from 'react';
 import { Card, ListGroup } from 'react-bootstrap';
 import { codeColors } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
+import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { selectSelections, setSourceLineSelection, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 
 import { LineCorrespondence, Function, Variable, DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
 
-function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection, pageNo, setNewSelection, dyninstInfo }:{
-    binaryFilePath: string,
-    active: boolean,
-    setActive: (id: number|null) => void,
+function DisassemblyView({ id, pageNo }:{
     id: number,
-    lineSelection: DisassemblyLineSelection|null,
-    setNewSelection: (lineSelection: DisassemblyLineSelection|null) => void,
-    pageNo: number|null,
-    dyninstInfo: {
-        line_correspondence: LineCorrespondence[],
-        functions: Function[]
-    }
+    pageNo: number|null
 }) {
 
-    console.log("Loading DisassemblyView")
+    const dispatch = useAppDispatch();
+    const selections = useAppSelector(selectSelections)
+    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
+    const active = activeDisassemblyView === id
 
-    console.assert(lineSelection || pageNo)
+    const lineSelection = selections[id]
+    if (!lineSelection && !pageNo) {
+        pageNo = 1
+    }
 
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
@@ -56,11 +57,14 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
             ...onGoingSelection!,
             end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
         })
-        setNewSelection(onGoingSelection);
+        dispatch(setDisassemblyLineSelection({
+            binaryFilePath,
+            start_address: onGoingSelection!.start_address,
+            end_address: onGoingSelection!.end_address,
+        }))
     }
 
     React.useEffect(() => {
-        console.log("    fetch Page useEffect called")
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
         })
@@ -83,19 +87,13 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
 
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
     React.useEffect(() => {
-        console.log("    line highlight useEffect called")
-        console.log("    disassemblyBlockRefs", disassemblyBlockRefs)
         if (!lineSelection) return;
         const firstFocusLine = lineSelection.start_address;
-        console.log("    firstFocusLine", firstFocusLine)
 
         const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(parseInt)
         for(const i of blockAddresses) {
-            console.log('comparingwith ', Object.keys(disassemblyBlockRefs.current)[i])
             if (i > 0 && blockAddresses[i-1] <= firstFocusLine && firstFocusLine <= blockAddresses[i]) {
-                console.log("Found at ", blockAddresses[i].toString(16))
                 if (!disassemblyBlockRefs.current[blockAddresses[i]]) return;
-                console.log("Found value")
                 const scrollRef = disassemblyBlockRefs.current[blockAddresses[i]].ref;
 
                 scrollRef?.scrollIntoView({
@@ -113,16 +111,16 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
 
     const activeRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        console.log("    active button useEffect called")
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
 
     // Variable Renamer
     let allVars: Variable[] = [];
-    if (dyninstInfo) {
-        allVars = dyninstInfo.functions.map(f => f.variables).filter(d => d.length !== 0).flat();
-    }
+    // TODO: Get only those variables related to current page
+    // if (dyninstInfo) {
+    //     allVars = dyninstInfo.functions.map(f => f.variables).filter(d => d.length !== 0).flat();
+    // }
 
     // Remove all other functions than active functions
 
@@ -130,7 +128,6 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     // // Hidables
     // if(dyninstInfo) {
     //     const hidables = dyninstInfo["functions"].map(d => d.hidables).filter(d => d && d.length !== 0).flat();
-    //     console.log(hidables);
     //     let finalData = [];
     //     for(let i = 0; i<disassemblyData.blocks.length; i++) {
     //         const assembly = disassemblyData.blocks[i]
@@ -148,7 +145,6 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     //     }
     // }
 
-    console.log("Just before rendering")
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -159,9 +155,9 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
         }}>
             <input type="checkbox" ref={activeRef} onChange={(event) => {
                 if(event.target.checked)
-                    setActive(id)
+                    dispatch(setActiveDisassemblyView(id))
                 else
-                    setActive(null)
+                    dispatch(setActiveDisassemblyView(null))
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>

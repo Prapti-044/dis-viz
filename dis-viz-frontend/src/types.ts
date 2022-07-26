@@ -1,3 +1,4 @@
+import 'reflect-metadata' // Import needed for class-transformer
 import { Expose, Type } from "class-transformer";
 
 export class Instruction {

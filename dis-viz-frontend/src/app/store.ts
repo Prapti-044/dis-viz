@@ -1,11 +1,11 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
-import activeDisassemblyViewReducer from '../features/active-disassembly-view/activeDisassemblyViewSlice';
 import selectionsReducer from '../features/selections/selectionsSlice';
+import binaryFilePathReducer from '../features/binary-data/binaryDataSlice';
 
 export const store = configureStore({
   reducer: {
-    activeDisassemblyView: activeDisassemblyViewReducer,
     selections: selectionsReducer,
+    binaryFilePath: binaryFilePathReducer
   },
 });
 
