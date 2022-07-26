@@ -172,22 +172,41 @@ export type DisassemblyLineSelection = {
     start_address: number, end_address: number
 }
 
-export type SourceSelection = {
+export type SourceLineSelection = {
     start: number,
     end: number,
-    id: number
+    disassemblyViewId: number|null
 }
 
 export type SourceViewData = {
     file_name: string,
-    lineSelection: {
-        start_line: number,
-        end_line: number,
-    } | null
-    opened: boolean
+    lineSelections: SourceLineSelection[]
+    status: "opened" | "closed" | "opening"
 }
 
 export type DyninstInfo = {
     line_correspondence: LineCorrespondence[],
     functions: Function[]
+}
+
+export type ReactContext = {
+  binaryFilePath: string,
+  setBinaryFilePath: (path: string) => void,
+  binaryData: {
+    dotString: string|null,
+    dyninstInfo: DyninstInfo
+  },
+  setBinaryData: (_: {
+    dotString: string|null,
+    dyninstInfo: DyninstInfo
+  }) => void,
+  sourceViewStates: SourceViewData[],
+  setSourceViewStates: (_: SourceViewData[]) => void,
+  activeDisassemblyView: number|null,
+  setActiveDisassemblyView: (_: number|null) => void,
+  disassemblyViewStates: {
+    id: number,
+    lineSelection: DisassemblyLineSelection|null
+  }[],
+  setDisassemblyViewStates: (_: {id: number, lineSelection: DisassemblyLineSelection|null}[]) => void
 }

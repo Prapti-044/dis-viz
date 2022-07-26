@@ -149,6 +149,36 @@ async def getdyninstinfo(filepath: FilePath):
     dyninst_info = decode_cache_binary(filepath.path)['dyninst_info']
     return dyninst_info
 
+class SourceLine(BaseModel):
+    source_file: str
+    start: int
+    end: int
+
+@app.post("/getsourcelinecorrespondence")
+async def getlinecorrespondence(filepath: FilePath, sourceLine: SourceLine):
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
+
+    start_address = float('inf')
+    end_address = -float('inf')
+    for line_correspondence in line_correspondences:
+        if line_correspondence.source_file == sourceLine.source_file and sourceLine.start <= line_correspondence.source_line <= sourceLine.end:
+            start_address = min(start_address, line_correspondence.start_address)
+            end_address = max(end_address, line_correspondence.end_address)
+
+    return {
+        'start_address': start_address,
+        'end_address': end_address
+    }
+
+
+    
+
+
+@app.post("/getdisassemblylinecorrespondence")
+async def getlinecorrespondence(filepath: FilePath):
+    dyninst_info = decode_cache_binary(filepath.path)['dyninst_info']
+    return {'detail': 'Not Implemented'}
+
 @app.post("/getdisassemblydot")
 async def getdisassemblydot(filepath: FilePath):
     return {"dot": decode_cache_binary(filepath.path)['dot']}

@@ -2,38 +2,33 @@ import React from 'react'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { docco } from 'react-syntax-highlighter/dist/esm/styles/hljs'
 import '../styles/sourceview.css'
-import { LineCorrespondence, Function, SourceSelection } from '../types'
+import { LineCorrespondence, Function, SourceLineSelection, SourceViewData } from '../types'
 import { codeColors } from '../utils'
 import * as api from '../api'
 
-function SourceView({ sourceFileName, setNewSelection, dyninstInfo, lineSelections, activeDisassemblyView }:{
-    sourceFileName: string,
-    setNewSelection: (selection: SourceSelection) => void,
-    dyninstInfo: {
-        line_correspondence: LineCorrespondence[],
-        functions: Function[],
-    },
-    lineSelections: SourceSelection[]
-    activeDisassemblyView: number
+function SourceView({ sourceViewState, setNewSelection }:{
+    sourceViewState: SourceViewData,
+    setNewSelection: (_: {start: number, end: number}) => void,
 }) {
+
+    console.log("From SourceView")
 
     const [wrapLongLines, setWrapLongLines] = React.useState(false)
     const [isSelecting, setIsSelecting] = React.useState(false)
-    const [onGoingSelection, setOnGoingSelection] = React.useState<SourceSelection>({
-        start: -1, end: -1, id: -1
+    const [onGoingSelection, setOnGoingSelection] = React.useState<{start: number, end: number}>({
+        start: -1, end: -1
     })
     const [sourceCode, setSourceCode] = React.useState("")
 
     React.useEffect(() => {
-        if (sourceFileName.length === 0) return;
-        api.getSourceLines(sourceFileName).then((result) => {
+        api.getSourceLines(sourceViewState.file_name).then((result) => {
             let tmpSourceCode = "";
             result.forEach((line) => {
                 tmpSourceCode += line;
             })
             setSourceCode(tmpSourceCode);
         })
-    }, [sourceFileName])
+    }, [sourceViewState.file_name])
 
     return <>
         <div>
@@ -59,13 +54,16 @@ function SourceView({ sourceFileName, setNewSelection, dyninstInfo, lineSelectio
                 let style: {[style: string]: string} = { display: "block", userSelect: "none", marginTop: '0' }
 
                 // Highlight for different disassemblyViewId
-                for(let i in lineSelections) {
-                    if(lineNum >= lineSelections[i].start && lineNum <= lineSelections[i].end) {
-                        style.backgroundColor = codeColors[lineSelections[i].id];
-                        style.border = "1px solid grey";
-                        style.cursor = "pointer";
+                sourceViewState.lineSelections.forEach(lineSelection => {
+                    if(lineNum >= lineSelection.start && lineNum <= lineSelection.end) {
+                        if (lineSelection.disassemblyViewId)
+                            style.backgroundColor = codeColors[lineSelection.disassemblyViewId]
+                        else
+                            style.backgroundColor = 'lightgray'
+                        style.border = "1px solid grey"
+                        style.cursor = "pointer"
                     }
-                }
+                })
                 
                 if(isSelecting && lineNum >= onGoingSelection.start && lineNum <= onGoingSelection.end) {
                     style.backgroundColor = "#eee";
@@ -78,7 +76,6 @@ function SourceView({ sourceFileName, setNewSelection, dyninstInfo, lineSelectio
                     setOnGoingSelection({
                         start: lineNum,
                         end: lineNum,
-                        id: activeDisassemblyView
                     })
                 }
 
@@ -92,12 +89,12 @@ function SourceView({ sourceFileName, setNewSelection, dyninstInfo, lineSelectio
                 }
 
                 const onMouseUp = () => {
-                    setIsSelecting(false);
+                    setIsSelecting(false)
                     setOnGoingSelection({
                         ...onGoingSelection,
                         end: lineNum<onGoingSelection.start?onGoingSelection.start:lineNum
                     })
-                    setNewSelection({...onGoingSelection, id: activeDisassemblyView})
+                    setNewSelection({...onGoingSelection})
                 }
 
                 return { style, onMouseUp, onMouseDown, onMouseOver }

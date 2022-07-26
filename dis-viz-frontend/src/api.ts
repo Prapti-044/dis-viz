@@ -1,6 +1,6 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
-import { BlockPage, LineCorrespondence, Function, DyninstInfo } from './types'
+import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection } from './types'
 
 
 
@@ -106,4 +106,36 @@ export async function getBinaryList(): Promise<{
     const response = await fetch(apiURL + "binarylist");
     const result = await response.json();
     return result.binarylist;
+}
+
+export async function getSourceCorresponding(filepath: string, source_file: string, start:number, end:number): Promise<DisassemblyLineSelection> {
+    const response = await fetch(
+        apiURL + "getsourcelinecorrespondence", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({filepath: {path: filepath}, sourceLine: {source_file, start, end}}),
+        }
+    );
+    const result = await response.json();
+    return result;
+}
+
+export async function getDisassemblyCorresponding(filepath: string, start_address:number, end_address:number): Promise<{
+    source_file: string,
+    start: number,
+    end: number
+}[]> {
+    const response = await fetch(
+        apiURL + "getdisassemblylinecorrespondence", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({start_address, end_address}),
+        }
+    );
+    const result = await response.json();
+    return result;
 }

@@ -4,11 +4,15 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import * as api from "../api";
 import { SourceViewData } from '../types';
 import '../styles/inputsourcefilepath.css'
+import { PanelData, TabData } from 'rc-dock';
+import * as ComponentFactory from '../ComponentFactory';
 
-function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData }:{
+function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData, setSourceViewData, activeDisassemblyView }:{
     binaryFilePath: string,
     setBinaryFilePath: (path: string) => void,
-    sourceViewData: SourceViewData[]
+    sourceViewData: SourceViewData[],
+    setSourceViewData: (_: SourceViewData[]) => void,
+    activeDisassemblyView: number|null,
 }) {
 
     const [binaryList, setBinaryList] = React.useState<{
@@ -26,7 +30,11 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData }:{
     }, [binaryList]);
 
     const clickedOnSource = (e: React.MouseEvent<HTMLButtonElement>) => {
-        console.log('clicked on ', e.currentTarget.getAttribute('datasource'))
+        const clickedSourceFile = e.currentTarget.getAttribute('datasource')!
+        let sourceViewDataCopy = [...sourceViewData]
+        const index = sourceViewDataCopy.findIndex(sourceData => sourceData.file_name === clickedSourceFile)!
+        sourceViewDataCopy[index].status = "opening"
+        setSourceViewData(sourceViewDataCopy)
     }
 
     return <div style={{ margin: "25px" }}>
@@ -53,7 +61,7 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, sourceViewData }:{
                 padding: '0'
             }}>
                 {sourceViewData
-                    .filter(sourceViewDaton => !sourceViewDaton.opened)
+                    .filter(sourceViewDaton => sourceViewDaton.status === "closed")
                     .map(sourceViewDaton => <li
                         className={'sourcename'}
                         key={sourceViewDaton.file_name}

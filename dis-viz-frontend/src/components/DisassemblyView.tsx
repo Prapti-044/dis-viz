@@ -21,10 +21,9 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     }
 }) {
 
-    console.assert(lineSelection || pageNo)
+    console.log("Loading DisassemblyView")
 
-    console.log("Active dis", active)
-    console.log("Id from dis", id)
+    console.assert(lineSelection || pageNo)
 
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
@@ -61,15 +60,15 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     }
 
     React.useEffect(() => {
+        console.log("    fetch Page useEffect called")
+        const setAfterFetch = ((page: BlockPage) => {
+            setPages([page])
+        })
         if(lineSelection) {
-            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.start_address).then(page => {
-                setPages([page])
-            })
+            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.start_address).then(setAfterFetch)
         }
         else {
-            api.getDisassemblyPage(binaryFilePath, pageNo!).then(page => {
-                setPages([page])
-            })
+            api.getDisassemblyPage(binaryFilePath, pageNo!).then(setAfterFetch)
         }
     }, [pageNo, lineSelection])
 
@@ -84,16 +83,26 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
 
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
     React.useEffect(() => {
-        console.log("useEffect lineSelection 2")
+        console.log("    line highlight useEffect called")
+        console.log("    disassemblyBlockRefs", disassemblyBlockRefs)
         if (!lineSelection) return;
         const firstFocusLine = lineSelection.start_address;
-        if(firstFocusLine in disassemblyBlockRefs) {
-            const scrollRef = disassemblyBlockRefs.current[firstFocusLine].ref;
+        console.log("    firstFocusLine", firstFocusLine)
 
-            scrollRef?.scrollIntoView({
-                behavior: 'smooth'
-            })
+        const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(parseInt)
+        for(const i of blockAddresses) {
+            console.log('comparingwith ', Object.keys(disassemblyBlockRefs.current)[i])
+            if (i > 0 && blockAddresses[i-1] <= firstFocusLine && firstFocusLine <= blockAddresses[i]) {
+                console.log("Found at ", blockAddresses[i].toString(16))
+                if (!disassemblyBlockRefs.current[blockAddresses[i]]) return;
+                console.log("Found value")
+                const scrollRef = disassemblyBlockRefs.current[blockAddresses[i]].ref;
 
+                scrollRef?.scrollIntoView({
+                    behavior: 'smooth'
+                })
+                break
+            }
         }
     }, [lineSelection])
 
@@ -104,7 +113,7 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
 
     const activeRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
-        console.log("useEffect active ref")
+        console.log("    active button useEffect called")
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
@@ -139,6 +148,7 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
     //     }
     // }
 
+    console.log("Just before rendering")
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -150,6 +160,8 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
             <input type="checkbox" ref={activeRef} onChange={(event) => {
                 if(event.target.checked)
                     setActive(id)
+                else
+                    setActive(null)
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>
@@ -169,7 +181,9 @@ function DisassemblyView({ binaryFilePath, active, setActive, id, lineSelection,
                     maxWidth: '400px',
                     textAlign: 'center'
                 }}
-                ref={(thisRef: HTMLDivElement) => {disassemblyBlockRefs.current[block.start_address] = {ref: thisRef}}}
+                ref={(thisRef: HTMLDivElement) => {
+                    disassemblyBlockRefs.current[block.start_address] = {ref: thisRef}
+                }}
                 >
                     <Card.Header style={{
                         background: '#ddd',
