@@ -6,6 +6,7 @@ from enum import Enum, auto
 class Instruction:
     address: int
     instruction: str
+    correspondence: dict[str,list[int]]
 
 @dataclass
 class AddressRange:

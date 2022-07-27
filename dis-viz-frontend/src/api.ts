@@ -21,7 +21,10 @@ export async function getSourceFiles(filepath: string) : Promise<string[]> {
     return result.map((d: {'file': string}) => d.file);
 }
 
-export async function getSourceLines(sourceFile: string): Promise<string[]> {
+export async function getSourceLines(binaryFile: string, sourceFile: string): Promise<{
+    source: string[],
+    has_correspondence: { [lineNum: number]: boolean }
+}> {
     const response = await fetch(
         apiURL + "getsourcefile", {
             method: 'POST',
@@ -29,11 +32,11 @@ export async function getSourceLines(sourceFile: string): Promise<string[]> {
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({path:sourceFile}),
+            body: JSON.stringify({filepath: {path:sourceFile}, binary_file_path: {path:binaryFile}}),
         }
     );
     const result = await response.json();
-    return result.result;
+    return result;
 }
 
 export async function getDisassemblyPage(filepath: string, pageNo: number): Promise<BlockPage> {
@@ -108,7 +111,9 @@ export async function getBinaryList(): Promise<{
     return result.binarylist;
 }
 
-export async function getSourceCorresponding(filepath: string, source_file: string, start:number, end:number): Promise<DisassemblyLineSelection> {
+export async function getSourceCorresponding(filepath: string, source_file: string, start:number, end:number): Promise<{
+    addresses: number[]
+}> {
     const response = await fetch(
         apiURL + "getsourcelinecorrespondence", {
             method: 'POST',
@@ -123,17 +128,15 @@ export async function getSourceCorresponding(filepath: string, source_file: stri
 }
 
 export async function getDisassemblyCorresponding(filepath: string, start_address:number, end_address:number): Promise<{
-    source_file: string,
-    start: number,
-    end: number
-}[]> {
+    [source_file: string]: number[],
+}> {
     const response = await fetch(
         apiURL + "getdisassemblylinecorrespondence", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({start_address, end_address}),
+            body: JSON.stringify({filepath: {path: filepath}, disassemblyLine: {start_address, end_address}}),
         }
     );
     const result = await response.json();

@@ -96,10 +96,10 @@ function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting,
 
     return <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}
-            className="assemblycode"
-            onMouseDown={() => {mouseEvents.onMouseDown(instruction.address)}}
-            onMouseOver={() => {mouseEvents.onMouseOver(instruction.address)}}
-            onMouseUp={() => {mouseEvents.onMouseUp(instruction.address)}}
+            className={"assemblycode"+(Object.keys(instruction.correspondence).length!==0?" hoverable":"")}
+            onMouseDown={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseDown(instruction.address)}:()=>{}}
+            onMouseOver={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseOver(instruction.address)}:()=>{}}
+            onMouseUp={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseUp(instruction.address)}:()=>{}}
         >
 
         <span style={{ color: 'grey'}}>0x{instruction_address}</span>:{" "}

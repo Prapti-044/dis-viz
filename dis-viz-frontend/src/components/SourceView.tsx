@@ -5,14 +5,13 @@ import '../styles/sourceview.css'
 import { codeColors } from '../utils'
 import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { selectSelections, setSourceLineSelection } from '../features/selections/selectionsSlice'
+import { selectActiveDisassemblyView, selectSelections, setSourceLineSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 function SourceView({ file_name }:{
     file_name: string,
 }) {
 
-    console.log("From SourceView")
     const dispatch = useAppDispatch();
     const selections = useAppSelector(selectSelections)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
@@ -23,18 +22,21 @@ function SourceView({ file_name }:{
         start: -1, end: -1
     })
     const [sourceCode, setSourceCode] = React.useState("")
+    const [hasCorrespondence, setHasCorrespondence] = React.useState<{[lineNum: number]: boolean}>({})
 
 
 
     React.useEffect(() => {
-        api.getSourceLines(file_name).then((result) => {
+        api.getSourceLines(binaryFilePath, file_name).then(({ source, has_correspondence }) => {
             let tmpSourceCode = "";
-            result.forEach((line) => {
+            source.forEach((line) => {
                 tmpSourceCode += line;
             })
+            setHasCorrespondence(has_correspondence)
             setSourceCode(tmpSourceCode);
         })
     }, [file_name])
+
 
     return <>
         <div>
@@ -61,22 +63,20 @@ function SourceView({ file_name }:{
 
                 // Highlight for different disassemblyViewId
                 const thisSelections: {
-                    start_line: number,
-                    end_line: number,
+                    lines: number[],
                     disassemblyViewId: number
                 }[] = []
                 for(const disassemblyViewId in selections) {
-                    const thisSource = selections[parseInt(disassemblyViewId)]?.source_selection.find(selection => selection.source_file === file_name)
-                    if (thisSource) {
+                    const thisLines = selections[parseInt(disassemblyViewId)]?.source_selection.find(selection => selection.source_file === file_name)?.lines
+                    if (thisLines) {
                         thisSelections.push({
-                            start_line: thisSource.start_line,
-                            end_line: thisSource.end_line,
+                            lines: thisLines,
                             disassemblyViewId: parseInt(disassemblyViewId)
                         })
                     }
                 }
-                thisSelections.forEach(({start_line, end_line, disassemblyViewId}) => {
-                    if(lineNum >= start_line && lineNum <= end_line) {
+                thisSelections.forEach(({lines, disassemblyViewId}) => {
+                    if(lines.includes(lineNum)) {
                         style.backgroundColor = codeColors[disassemblyViewId]
                         style.border = "1px solid grey"
                         style.cursor = "pointer"
@@ -108,19 +108,32 @@ function SourceView({ file_name }:{
 
                 const onMouseUp = () => {
                     setIsSelecting(false)
-                    setOnGoingSelection({
+                    const finalSelection = {
                         ...onGoingSelection,
                         end: lineNum<onGoingSelection.start?onGoingSelection.start:lineNum
+                    }
+                    setOnGoingSelection(finalSelection)
+                    api.getSourceCorresponding(binaryFilePath, file_name, finalSelection.start, finalSelection.end).then(newDisLine => {
+                        console.log("From response api")
+                        console.log("    Source selection", finalSelection)
+                        console.log("    disLines", newDisLine)
+                        dispatch(setSourceLineSelection({
+                            addresses: newDisLine.addresses,
+                            source_selection: [{
+                                source_file: file_name,
+                                lines: Array.from({length: finalSelection.end - finalSelection.start + 1}, (_, i) => i + finalSelection.start)
+                            }]
+                        }))
                     })
-                    dispatch(setSourceLineSelection({
-                        binaryFilePath,
-                        file_name,
-                        start_line: onGoingSelection.start,
-                        end_line: onGoingSelection.end
-                    }))
                 }
 
-                return { style, onMouseUp, onMouseDown, onMouseOver }
+                return {
+                    style,
+                    onMouseUp:hasCorrespondence[lineNum]?onMouseUp:()=>{},
+                    onMouseDown:hasCorrespondence[lineNum]?onMouseDown:()=>{},
+                    onMouseOver:hasCorrespondence[lineNum]?onMouseOver:()=>{},
+                    'class': hasCorrespondence[lineNum]?"hoverable":""
+                }
             }}
         >
             {sourceCode}

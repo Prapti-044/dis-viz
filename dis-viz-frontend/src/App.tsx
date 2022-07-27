@@ -71,7 +71,6 @@ const App = () => {
         content: <TabContent><DisassemblyView
                 key={"DisassemblyView:" + disId}
                 id={parseInt(disId)}
-                pageNo={null}
             /></TabContent>,
         closable: true
       }))

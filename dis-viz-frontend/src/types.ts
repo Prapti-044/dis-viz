@@ -4,14 +4,14 @@ import { Expose, Type } from "class-transformer";
 export class Instruction {
     @Expose() instruction: string;
     @Expose() address: number;
+    @Expose() correspondence: {
+        [source_file: string]: number[]
+    };
 
-    constructor(instruction: string, address: number) {
+    constructor(instruction: string, address: number, correspondence: { [source_file: string]: number[] }) {
         this.instruction = instruction
         this.address = address
-    }
-
-    from(json_data: {instruction: string; address: number}) {
-        return new Instruction(json_data.instruction, json_data.address)
+        this.correspondence = correspondence
     }
 }
 

@@ -27,7 +27,8 @@ def decode_cache_binary(filepath: str):
         function_name = block['function_name'],
         instructions = [Instruction(
             address = instruction['address'],
-            instruction = instruction['instruction']
+            instruction = instruction['instruction'],
+            correspondence = {},
         ) for instruction in next(iter(block.values()))]
     ) for block in tqdm(disassembly['blocks'], desc="Constructing Blocks")]
 
@@ -53,14 +54,42 @@ def decode_cache_binary(filepath: str):
 
     dyninst_info = json.loads(sopt.get_json())
 
-    line_correspondence = [
+    line_correspondence = sorted([
         LineCorrespondence(
             source_file=line['file'],
             start_address=line['from'],
             end_address=line['to'],
             source_line=line['line'],
         ) for line in dyninst_info['lines']
-    ]
+    ], key=lambda lc: lc.start_address)
+
+    lc_i = 0
+    for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
+        for ins in block.instructions:
+            for lc in line_correspondence[lc_i:]:
+                if lc.start_address <= ins.address <= lc.end_address:
+                    if lc.source_file not in ins.correspondence:
+                        ins.correspondence = {
+                            lc.source_file: []
+                        }
+                    ins.correspondence[lc.source_file] = list(set(ins.correspondence[lc.source_file] + [lc.source_line]))
+        
+                while lc_i < len(line_correspondence) and ins.address > line_correspondence[lc_i].end_address:
+                    lc_i += 1
+
+                if lc.start_address > ins.address:
+                    break
+
+    # for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
+    #     for ins in block.instructions:
+    #         for lc in line_correspondence:
+    #             if lc.start_address <= ins.address <= lc.end_address:
+    #                 if lc.source_file not in ins.correspondence:
+    #                     ins.correspondence = {
+    #                         lc.source_file: set()
+    #                     }
+    #                 ins.correspondence[lc.source_file].add(lc.source_line)
+        
 
     functions = [
         Function(
@@ -140,9 +169,18 @@ async def getsourcefiles(filepath: FilePath):
     return decode_cache_binary(filepath.path)['source_files']
 
 @app.post("/getsourcefile")
-async def getsourcefile(filepath: FilePath):
+async def getsourcefile(binary_file_path: FilePath, filepath: FilePath):
+
     with open(filepath.path, "r") as f:
-        return { "result": f.readlines() }
+        file_content = f.readlines()
+
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence']
+    line_correspondences = filter(lambda line_correspondence: line_correspondence.source_file == filepath.path, line_correspondences)
+    has_correspondence = {i:False for i in range(1, len(file_content))}
+    for line_correspondence in line_correspondences:
+        has_correspondence[line_correspondence.source_line] = True
+
+    return { "source": file_content, "has_correspondence": has_correspondence }
 
 @app.post("/getdyninstinfo")
 async def getdyninstinfo(filepath: FilePath):
@@ -155,29 +193,39 @@ class SourceLine(BaseModel):
     end: int
 
 @app.post("/getsourcelinecorrespondence")
-async def getlinecorrespondence(filepath: FilePath, sourceLine: SourceLine):
+async def getsourcelinecorrespondence(filepath: FilePath, sourceLine: SourceLine):
     line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
+    blocks: list[InstructionBlock] = decode_cache_binary(filepath.path)['disassembly']['blocks']
 
-    start_address = float('inf')
-    end_address = -float('inf')
+    result: list[int] = []
     for line_correspondence in line_correspondences:
-        if line_correspondence.source_file == sourceLine.source_file and sourceLine.start <= line_correspondence.source_line <= sourceLine.end:
-            start_address = min(start_address, line_correspondence.start_address)
-            end_address = max(end_address, line_correspondence.end_address)
+        if line_correspondence.source_file != sourceLine.source_file:
+            continue
+        for cur_line in range(sourceLine.start, sourceLine.end+1):
+            if line_correspondence.source_line == cur_line:
+                cur_blocks = filter(lambda block: block.start_address <= line_correspondence.start_address <= block.end_address and block.start_address <= line_correspondence.end_address <= block.end_address, blocks)
+                addresses = [ins.address for block in cur_blocks for ins in block.instructions]
+                result += addresses
 
-    return {
-        'start_address': start_address,
-        'end_address': end_address
-    }
+    return { 'addresses': result }
 
-
-    
-
+class DisassemblyLine(BaseModel):
+    start_address: int
+    end_address: int
 
 @app.post("/getdisassemblylinecorrespondence")
-async def getlinecorrespondence(filepath: FilePath):
-    dyninst_info = decode_cache_binary(filepath.path)['dyninst_info']
-    return {'detail': 'Not Implemented'}
+async def getdisassemblylinecorrespondence(filepath: FilePath, disassemblyLine: DisassemblyLine):
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
+
+    result: dict[str, list[int]] = {}
+    for line_correspondence in line_correspondences:
+        for cur_address in range(disassemblyLine.start_address, disassemblyLine.end_address+1):
+            if line_correspondence.start_address <= cur_address <= line_correspondence.end_address:
+                if line_correspondence.source_file not in result:
+                    result[line_correspondence.source_file] = []
+                result[line_correspondence.source_file].append(line_correspondence.source_line)
+
+    return result
 
 @app.post("/getdisassemblydot")
 async def getdisassemblydot(filepath: FilePath):

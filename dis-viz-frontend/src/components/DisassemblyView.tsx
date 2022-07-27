@@ -1,18 +1,17 @@
-import React, { ReactElement }  from 'react';
+import React  from 'react';
 import { Card, ListGroup } from 'react-bootstrap';
 import { codeColors } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { selectSelections, setSourceLineSelection, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 
-import { LineCorrespondence, Function, Variable, DisassemblyLineSelection, BlockPage } from '../types'
+import { Variable, DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
 
-function DisassemblyView({ id, pageNo }:{
+function DisassemblyView({ id }:{
     id: number,
-    pageNo: number|null
 }) {
 
     const dispatch = useAppDispatch();
@@ -22,9 +21,6 @@ function DisassemblyView({ id, pageNo }:{
     const active = activeDisassemblyView === id
 
     const lineSelection = selections[id]
-    if (!lineSelection && !pageNo) {
-        pageNo = 1
-    }
 
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
@@ -34,47 +30,18 @@ function DisassemblyView({ id, pageNo }:{
     const marginSameVertical = '10px'
     const marginDifferentVertical = '100px'
 
-    const onMouseDown = (lineNum: number) => {
-        setIsSelecting(true);
-        setOnGoingSelection({
-            start_address: lineNum,
-            end_address: lineNum
-        })
-    }
-
-    const onMouseOver = (lineNum: number) => {
-        if(isSelecting) {
-            setOnGoingSelection({
-                ...onGoingSelection!,
-                end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
-            })
-        }
-    }
-
-    const onMouseUp = (lineNum: number) => {
-        setIsSelecting(false);
-        setOnGoingSelection({
-            ...onGoingSelection!,
-            end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
-        })
-        dispatch(setDisassemblyLineSelection({
-            binaryFilePath,
-            start_address: onGoingSelection!.start_address,
-            end_address: onGoingSelection!.end_address,
-        }))
-    }
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
         })
-        if(lineSelection) {
-            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.start_address).then(setAfterFetch)
+        if(lineSelection && lineSelection.addresses.length !== 0) {
+            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.addresses[0]).then(setAfterFetch)
         }
         else {
-            api.getDisassemblyPage(binaryFilePath, pageNo!).then(setAfterFetch)
+            api.getDisassemblyPage(binaryFilePath, 1).then(setAfterFetch)
         }
-    }, [pageNo, lineSelection])
+    }, [lineSelection])
 
     const addNewPage = (newPageNo: number) => {
         api.getDisassemblyPage(binaryFilePath, newPageNo).then(page => {
@@ -88,7 +55,7 @@ function DisassemblyView({ id, pageNo }:{
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
     React.useEffect(() => {
         if (!lineSelection) return;
-        const firstFocusLine = lineSelection.start_address;
+        const firstFocusLine = lineSelection.addresses[0];
 
         const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(parseInt)
         for(const i of blockAddresses) {
@@ -145,6 +112,58 @@ function DisassemblyView({ id, pageNo }:{
     //     }
     // }
 
+    const onMouseDown = (lineNum: number) => {
+        setIsSelecting(true);
+        setOnGoingSelection({
+            start_address: lineNum,
+            end_address: lineNum
+        })
+    }
+
+    const onMouseOver = (lineNum: number) => {
+        if(isSelecting) {
+            setOnGoingSelection({
+                ...onGoingSelection!,
+                end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
+            })
+        }
+    }
+
+    const onMouseUp = (lineNum: number) => {
+        setIsSelecting(false);
+        const finalSelection = {
+            ...onGoingSelection!,
+            end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum,
+        }
+        setOnGoingSelection(finalSelection)
+        api.getDisassemblyCorresponding(binaryFilePath, finalSelection.start_address, finalSelection.end_address).then(source_selections => {
+
+            dispatch(setDisassemblyLineSelection({
+                addresses: pages
+                    .filter(page => (
+                        (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
+                        (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
+                    ))
+                    .map(page => page.blocks)
+                    .flat()
+                    .filter(block => (
+                        (block.start_address <= finalSelection.start_address && finalSelection.start_address <= block.end_address && block.end_address >= finalSelection.start_address) ||
+                        (block.start_address >= finalSelection.start_address && block.start_address <= finalSelection.end_address)
+                    ))
+                    .map(block => block.instructions)
+                    .flat()
+                    .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
+                    .map(instruction => instruction.address),
+                source_selection: Object.entries(source_selections).map(([source_file, lines]) => ({
+                            source_file,
+                            lines
+                })),
+                disassemblyViewId: id,
+            }))
+
+        })
+    }
+
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -188,7 +207,8 @@ function DisassemblyView({ id, pageNo }:{
                         padding: '2px',
                         paddingLeft: '10px'
                     }}>
-                        B{block.block_number} ({block.function_name})(page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>)
+                        B{block.block_number} ({block.function_name})
+                        {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
                     </Card.Header>
 
                     <ListGroup variant="flush" style={{
@@ -211,7 +231,7 @@ function DisassemblyView({ id, pageNo }:{
                             });
 
                             return <DisassemblyLine
-                                isHighlighted={lineSelection?ins.address >= lineSelection.start_address && ins.address <= lineSelection.end_address:false}
+                                isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection?lineSelection.addresses.includes(ins.address):false)}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                                 key={i.toString() + j.toString()}
                                 instruction={ins}

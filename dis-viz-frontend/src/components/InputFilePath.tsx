@@ -6,6 +6,11 @@ import { SourceViewData } from '../types';
 import '../styles/inputsourcefilepath.css'
 import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { selectSelections } from '../features/selections/selectionsSlice';
+import { codeColors } from '../utils'
+
+
+const DEFAULT_FILE_COLOR = "gray"
 
 function InputFilePath({ sourceViewData, setSourceViewData }:{
     sourceViewData: { file_name: string, status: "opened" | "closed" | "opening" }[],
@@ -19,6 +24,28 @@ function InputFilePath({ sourceViewData, setSourceViewData }:{
 
     const dispatch = useAppDispatch();
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    const selections = useAppSelector(selectSelections)!
+
+    const sourceColors: {[source_file: string]: string[]} = {}
+    const sourceSelections = Object.entries(selections)
+        .filter(([_, obj]) => obj)
+        .map(([disassemblyId, obj]) => ({ colorId: disassemblyId, source_files: obj!.source_selection.map(sel => sel.source_file)}))
+        .map(({colorId, source_files}) => source_files.map(source_file => ({colorId: Number(colorId), source_file})))
+        .flat()
+        .forEach(sel => {
+            if(!(sel.source_file in sourceColors)) {
+                sourceColors[sel.source_file] = []
+            }
+            sourceColors[sel.source_file].push(codeColors[sel.colorId])
+        })
+
+    sourceViewData.forEach((viewData) => {
+        if (!(viewData.file_name in sourceColors)) {
+            sourceColors[viewData.file_name] = [DEFAULT_FILE_COLOR];
+        }
+    })
+
+    
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -66,8 +93,14 @@ function InputFilePath({ sourceViewData, setSourceViewData }:{
                         className={'sourcename'}
                         key={sourceViewDaton.file_name}
                     // @ts-ignore
-                    ><button datasource={sourceViewDaton.file_name} onClick={clickedOnSource}>
-                        {sourceViewDaton.file_name}
+                    ><button datasource={sourceViewDaton.file_name}
+                        title={sourceViewDaton.file_name} onClick={clickedOnSource}
+                        style={{
+                            background: sourceColors[sourceViewDaton.file_name][0]
+                        }}
+                    >
+                        {/* I had to reverse the string to make truncating work properly */}
+                        {sourceViewDaton.file_name.split("").reverse().join("")}
                     </button>
                 </li>)}
             </ul>

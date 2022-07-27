@@ -6,5 +6,13 @@ li.sourcename button {
     border: 1px solid lightblue;
     border-radius: 10px;
     margin-bottom: 10px;
-    background: lightblue
+    background: lightblue;
+    direction: rtl;
+    unicode-bidi: bidi-override;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+li.sourcename button:hover {
+    border: 1px solid blue;
 }
