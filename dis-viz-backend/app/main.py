@@ -1,16 +1,142 @@
+from dataclasses import dataclass, field
+from typing import Protocol
 from fastapi import FastAPI
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import json
-
-
-import json
+from functools import lru_cache, reduce
 
 import simpleoptparser as sopt
+from .instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
+from tqdm import tqdm
+
+N_INSTRUCTIONS_PER_PAGE = 50
 
 class FilePath(BaseModel):
     path: str
+
+
+@lru_cache(maxsize=10)
+def decode_cache_binary(filepath: str):
+    sopt.decode(filepath)
+    disassembly = json.loads(sopt.get_assembly())
+
+    blocks = [InstructionBlock(
+        block_number = int(next(iter(block.keys()))[1:]),
+        function_name = block['function_name'],
+        instructions = [Instruction(
+            address = instruction['address'],
+            instruction = instruction['instruction'],
+            correspondence = {},
+        ) for instruction in next(iter(block.values()))]
+    ) for block in tqdm(disassembly['blocks'], desc="Constructing Blocks")]
+
+    blocks.sort(key=lambda block: block.start_address)
+
+    links = [
+        BlockLink(
+            source=int(link['source']),
+            target=int(link['target'])
+        ) for link in tqdm(disassembly['links'], desc="Constructing Links")
+    ]
+
+    pages = [[ blocks[0] ]]
+    for block in tqdm(blocks[1:], desc="Constructing Pages"):
+        if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
+            pages.append([])
+        pages[-1].append(block)
+
+    pages = [BlockPage(blocks=page, page_no=i) for i, page in enumerate(pages)]
+    pages[-1].is_last = True
+
+    source_files = json.loads(sopt.get_sourcefiles())
+
+    dyninst_info = json.loads(sopt.get_json())
+
+    line_correspondence = sorted([
+        LineCorrespondence(
+            source_file=line['file'],
+            start_address=line['from'],
+            end_address=line['to'],
+            source_line=line['line'],
+        ) for line in dyninst_info['lines']
+    ], key=lambda lc: lc.start_address)
+
+    lc_i = 0
+    for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
+        for ins in block.instructions:
+            for lc in line_correspondence[lc_i:]:
+                if lc.start_address <= ins.address <= lc.end_address:
+                    if lc.source_file not in ins.correspondence:
+                        ins.correspondence = {
+                            lc.source_file: []
+                        }
+                    ins.correspondence[lc.source_file] = list(set(ins.correspondence[lc.source_file] + [lc.source_line]))
+        
+                while lc_i < len(line_correspondence) and ins.address > line_correspondence[lc_i].end_address:
+                    lc_i += 1
+
+                if lc.start_address > ins.address:
+                    break
+
+    # for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
+    #     for ins in block.instructions:
+    #         for lc in line_correspondence:
+    #             if lc.start_address <= ins.address <= lc.end_address:
+    #                 if lc.source_file not in ins.correspondence:
+    #                     ins.correspondence = {
+    #                         lc.source_file: set()
+    #                     }
+    #                 ins.correspondence[lc.source_file].add(lc.source_line)
+        
+
+    functions = [
+        Function(
+            name=function['name'],
+            variables=[Variable(
+                name=variable['name'],
+                source_file=variable['file'],
+                source_line=variable['line'],
+                locations=[VariableLocation(
+                    start_address=location['start'],
+                    end_address=location['end'],
+                    location=location['location']
+                ) for location in variable['locations']]
+            ) for variable in function['vars']],
+            loops=[Loop(
+                blocks=loop['blocks'],
+                backedges=[{
+                    'start_address': ad_range['from'],
+                    'end_address': ad_range['to'],
+                } for ad_range in loop['backedges']],
+                name=loop['name'],
+                loops=None # TODO: fix this
+            ) for loop in function['loops']] if function['loops'] else [],
+            hidables=[Hidable(
+                start_address=hidable['start'],
+                end_address=hidable['end'],
+                name=hidable['name']
+            ) for hidable in function['hidables']]
+        ) for function in dyninst_info['functions']
+    ]
+
+    dot : dict[str, str] = {"dot": sopt.get_dot()}
+
+    return {
+        'disassembly': {
+            'blocks': blocks,
+            'links': links,
+            'pages': pages
+        },
+        'source_files': source_files,
+        'dyninst_info': {
+            'line_correspondence': line_correspondence,
+            'functions': functions
+        },
+        'dot': dot
+    }
+
 
 app = FastAPI()
 app.add_middleware(
@@ -26,34 +152,84 @@ app.add_middleware(
 async def index():
     return RedirectResponse(url='/docs')
     
+@app.post("/getdisassemblypage/{page_no}")
+async def getdisassemblypage(page_no: int, filepath: FilePath):
+    pages = decode_cache_binary(filepath.path)['disassembly']['pages']
+    page_no = max(0, min(page_no, len(pages)-1))
+    return next(page for page in pages if page.page_no == page_no)
 
-@app.post("/open")
-async def open_binary(filepath: FilePath):
-    sopt.decode(filepath.path)
-    return { "message":  "success" }
+@app.post("/getdisassemblypagebyaddress/{start_address}")
+async def getdisassembly(start_address: int, filepath: FilePath):
+    pages = decode_cache_binary(filepath.path)['disassembly']['pages']
+    start_address = max(pages[0].start_address, min(pages[-1].end_address, start_address))
+    return next(page for page in pages if page.start_address <= start_address <= page.end_address)
 
-@app.get("/getdisassembly")
-async def getdisassembly():
-    return json.loads(sopt.get_assembly())
-
-@app.get("/sourcefiles")
-async def getsourcefiles():
-    return json.loads(sopt.get_sourcefiles())
+@app.post("/sourcefiles")
+async def getsourcefiles(filepath: FilePath):
+    return decode_cache_binary(filepath.path)['source_files']
 
 @app.post("/getsourcefile")
-async def getsourcefile(filepath: FilePath):
+async def getsourcefile(binary_file_path: FilePath, filepath: FilePath):
+
     with open(filepath.path, "r") as f:
-        return {
-            "result": f.readlines()
-        }
+        file_content = f.readlines()
 
-@app.get("/getdyninstinfo")
-async def getdyninstinfo():
-    return json.loads(sopt.get_json())
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence']
+    line_correspondences = filter(lambda line_correspondence: line_correspondence.source_file == filepath.path, line_correspondences)
+    has_correspondence = {i:False for i in range(1, len(file_content))}
+    for line_correspondence in line_correspondences:
+        has_correspondence[line_correspondence.source_line] = True
 
-@app.get("/getdisassemblydot")
-async def getdisassemblydot():
-    return {"dot": sopt.get_dot()}
+    return { "source": file_content, "has_correspondence": has_correspondence }
+
+@app.post("/getdyninstinfo")
+async def getdyninstinfo(filepath: FilePath):
+    dyninst_info = decode_cache_binary(filepath.path)['dyninst_info']
+    return dyninst_info
+
+class SourceLine(BaseModel):
+    source_file: str
+    start: int
+    end: int
+
+@app.post("/getsourcelinecorrespondence")
+async def getsourcelinecorrespondence(filepath: FilePath, sourceLine: SourceLine):
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
+    blocks: list[InstructionBlock] = decode_cache_binary(filepath.path)['disassembly']['blocks']
+
+    result: list[int] = []
+    for line_correspondence in line_correspondences:
+        if line_correspondence.source_file != sourceLine.source_file:
+            continue
+        for cur_line in range(sourceLine.start, sourceLine.end+1):
+            if line_correspondence.source_line == cur_line:
+                cur_blocks = filter(lambda block: block.start_address <= line_correspondence.start_address <= block.end_address and block.start_address <= line_correspondence.end_address <= block.end_address, blocks)
+                addresses = [ins.address for block in cur_blocks for ins in block.instructions]
+                result += addresses
+
+    return { 'addresses': result }
+
+class DisassemblyLine(BaseModel):
+    start_address: int
+    end_address: int
+
+@app.post("/getdisassemblylinecorrespondence")
+async def getdisassemblylinecorrespondence(filepath: FilePath, disassemblyLine: DisassemblyLine):
+    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
+
+    result: dict[str, list[int]] = {}
+    for line_correspondence in line_correspondences:
+        for cur_address in range(disassemblyLine.start_address, disassemblyLine.end_address+1):
+            if line_correspondence.start_address <= cur_address <= line_correspondence.end_address:
+                if line_correspondence.source_file not in result:
+                    result[line_correspondence.source_file] = []
+                result[line_correspondence.source_file].append(line_correspondence.source_line)
+
+    return result
+
+@app.post("/getdisassemblydot")
+async def getdisassemblydot(filepath: FilePath):
+    return {"dot": decode_cache_binary(filepath.path)['dot']}
 
 @app.get("/binarylist")
 async def binarylist():

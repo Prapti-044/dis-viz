@@ -1,0 +1,18 @@
+li.sourcename button {
+    min-height: 50px;
+    padding: 10px;
+    width: 100%;
+    text-align: left;
+    border: 1px solid lightblue;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    background: lightblue;
+    direction: rtl;
+    unicode-bidi: bidi-override;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+li.sourcename button:hover {
+    border: 1px solid blue;
+}

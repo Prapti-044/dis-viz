@@ -1,7 +1,21 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
 
-function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting, onGoingSelection, color, variables }) {
+import { Instruction, DisassemblyLineSelection, Variable } from '../types'
+
+function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, variables }:{
+    instruction: Instruction,
+    isHighlighted: boolean,
+    mouseEvents: {
+        onMouseDown: (lineNumber: number) => void
+        onMouseOver: (lineNumber: number) => void
+        onMouseUp: (lineNumber: number) => void
+    },
+    isSelecting: boolean,
+    onGoingSelection: DisassemblyLineSelection|null,
+    color: string,
+    variables: Variable[]
+}) {
 
 
 
@@ -9,27 +23,27 @@ function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting,
     while (instruction_address.length < 4)
         instruction_address = '0' + instruction_address;
 
-    let selectionStyle = { display: "block", userSelect: "none" }
-    if(instruction.address >= selectedLines.start && instruction.address <= selectedLines.end) {
+    let selectionStyle: {[style: string]: string} = { display: "block", userSelect: "none" }
+    if(isHighlighted) {
         selectionStyle.backgroundColor = color;
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";
     }
-    if(isSelecting && instruction.address >= onGoingSelection.start && instruction.address <= onGoingSelection.end) {
+    if(isSelecting && instruction.address >= onGoingSelection!.start_address && instruction.address <= onGoingSelection!.end_address) {
         selectionStyle.backgroundColor = "#eee";
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";
     }
 
-    function parseInstruction(instruction) {
-        const tokens = instruction.split(/([ ,])/g);
+    function parseInstruction(instruction: Instruction) {
+        const tokens = instruction.instruction.split(/([ ,])/g);
 
         const parsedTokens = tokens.map((token, i) => {
             if (i === 0) {
                 return <mark key={i} data-type="mnemonic">{token}</mark>
             }
 
-            let variableMarking = null;
+            let variableMarking: React.ReactElement | null = null;
 
             variables.forEach(variable => {
                 variable.locations.forEach(location => {
@@ -78,14 +92,14 @@ function DisassemblyLine({ instruction, selectedLines, mouseEvents, isSelecting,
         return parsedTokens;
     }
 
-    const parsedTokens = parseInstruction(instruction.instruction)
+    const parsedTokens = parseInstruction(instruction)
 
     return <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}
-            className="assemblycode"
-            onMouseDown={() => {mouseEvents.onMouseDown(instruction.address)}}
-            onMouseOver={() => {mouseEvents.onMouseOver(instruction.address)}}
-            onMouseUp={() => {mouseEvents.onMouseUp(instruction.address)}}
+            className={"assemblycode"+(Object.keys(instruction.correspondence).length!==0?" hoverable":"")}
+            onMouseDown={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseDown(instruction.address)}:()=>{}}
+            onMouseOver={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseOver(instruction.address)}:()=>{}}
+            onMouseUp={Object.keys(instruction.correspondence).length!==0?() => {mouseEvents.onMouseUp(instruction.address)}:()=>{}}
         >
 
         <span style={{ color: 'grey'}}>0x{instruction_address}</span>:{" "}

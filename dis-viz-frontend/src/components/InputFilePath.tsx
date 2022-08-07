@@ -1,12 +1,19 @@
 import React from 'react'
-import { Form, Button } from 'react-bootstrap';
+import { Form } from 'react-bootstrap';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import * as api from "../api";
+import '../styles/inputsourcefilepath.css'
+import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { useAppSelector, useAppDispatch } from '../app/hooks';
 
-function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, setSelectedSourceFile, sourceFiles }) {
+function InputFilePath() {
+    const [binaryList, setBinaryList] = React.useState<{
+        name: string,
+        executable_path: string
+    }[]>([]);
 
-    const [activeSourceFile, setActiveSourceFile] = React.useState("");
-    const [binaryList, setBinaryList] = React.useState([]);
+    const dispatch = useAppDispatch();
+    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -15,15 +22,15 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, 
             setBinaryList(result);
         }
         fetchBinaryList().catch(console.error);
-    });
+    }, [binaryList]);
 
     return <div style={{ margin: "25px" }}>
         <Form.Group className="mb-3">
             <Form.Label>Binary File Path</Form.Label>
             <Form.Select
                 aria-label="Binary File Selection"
-                onChange={(event) => {
-                    setBinaryFilePath(event.target.value);
+                onChange={(event: React.FormEvent<HTMLSelectElement>) => {
+                    dispatch(setBinaryFilePath((event.target as HTMLSelectElement).value))
                 }}
                 value={binaryFilePath}
             >
@@ -33,20 +40,6 @@ function InputFilePath({ binaryFilePath, setBinaryFilePath, selectedSourceFile, 
                 )}
             </Form.Select>
         </Form.Group>
-
-        <Form.Select
-            aria-label="Source File Selection"
-            onChange={(event) => {
-                setActiveSourceFile(event.target.value);
-                setSelectedSourceFile(event.target.value);
-            }}
-            value={selectedSourceFile}
-        >
-            {activeSourceFile===""?<option key={-1} value="">Select a source file to view</option>:<></>}
-            { sourceFiles.map((d, i) => 
-                <option key={i} value={d}>{d}</option>
-            )}
-        </Form.Select>
     </div>
 }
 
