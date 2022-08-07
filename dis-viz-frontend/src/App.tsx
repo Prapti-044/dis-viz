@@ -1,21 +1,19 @@
-import ObjectViz from "./components/ObjectViz";
 import React from 'react';
 import * as api from "./api";
 
 import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./components/TabContent";
-import { DyninstInfo } from './types';
-// import * as ComponentFactory from './ComponentFactory';
-import { toast, ToastContainer } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
 import { useAppSelector, useAppDispatch } from './app/hooks';
-import { selectSelections, selectActiveDisassemblyView, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from './features/selections/selectionsSlice'
+import { selectSelections, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from './features/selections/selectionsSlice'
 import { selectBinaryFilePath } from './features/binary-data/binaryDataSlice'
 import DisassemblyView from './components/DisassemblyView';
 import SourceView from './components/SourceView';
 import InputFilePath from './components/InputFilePath';
+import SourceFileTree from "./components/SourceFileTree";
 
 
 const App = () => {
@@ -24,7 +22,7 @@ const App = () => {
 
   const [sourceViewStates, setSourceViewStates] = React.useState<{
     file_name: string,
-    status: "opened" | "opening" | "closed"
+    status: "opened" | "closed"
   }[]>([])
   const selections = useAppSelector(selectSelections)
 
@@ -47,21 +45,28 @@ const App = () => {
   }, [binaryFilePath])
 
   React.useEffect(() => {
-    console.log("SourceView State", sourceViewStates)
     dockRef!.updateTab("InputFilePath:1", {
       id: "InputFilePath:1",
       title: "Input File",
-      content: <TabContent><InputFilePath
+      content: <TabContent><InputFilePath/></TabContent>,
+      closable: false,
+      minHeight: 150,
+      minWidth: 250,
+    })
+    dockRef!.updateTab("SourceFileTree:1", {
+      id: "SourceFileTree:1",
+      title: "Source Files",
+      content: <TabContent><SourceFileTree
         sourceViewData={sourceViewStates}
         setSourceViewData={setSourceViewStates}
       /></TabContent>,
       closable: false,
       minHeight: 150,
-      minWidth: 250,
+      minWidth: 250
     })
   }, [sourceViewStates])
 
-  // Consolidates disassemblyViewState and dis-views
+  // Reconcile disassemblyViewState and dis-views
   React.useEffect(() => {
     if (dockRef === null || Object.keys(selections).length === 0) return;
     Object.keys(selections)
@@ -93,69 +98,35 @@ const App = () => {
       }
   }, [selections])
 
-  // Consolidates sourceViewStates and source-views
+  // Reconcile sourceViewStates and source-views
   React.useEffect(() => {
     if (!dockRef) return;
-    let changedSourceViewStates = false;
-    const sourceViewStatesCopy = [...sourceViewStates]
-    sourceViewStatesCopy
-      .filter(sourceViewState => sourceViewState.status === "opening")
+    sourceViewStates
       .forEach(sourceViewDaton => {
-        changedSourceViewStates = true;
-        const tab: TabData = {
-            id: "SourceView:"+sourceViewDaton.file_name,
-            title: "Source: " + sourceViewDaton.file_name,
-            content: <TabContent><SourceView
-              file_name={sourceViewDaton.file_name}
-            />
-            </TabContent>,
-            closable: true
+        if (sourceViewDaton.status === "opened") {
+          const foundTab = dockRef!.find("SourceView:"+sourceViewDaton.file_name) as TabData
+          const newTab: TabData = {
+              id: "SourceView:"+sourceViewDaton.file_name,
+              title: "Source: " + sourceViewDaton.file_name,
+              content: <TabContent><SourceView
+                file_name={sourceViewDaton.file_name}
+              />
+              </TabContent>,
+              closable: true
+          }
+          if (foundTab === undefined) {
+            const newPanel: PanelData = {
+                tabs: [newTab],
+                x: 10, y: 10, w: 400, h: 400
+            }
+            dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
+          }
+          else {
+            dockRef!.updateTab("SourceView:"+sourceViewDaton.file_name, newTab)
+          }
         }
-
-        const newPanel: PanelData = {
-            tabs: [tab],
-            x: 10, y: 10, w: 400, h: 400
-        }
-        dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
-        sourceViewDaton.status = "opened"
     });
-    if(changedSourceViewStates)
-      setSourceViewStates(sourceViewStatesCopy);
   }, [sourceViewStates])
-
-  const loadTab = ({ id }: { id: string }): TabData => {
-    const [compName, compNum] = id.split(':')
-    switch (compName) {
-      case "InputFilePath":
-        return {
-          id: "InputFilePath:1",
-          title: "Input File",
-          content: <TabContent><InputFilePath
-            sourceViewData={sourceViewStates}
-            setSourceViewData={setSourceViewStates}
-          /></TabContent>,
-          closable: false,
-          minHeight: 150,
-          minWidth: 250,
-        }
-      case "ObjectView":
-        return {
-          id,
-          title: "Object Visualization",
-          content: <TabContent><ObjectViz /></TabContent>,
-          closable: true,
-        }
-      default:
-        return {
-          id,
-          title: id,
-          content: <div style={{ textAlign: 'center', height: '100%', top: '50%', position: 'absolute' }}>(Stub!!!)</div>,
-          closable: true,
-          minHeight: 150,
-          minWidth: 150
-        }
-    }
-  }
 
   const [layout, setLayout] = React.useState<LayoutData>({
     dockbox: {
@@ -166,11 +137,25 @@ const App = () => {
           size: 1,
           children: [
             {
+              size: 1,
               tabs: [
                 {
                   id: "InputFilePath:1",
                   title: "Input File",
-                  content: <TabContent><InputFilePath
+                  content: <TabContent><InputFilePath/></TabContent>,
+                  closable: false,
+                  minHeight: 150,
+                  minWidth: 250
+                }
+              ],
+            },
+            {
+              size: 5,
+              tabs: [
+                {
+                  id: "SourceFileTree:1",
+                  title: "Source Files",
+                  content: <TabContent><SourceFileTree
                     sourceViewData={sourceViewStates}
                     setSourceViewData={setSourceViewStates}
                   /></TabContent>,
@@ -256,7 +241,6 @@ const App = () => {
       <DockLayout
         ref={(r) => {dockRef = r}}
         defaultLayout={layout}
-        // loadTab={loadTab}
         onLayoutChange={onLayoutChange}
         style={{
           position: 'absolute',

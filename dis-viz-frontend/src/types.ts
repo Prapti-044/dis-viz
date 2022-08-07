@@ -182,7 +182,7 @@ export type SourceLineSelection = {
 export type SourceViewData = {
     file_name: string,
     lineSelections: SourceLineSelection[]
-    status: "opened" | "closed" | "opening"
+    status: "opened" | "closed"
 }
 
 export type DyninstInfo = {

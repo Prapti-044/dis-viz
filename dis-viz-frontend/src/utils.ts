@@ -1,5 +1,3 @@
-import React from "react";
-
 export const codeColors = [
   '#C1DBE3',
   '#C7DFC5',
