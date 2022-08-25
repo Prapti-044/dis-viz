@@ -8,7 +8,7 @@ import json
 from functools import lru_cache, reduce
 
 import simpleoptparser as sopt
-from .instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
+from .instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, SourceFile, SourceLine, Variable, VariableLocation
 from tqdm import tqdm
 
 N_INSTRUCTIONS_PER_PAGE = 50
@@ -67,7 +67,7 @@ def decode_cache_binary(filepath: str):
     for block in tqdm(blocks, desc="Preprocessing Correspondence"):
         for ins in block.instructions:
             for lc in line_correspondence[lc_i:]:
-                if lc.start_address <= ins.address <= lc.end_address:
+                if lc.start_address <= ins.address < lc.end_address:
                     if lc.source_file not in ins.correspondence:
                         ins.correspondence = {
                             lc.source_file: []
@@ -158,63 +158,39 @@ async def getsourcefiles(filepath: FilePath):
     return decode_cache_binary(filepath.path)['source_files']
 
 @app.post("/getsourcefile")
-async def getsourcefile(binary_file_path: FilePath, filepath: FilePath):
+async def getsourcefile(binary_file_path: FilePath, filepath: FilePath) -> SourceFile:
 
     with open(filepath.path, "r") as f:
         file_content = f.readlines()
+    
+    blocks: list[InstructionBlock] = list(filter(lambda block: filepath.path in block.instructions[0].correspondence, decode_cache_binary(binary_file_path.path)['disassembly']['blocks']))
+    line_correspondences: list[LineCorrespondence] = list(filter(
+        lambda line_correspondence: line_correspondence.source_file == filepath.path,
+        decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence'])
+    )
 
-    line_correspondences: list[LineCorrespondence] = decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence']
-    line_correspondences = filter(lambda line_correspondence: line_correspondence.source_file == filepath.path, line_correspondences)
-    has_correspondence = {i:False for i in range(1, len(file_content))}
-    for line_correspondence in line_correspondences:
-        has_correspondence[line_correspondence.source_line] = True
+    print('blocks', list(map(lambda block: {'start':block.start_address, 'end':block.end_address}, blocks)))
 
-    return { "source": file_content, "has_correspondence": has_correspondence }
+    lines: list[SourceLine] = []
+    for cur_line, line_val in enumerate(file_content):
+        result: list[int] = []
+        for line_correspondence in line_correspondences:
+            if line_correspondence.source_line == cur_line:
+                cur_blocks = list(filter(lambda block: block.start_address <= line_correspondence.start_address <= block.end_address or block.start_address <= line_correspondence.end_address <= block.end_address or line_correspondence.start_address <= block.start_address and line_correspondence.end_address >= block.end_address, blocks))
+                addresses = [ins.address for block in cur_blocks for ins in block.instructions if line_correspondence.start_address <= ins.address < line_correspondence.end_address]
+                result += addresses
+        lines.append(SourceLine(
+            line=line_val,
+            addresses=result
+        ))
+    source_file = SourceFile(lines=lines)
+    
+    return source_file
 
 @app.post("/getdyninstinfo")
 async def getdyninstinfo(filepath: FilePath):
     dyninst_info = decode_cache_binary(filepath.path)['dyninst_info']
     return dyninst_info
-
-class SourceLine(BaseModel):
-    source_file: str
-    start: int
-    end: int
-
-@app.post("/getsourcelinecorrespondence")
-async def getsourcelinecorrespondence(filepath: FilePath, sourceLine: SourceLine):
-    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
-    blocks: list[InstructionBlock] = decode_cache_binary(filepath.path)['disassembly']['blocks']
-
-    result: list[int] = []
-    for line_correspondence in line_correspondences:
-        if line_correspondence.source_file != sourceLine.source_file:
-            continue
-        for cur_line in range(sourceLine.start, sourceLine.end+1):
-            if line_correspondence.source_line == cur_line:
-                cur_blocks = filter(lambda block: block.start_address <= line_correspondence.start_address <= block.end_address and block.start_address <= line_correspondence.end_address <= block.end_address, blocks)
-                addresses = [ins.address for block in cur_blocks for ins in block.instructions]
-                result += addresses
-
-    return { 'addresses': result }
-
-class DisassemblyLine(BaseModel):
-    start_address: int
-    end_address: int
-
-@app.post("/getdisassemblylinecorrespondence")
-async def getdisassemblylinecorrespondence(filepath: FilePath, disassemblyLine: DisassemblyLine):
-    line_correspondences: list[LineCorrespondence] = decode_cache_binary(filepath.path)['dyninst_info']['line_correspondence']
-
-    result: dict[str, list[int]] = {}
-    for line_correspondence in line_correspondences:
-        for cur_address in range(disassemblyLine.start_address, disassemblyLine.end_address+1):
-            if line_correspondence.start_address <= cur_address <= line_correspondence.end_address:
-                if line_correspondence.source_file not in result:
-                    result[line_correspondence.source_file] = []
-                result[line_correspondence.source_file].append(line_correspondence.source_line)
-
-    return result
 
 @app.post("/getdisassemblydot")
 async def getdisassemblydot(filepath: FilePath):

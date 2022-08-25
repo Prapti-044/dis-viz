@@ -2,15 +2,17 @@ import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
 import * as api from '../../api'
 
+type DisIdSelections = {
+    addresses: number[]
+    source_selection: {
+        source_file: string,
+        lines: number[]
+    }[],
+}
+
 export interface Selections {
     value: {
-        [disassemblyViewId: number]: {
-            addresses: number[]
-            source_selection: {
-                source_file: string,
-                lines: number[]
-            }[],
-        }|null
+        [disassemblyViewId: number]: DisIdSelections|null
     },
     activeDisassemblyView: number|null
 }
@@ -24,10 +26,10 @@ export const selectionsSlice = createSlice({
     name: 'selections',
     initialState,
     reducers: {
-        setActiveDisassemblyView: (state, action: PayloadAction<number|null>) => {
+        setActiveDisassemblyView: (state: Selections, action: PayloadAction<number|null>) => {
         state.activeDisassemblyView = action.payload;
         },
-        addDisassemblyView: (state) => {
+        addDisassemblyView: (state: Selections) => {
             const disIds = Object.keys(state.value).map(val => parseInt(val))
             let newDisId = 1
             for (const i of disIds) {
@@ -36,31 +38,18 @@ export const selectionsSlice = createSlice({
             }
             state.value[newDisId] = null
         },
-        removeDisassemblyView: (state, action: PayloadAction<number>) => {
+        removeDisassemblyView: (state: Selections, action: PayloadAction<number>) => {
             delete state.value[action.payload]
         },
-        setSourceLineSelection: (state, action: PayloadAction<{
-            addresses: number[],
-            source_selection: {
-                source_file: string,
-                lines: number[],
-            }[],
-        }>) => {
+        setSourceLineSelection: (state: Selections, action: PayloadAction<DisIdSelections>) => {
             if(state.activeDisassemblyView === null) return;
             state.value[state.activeDisassemblyView] = action.payload
         },
-        setDisassemblyLineSelection: (state, action: PayloadAction<{
-            addresses: number[],
-            source_selection: {
-                source_file: string,
-                lines: number[],
-            }[],
+        setDisassemblyLineSelection: (state: Selections, action: PayloadAction<{
+            disIdSelections: DisIdSelections,
             disassemblyViewId: number,
         }>) => {
-            state.value[action.payload.disassemblyViewId] = {
-                addresses: action.payload.addresses,
-                source_selection: action.payload.source_selection
-            }
+            state.value[action.payload.disassemblyViewId] = action.payload.disIdSelections
         }
     },
 });

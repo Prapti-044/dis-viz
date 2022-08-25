@@ -35,8 +35,8 @@ function DisassemblyView({ id }:{
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
         })
-        if(lineSelection && lineSelection.addresses.length !== 0) {
-            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection!.addresses[0]).then(setAfterFetch)
+        if(lineSelection && lineSelection.addresses.length > 0) {
+            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0]).then(setAfterFetch)
         }
         else {
             api.getDisassemblyPage(binaryFilePath, 1).then(setAfterFetch)
@@ -54,8 +54,8 @@ function DisassemblyView({ id }:{
 
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
     React.useEffect(() => {
-        if (!lineSelection) return;
-        const firstFocusLine = lineSelection.addresses[0];
+        if (!lineSelection || lineSelection.addresses.length == 0) return;
+        const firstFocusLine = lineSelection.addresses[0]
 
         const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(parseInt)
         for(const i of blockAddresses) {
@@ -136,32 +136,46 @@ function DisassemblyView({ id }:{
             end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum,
         }
         setOnGoingSelection(finalSelection)
-        api.getDisassemblyCorresponding(binaryFilePath, finalSelection.start_address, finalSelection.end_address).then(source_selections => {
 
-            dispatch(setDisassemblyLineSelection({
-                addresses: pages
-                    .filter(page => (
-                        (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
-                        (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
-                    ))
-                    .map(page => page.blocks)
-                    .flat()
-                    .filter(block => (
-                        (block.start_address <= finalSelection.start_address && finalSelection.start_address <= block.end_address && block.end_address >= finalSelection.start_address) ||
-                        (block.start_address >= finalSelection.start_address && block.start_address <= finalSelection.end_address)
-                    ))
-                    .map(block => block.instructions)
-                    .flat()
-                    .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
-                    .map(instruction => instruction.address),
-                source_selection: Object.entries(source_selections).map(([source_file, lines]) => ({
-                            source_file,
-                            lines
-                })),
-                disassemblyViewId: id,
-            }))
+        const selectedDisassemblyLines = pages
+            .filter(page => (
+                (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
+                (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
+            ))
+            .map(page => page.blocks)
+            .flat()
+            .filter(block => (
+                (block.start_address <= finalSelection.start_address && finalSelection.start_address <= block.end_address && block.end_address >= finalSelection.start_address) ||
+                (block.start_address >= finalSelection.start_address && block.start_address <= finalSelection.end_address)
+            ))
+            .map(block => block.instructions)
+            .flat()
+            .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
 
+        const selectedSourceLines: {
+            [source_file: string]: Set<number>,
+        } = {}
+        selectedDisassemblyLines.forEach(line => {
+            Object.entries(line.correspondence).forEach(([source_file, lines]) => {
+                if (!(source_file in selectedSourceLines)) {
+                    selectedSourceLines[source_file] = new Set()
+                }
+                lines.forEach(line => {
+                    selectedSourceLines[source_file].add(line)
+                })
+            })
         })
+
+        dispatch(setDisassemblyLineSelection({
+            disIdSelections: {
+                addresses: selectedDisassemblyLines.map(instruction => instruction.address),
+                source_selection: Object.entries(selectedSourceLines).map(([source_file, lines]) => ({
+                    source_file,
+                    lines: Array.from(lines)
+                }))
+            },
+            disassemblyViewId: id,
+        }))
     }
 
     return <>

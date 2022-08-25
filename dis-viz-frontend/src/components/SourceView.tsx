@@ -5,7 +5,7 @@ import '../styles/sourceview.css'
 import { codeColors } from '../utils'
 import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { selectActiveDisassemblyView, selectSelections, setSourceLineSelection } from '../features/selections/selectionsSlice'
+import { selectSelections, setSourceLineSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 function SourceView({ file_name }:{
@@ -22,17 +22,18 @@ function SourceView({ file_name }:{
         start: -1, end: -1
     })
     const [sourceCode, setSourceCode] = React.useState("")
-    const [hasCorrespondence, setHasCorrespondence] = React.useState<{[lineNum: number]: boolean}>({})
+    const [correspondences, setCorrespondences] = React.useState<number[][]>([])
 
+    console.log(correspondences)
 
 
     React.useEffect(() => {
-        api.getSourceLines(binaryFilePath, file_name).then(({ source, has_correspondence }) => {
+        api.getSourceLines(binaryFilePath, file_name).then((sourceFile) => {
             let tmpSourceCode = "";
-            source.forEach((line) => {
+            sourceFile.lines.map(line => line.line).forEach((line) => {
                 tmpSourceCode += line;
             })
-            setHasCorrespondence(has_correspondence)
+            setCorrespondences(sourceFile.lines.map(line => line.addresses))
             setSourceCode(tmpSourceCode);
         })
     }, [file_name])
@@ -113,26 +114,28 @@ function SourceView({ file_name }:{
                         end: lineNum<onGoingSelection.start?onGoingSelection.start:lineNum
                     }
                     setOnGoingSelection(finalSelection)
-                    api.getSourceCorresponding(binaryFilePath, file_name, finalSelection.start, finalSelection.end).then(newDisLine => {
-                        console.log("From response api")
-                        console.log("    Source selection", finalSelection)
-                        console.log("    disLines", newDisLine)
-                        dispatch(setSourceLineSelection({
-                            addresses: newDisLine.addresses,
-                            source_selection: [{
-                                source_file: file_name,
-                                lines: Array.from({length: finalSelection.end - finalSelection.start + 1}, (_, i) => i + finalSelection.start)
-                            }]
-                        }))
-                    })
+
+                    const addresses = new Set<number>();
+                    for(let i = finalSelection.start; i <= finalSelection.end; i++) {
+                        correspondences[i].forEach(address => {
+                            addresses.add(address)
+                        })
+                    }
+                    dispatch(setSourceLineSelection({
+                        addresses: Array.from(addresses),
+                        source_selection: [{
+                            source_file: file_name,
+                            lines: Array.from({length: finalSelection.end - finalSelection.start + 1}, (_, i) => i + finalSelection.start)
+                        }]
+                    }))
                 }
 
                 return {
                     style,
-                    onMouseUp:hasCorrespondence[lineNum]?onMouseUp:()=>{},
-                    onMouseDown:hasCorrespondence[lineNum]?onMouseDown:()=>{},
-                    onMouseOver:hasCorrespondence[lineNum]?onMouseOver:()=>{},
-                    'class': hasCorrespondence[lineNum]?"hoverable":""
+                    onMouseUp:correspondences[lineNum]?.length>0?onMouseUp:()=>{},
+                    onMouseDown:correspondences[lineNum]?.length>0?onMouseDown:()=>{},
+                    onMouseOver:correspondences[lineNum]?.length>0?onMouseOver:()=>{},
+                    'class': correspondences[lineNum]?.length>0?"hoverable":""
                 }
             }}
         >

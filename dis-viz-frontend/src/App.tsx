@@ -92,8 +92,7 @@ const App = () => {
           dockRef!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
         }
       })
-
-      // set it active if there is only one disview
+      // set it active if there is only one dis-view
       if (Object.keys(selections).length === 1) {
         dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
       }

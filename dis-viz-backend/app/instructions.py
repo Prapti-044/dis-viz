@@ -1,12 +1,20 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
 
+@dataclass
+class SourceLine:
+    line: str
+    addresses: list[int]
+
+@dataclass
+class SourceFile:
+    lines: list[SourceLine]
 
 @dataclass
 class Instruction:
     address: int
     instruction: str
-    correspondence: dict[str,list[int]]
+    correspondence: dict[str,list[int]] # { source_file: [line_number] }
 
 @dataclass
 class AddressRange:

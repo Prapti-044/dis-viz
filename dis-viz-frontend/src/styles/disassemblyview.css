@@ -5,7 +5,7 @@
 }
 
 mark {
-    background-color: transparent;
+    background-color: transparent !important;
 }
 
 mark[data-type="mnemonic"] {

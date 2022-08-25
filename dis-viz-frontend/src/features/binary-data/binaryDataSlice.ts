@@ -13,7 +13,7 @@ export const binaryFilePathSlice = createSlice({
     name: 'binaryfilepath',
     initialState,
     reducers: {
-        setBinaryFilePath: (state, action: PayloadAction<string>) => {
+        setBinaryFilePath: (state: BinaryFilePath, action: PayloadAction<string>) => {
             state.path = action.payload
         }
     },

@@ -54,7 +54,6 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
             finalSourceCSSBackground[viewData.file_name] = sourceColors[viewData.file_name][0]
         }
     })
-    console.log(finalSourceCSSBackground)
 
     const clickedOnSource = (e: React.MouseEvent<HTMLLIElement>) => {
         const clickedSourceFile = e.currentTarget.getAttribute('datasource')!
@@ -126,7 +125,6 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
         })
     }
     simplifyStructure(rootFile)
-    console.log(rootFile)
 
     function getJSXfromFiles(rootFile: FileType) {
         if (rootFile.type === "file") {

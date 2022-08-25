@@ -1,6 +1,24 @@
 import 'reflect-metadata' // Import needed for class-transformer
 import { Expose, Type } from "class-transformer";
 
+export class SourceLine {
+    @Expose() line: string;
+    @Expose() addresses: number[];
+
+    constructor(line: string, addresses: number[]) {
+        this.line = line
+        this.addresses = addresses
+    }
+}
+
+export class SourceFile {
+    @Expose() lines: SourceLine[];
+
+    constructor(lines: SourceLine[]) {
+        this.lines = lines
+    }
+}
+
 export class Instruction {
     @Expose() instruction: string;
     @Expose() address: number;

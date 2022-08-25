@@ -1,18 +1,15 @@
+.codesegment>span.hoverable::before {
+    content: " -> ";
+    color: green;
+    text-align: right;
+    float:right;
+}
+
 .codesegment>span.hoverable:hover {
     background-color: #ddd;
     border: 2px solid black;
     cursor: pointer;
 }
-
-/* .codesegment > span:hover::before {
-    content: '';
-    background: url('../assets/icons8-external-link-64.png');
-    background-size: 20px 20px;
-    display: block;
-    float: right;
-    width: 20px;
-    height: 20px;
-} */
 
 .center {
     text-align: center;
