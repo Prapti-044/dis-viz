@@ -2,6 +2,19 @@ from dataclasses import dataclass, field
 from enum import Enum, auto
 
 @dataclass
+class VariableLocation:
+    location: str
+    start_address: int
+    end_address: int
+
+@dataclass
+class Variable:
+    name: str
+    source_file: str
+    source_line: int
+    locations: list[VariableLocation]
+
+@dataclass
 class SourceLine:
     line: str
     addresses: list[int]
@@ -15,6 +28,7 @@ class Instruction:
     address: int
     instruction: str
     correspondence: dict[str,list[int]] # { source_file: [line_number] }
+    variables: list[Variable]
 
 @dataclass
 class AddressRange:
@@ -76,19 +90,6 @@ class BlockFlag(Enum):
     MEMREAD = auto()
     MEMWRITE = auto()
     CALL = auto()
-
-@dataclass
-class VariableLocation:
-    location: str
-    start_address: int
-    end_address: int
-
-@dataclass
-class Variable:
-    name: str
-    source_file: str
-    source_line: int
-    locations: list[VariableLocation]
 
 @dataclass
 class Loop:

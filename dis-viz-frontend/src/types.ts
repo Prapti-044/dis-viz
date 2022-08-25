@@ -20,16 +20,18 @@ export class SourceFile {
 }
 
 export class Instruction {
-    @Expose() instruction: string;
-    @Expose() address: number;
+    @Expose() instruction: string
+    @Expose() address: number
     @Expose() correspondence: {
         [source_file: string]: number[]
-    };
+    }
+    @Expose() variables: Variable[]
 
-    constructor(instruction: string, address: number, correspondence: { [source_file: string]: number[] }) {
+    constructor(instruction: string, address: number, correspondence: { [source_file: string]: number[] }, variables: Variable[]) {
         this.instruction = instruction
         this.address = address
         this.correspondence = correspondence
+        this.variables = variables
     }
 }
 

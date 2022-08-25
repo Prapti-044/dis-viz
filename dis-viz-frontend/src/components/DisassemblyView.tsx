@@ -88,6 +88,8 @@ function DisassemblyView({ id }:{
     // if (dyninstInfo) {
     //     allVars = dyninstInfo.functions.map(f => f.variables).filter(d => d.length !== 0).flat();
     // }
+    if (pages[0])
+        console.log(pages[0].blocks.map(block => block.instructions).flat().map(ins => ins.variables))
 
     // Remove all other functions than active functions
 

@@ -29,6 +29,7 @@ def decode_cache_binary(filepath: str):
             address = instruction['address'],
             instruction = instruction['instruction'],
             correspondence = {},
+            variables = [],
         ) for instruction in next(iter(block.values()))]
     ) for block in disassembly['blocks']]
 
@@ -63,22 +64,6 @@ def decode_cache_binary(filepath: str):
         ) for line in dyninst_info['lines']
     ], key=lambda lc: lc.start_address)
 
-    lc_i = 0
-    for block in tqdm(blocks, desc="Preprocessing Correspondence"):
-        for ins in block.instructions:
-            for lc in line_correspondence[lc_i:]:
-                if lc.start_address <= ins.address < lc.end_address:
-                    if lc.source_file not in ins.correspondence:
-                        ins.correspondence = {
-                            lc.source_file: []
-                        }
-                    ins.correspondence[lc.source_file] = list(set(ins.correspondence[lc.source_file] + [lc.source_line]))
-        
-                while lc_i < len(line_correspondence) and ins.address > line_correspondence[lc_i].end_address:
-                    lc_i += 1
-
-                if lc.start_address > ins.address:
-                    break
 
     functions = [
         Function(
@@ -88,8 +73,8 @@ def decode_cache_binary(filepath: str):
                 source_file=variable['file'],
                 source_line=variable['line'],
                 locations=[VariableLocation(
-                    start_address=location['start'],
-                    end_address=location['end'],
+                    start_address=int(location['start'], 16),
+                    end_address=int(location['end'], 16),
                     location=location['location']
                 ) for location in variable['locations']]
             ) for variable in function['vars']],
@@ -109,6 +94,33 @@ def decode_cache_binary(filepath: str):
             ) for hidable in function['hidables']]
         ) for function in dyninst_info['functions']
     ]
+
+    lc_i = 0
+    for block in tqdm(blocks, desc="Preprocessing Correspondence"):
+        for ins in block.instructions:
+            for lc in line_correspondence[lc_i:]:
+                if lc.start_address <= ins.address < lc.end_address:
+                    if lc.source_file not in ins.correspondence:
+                        ins.correspondence = {
+                            lc.source_file: []
+                        }
+                    ins.correspondence[lc.source_file] = list(set(ins.correspondence[lc.source_file] + [lc.source_line]))
+        
+                while lc_i < len(line_correspondence) and ins.address > line_correspondence[lc_i].end_address:
+                    lc_i += 1
+
+                if lc.start_address > ins.address:
+                    break
+            
+            # for function in functions:
+            #     for variable in function.variables:
+            #         for variable_location in variable.locations:
+            #             if variable_location.start_address <= ins.address <= variable_location.end_address:
+            #                 ins.variables.append(variable)
+
+
+
+
 
     dot : dict[str, str] = {"dot": sopt.get_dot()}
 
@@ -169,8 +181,6 @@ async def getsourcefile(binary_file_path: FilePath, filepath: FilePath) -> Sourc
         decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence'])
     )
 
-    print('blocks', list(map(lambda block: {'start':block.start_address, 'end':block.end_address}, blocks)))
-
     lines: list[SourceLine] = []
     for cur_line, line_val in enumerate(file_content):
         result: list[int] = []
@@ -186,6 +196,11 @@ async def getsourcefile(binary_file_path: FilePath, filepath: FilePath) -> Sourc
     source_file = SourceFile(lines=lines)
     
     return source_file
+
+# Get all variables from dyninst_info given start and end address.
+@app.get("/getvariables")
+async def getvariables(filepath: FilePath, start_address: int, end_address: int):
+    pass
 
 @app.post("/getdyninstinfo")
 async def getdyninstinfo(filepath: FilePath):
