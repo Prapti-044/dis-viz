@@ -3,6 +3,8 @@ import { useAppSelector } from '../app/hooks';
 import { selectSelections } from '../features/selections/selectionsSlice';
 import { codeColors } from '../utils';
 import '../styles/sourcefiletree.css'
+import CSS from 'csstype';
+
 
 
 const DEFAULT_FILE_COLOR = "white"
@@ -108,22 +110,43 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
             }
         })
     })
+    // Simplify the nested single directories
+    function simplifyStructure(root: FileType) {
+        if (root.type === 'file') return
+        while(root.subdir && root.subdir.length === 1 && root.subdir[0].type !== 'file') {
+            root.name = root.name + '/' + root.subdir[0].name
+            root.fullPath = root.subdir[0].fullPath
+            root.status = root.subdir[0].status
+            root.type = root.subdir[0].type
+            root.subdir = root.subdir[0].subdir
+        }
+
+        root.subdir?.forEach(file => {
+            simplifyStructure(file)
+        })
+    }
+    simplifyStructure(rootFile)
     console.log(rootFile)
 
     function getJSXfromFiles(rootFile: FileType) {
-        if (rootFile.type === "file")
+        if (rootFile.type === "file") {
+            const style: CSS.Properties = {
+                background: finalSourceCSSBackground[rootFile.fullPath]
+            }
+            if (rootFile.status === 'opened') {
+                style.textDecoration = 'underline'
+                style.textDecorationColor = 'red'
+            }
             return <li
                 key={rootFile.name}
                 // @ts-ignore
                 datasource={rootFile.fullPath}
                 onClick={clickedOnSource}
-                style={{
-                    background: finalSourceCSSBackground[rootFile.fullPath]
-
-                }}
+                style={style}
                 >
                     {rootFile.name}
             </li>
+        }
         return <li key={'l'+rootFile.name} className="folder">
                 <a key={'a'+rootFile.name} onClick={e => {
                     e.currentTarget.classList.toggle("collapsed")

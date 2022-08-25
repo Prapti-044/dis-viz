@@ -77,7 +77,7 @@ const App = () => {
                 key={"DisassemblyView:" + disId}
                 id={parseInt(disId)}
             /></TabContent>,
-        closable: true
+        closable: true,
       }))
       .forEach(disassemblyViewComponent => {
         const tabData = dockRef!.find(disassemblyViewComponent.id!)
@@ -92,6 +92,7 @@ const App = () => {
           dockRef!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
         }
       })
+
       // set it active if there is only one disview
       if (Object.keys(selections).length === 1) {
         dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
@@ -107,7 +108,7 @@ const App = () => {
           const foundTab = dockRef!.find("SourceView:"+sourceViewDaton.file_name) as TabData
           const newTab: TabData = {
               id: "SourceView:"+sourceViewDaton.file_name,
-              title: "Source: " + sourceViewDaton.file_name,
+              title: "Source: " + sourceViewDaton.file_name.split("/")[sourceViewDaton.file_name.split("/").length - 1],
               content: <TabContent><SourceView
                 file_name={sourceViewDaton.file_name}
               />

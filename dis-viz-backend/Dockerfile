@@ -16,18 +16,44 @@ RUN make install
 WORKDIR /root/
 RUN rm -rf /root/cmake
 
-# Clone Rajaperf
+# Clone Rajaperf (RELWITHDEBINFO)
 WORKDIR /root/RAJA-PERFSUITE
 RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
 WORKDIR /root/RAJA-PERFSUITE/RAJAPerf
 
 # Build Rajaperf with debug flags
-RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=Debug/g' scripts/ubuntu-builds/ubuntu_gcc.sh
+RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=RELWITHDEBINFO/g' scripts/ubuntu-builds/ubuntu_gcc.sh
 RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 7
 WORKDIR /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-7/
 RUN make -j8
 # RUN make test
 # Binary is in /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe
+
+# Clone Rajaperf (Release)
+WORKDIR /root/RAJA-PERFSUITE-Rel
+RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
+WORKDIR /root/RAJA-PERFSUITE-Rel/RAJAPerf
+
+# Build Rajaperf with debug flags
+RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=Release/g' scripts/ubuntu-builds/ubuntu_gcc.sh
+RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 7
+WORKDIR /root/RAJA-PERFSUITE-Rel/RAJAPerf/build_ubuntu-gcc-7/
+RUN make -j8
+# RUN make test
+# Binary is in /root/RAJA-PERFSUITE-Rel/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe
+
+# Clone Rajaperf (Debug)
+WORKDIR /root/RAJA-PERFSUITE-Deb
+RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
+WORKDIR /root/RAJA-PERFSUITE-Deb/RAJAPerf
+
+# Build Rajaperf with debug flags
+RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=Debug/g' scripts/ubuntu-builds/ubuntu_gcc.sh
+RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 7
+WORKDIR /root/RAJA-PERFSUITE-Deb/RAJAPerf/build_ubuntu-gcc-7/
+RUN make -j8
+# RUN make test
+# Binary is in /root/RAJA-PERFSUITE-Deb/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe
 
 # Build lulesh
 WORKDIR /root

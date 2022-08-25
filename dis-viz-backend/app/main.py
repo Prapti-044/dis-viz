@@ -30,7 +30,7 @@ def decode_cache_binary(filepath: str):
             instruction = instruction['instruction'],
             correspondence = {},
         ) for instruction in next(iter(block.values()))]
-    ) for block in tqdm(disassembly['blocks'], desc="Constructing Blocks")]
+    ) for block in disassembly['blocks']]
 
     blocks.sort(key=lambda block: block.start_address)
 
@@ -38,11 +38,11 @@ def decode_cache_binary(filepath: str):
         BlockLink(
             source=int(link['source']),
             target=int(link['target'])
-        ) for link in tqdm(disassembly['links'], desc="Constructing Links")
+        ) for link in disassembly['links']
     ]
 
     pages = [[ blocks[0] ]]
-    for block in tqdm(blocks[1:], desc="Constructing Pages"):
+    for block in blocks[1:]:
         if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
             pages.append([])
         pages[-1].append(block)
@@ -64,7 +64,7 @@ def decode_cache_binary(filepath: str):
     ], key=lambda lc: lc.start_address)
 
     lc_i = 0
-    for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
+    for block in tqdm(blocks, desc="Preprocessing Correspondence"):
         for ins in block.instructions:
             for lc in line_correspondence[lc_i:]:
                 if lc.start_address <= ins.address <= lc.end_address:
@@ -79,17 +79,6 @@ def decode_cache_binary(filepath: str):
 
                 if lc.start_address > ins.address:
                     break
-
-    # for block in tqdm(blocks, desc="Checking disassembly address correspondence with source lines"):
-    #     for ins in block.instructions:
-    #         for lc in line_correspondence:
-    #             if lc.start_address <= ins.address <= lc.end_address:
-    #                 if lc.source_file not in ins.correspondence:
-    #                     ins.correspondence = {
-    #                         lc.source_file: set()
-    #                     }
-    #                 ins.correspondence[lc.source_file].add(lc.source_line)
-        
 
     functions = [
         Function(
