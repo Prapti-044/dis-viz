@@ -56,16 +56,19 @@ function DisassemblyView({ id }:{
     React.useEffect(() => {
         if (!lineSelection || lineSelection.addresses.length == 0) return;
         const firstFocusLine = lineSelection.addresses[0]
+        console.log(firstFocusLine)
 
-        const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(parseInt)
-        for(const i of blockAddresses) {
-            if (i > 0 && blockAddresses[i-1] <= firstFocusLine && firstFocusLine <= blockAddresses[i]) {
-                if (!disassemblyBlockRefs.current[blockAddresses[i]]) return;
-                const scrollRef = disassemblyBlockRefs.current[blockAddresses[i]].ref;
-
-                scrollRef?.scrollIntoView({
-                    behavior: 'smooth'
-                })
+        const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
+        for(const i in blockAddresses) {
+            const blockAddress = blockAddresses[i]
+            if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
+                if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
+                const scrollRef = disassemblyBlockRefs.current[blockAddress].ref;
+                setTimeout(() => {
+                    scrollRef.scrollIntoView({
+                        behavior: 'smooth'
+                    })
+                }, 100);
                 break
             }
         }
@@ -88,8 +91,8 @@ function DisassemblyView({ id }:{
     // if (dyninstInfo) {
     //     allVars = dyninstInfo.functions.map(f => f.variables).filter(d => d.length !== 0).flat();
     // }
-    if (pages[0])
-        console.log(pages[0].blocks.map(block => block.instructions).flat().map(ins => ins.variables))
+    // if (pages[0])
+    //     console.log(pages[0].blocks.map(block => block.instructions).flat().map(ins => ins.variables))
 
     // Remove all other functions than active functions
 

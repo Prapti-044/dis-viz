@@ -1,10 +1,6 @@
 {
     "binarylist": [
         {
-            "name": "RAJAPerf (Release)",
-            "executable_path": "/root/RAJA-PERFSUITE-Rel/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe"
-        },
-        {
             "name": "RAJAPerf (Debug)",
             "executable_path": "/root/RAJA-PERFSUITE-Deb/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe"
         },

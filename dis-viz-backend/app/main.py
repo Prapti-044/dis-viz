@@ -11,7 +11,7 @@ import simpleoptparser as sopt
 from .instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, SourceFile, SourceLine, Variable, VariableLocation
 from tqdm import tqdm
 
-N_INSTRUCTIONS_PER_PAGE = 50
+N_INSTRUCTIONS_PER_PAGE = 500
 
 class FilePath(BaseModel):
     path: str
