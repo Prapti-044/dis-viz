@@ -56,12 +56,14 @@ export class InstructionBlock extends AddressRange {
     @Type(() => Instruction)
     @Expose() instructions: Instruction[]
     @Expose() function_name: string
+    @Expose() next_block_numbers: number[]
 
-    constructor(block_number: number, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number) {
+    constructor(block_number: number, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: number[]) {
         super(start_address, end_address, n_instructions)
         this.block_number = block_number
         this.instructions = instructions
         this.function_name = function_name
+        this.next_block_numbers = next_block_numbers
     }
 
 }

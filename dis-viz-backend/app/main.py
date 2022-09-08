@@ -33,14 +33,23 @@ def decode_cache_binary(filepath: str):
         ) for instruction in next(iter(block.values()))]
     ) for block in disassembly['blocks']]
 
-    blocks.sort(key=lambda block: block.start_address)
-
+    blocks.sort(key=lambda block: block.block_number)
     links = [
         BlockLink(
             source=int(link['source']),
             target=int(link['target'])
         ) for link in disassembly['links']
     ]
+    links.sort(key=lambda link: link.source)
+
+    for link in links:
+        block = next(block for block in blocks if block.block_number == link.source)
+        if block.block_number + 1 != link.target:
+            block.next_block_numbers.append(link.target)
+
+    blocks.sort(key=lambda block: block.start_address)
+
+    print([(block.block_number, block.next_block_numbers) for block in blocks])
 
     pages = [[ blocks[0] ]]
     for block in blocks[1:]:
@@ -112,11 +121,13 @@ def decode_cache_binary(filepath: str):
                 if lc.start_address > ins.address:
                     break
             
-            # for function in functions:
-            #     for variable in function.variables:
-            #         for variable_location in variable.locations:
-            #             if variable_location.start_address <= ins.address <= variable_location.end_address:
-            #                 ins.variables.append(variable)
+    for function in tqdm(functions, desc="Variable Renaming"):
+        fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
+        for variable in function.variables:
+            for variable_location in variable.locations:
+                for ins in [ins for fn_block in fn_blocks for ins in fn_block.instructions]:
+                    if variable_location.start_address <= ins.address <= variable_location.end_address and variable_location.location in ins.instruction:
+                        ins.variables.append(variable)
 
 
 

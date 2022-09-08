@@ -24,9 +24,6 @@ function SourceView({ file_name }:{
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<number[][]>([])
 
-    console.log(correspondences)
-
-
     React.useEffect(() => {
         api.getSourceLines(binaryFilePath, file_name).then((sourceFile) => {
             let tmpSourceCode = "";

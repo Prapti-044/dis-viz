@@ -1,9 +1,10 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
 
-import { Instruction, DisassemblyLineSelection, Variable } from '../types'
+import { Instruction, DisassemblyLineSelection, InstructionBlock } from '../types'
 
-function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, variables }:{
+function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color }:{
+    block: InstructionBlock,
     instruction: Instruction,
     isHighlighted: boolean,
     mouseEvents: {
@@ -13,11 +14,8 @@ function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting,
     },
     isSelecting: boolean,
     onGoingSelection: DisassemblyLineSelection|null,
-    color: string,
-    variables: Variable[]
+    color: string
 }) {
-
-
 
     let instruction_address = instruction.address.toString(16).toUpperCase();
     while (instruction_address.length < 4)
@@ -35,7 +33,7 @@ function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting,
         selectionStyle.cursor = "pointer";
     }
 
-    function parseInstruction(instruction: Instruction) {
+    function parseInstruction(instruction: Instruction, block: InstructionBlock) {
         const tokens = instruction.instruction.split(/([ ,])/g);
 
         const parsedTokens = tokens.map((token, i) => {
@@ -43,13 +41,26 @@ function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting,
                 return <mark key={i} data-type="mnemonic">{token}</mark>
             }
 
+            if (i === tokens.length-1 && block.next_block_numbers.length !== 0 && block.instructions[block.instructions.length-1].address === instruction.address) {
+                return <mark key={i} data-type="jump" data-blockname={'B'+block.next_block_numbers[0]}>{token}</mark>
+            }
+
             let variableMarking: React.ReactElement | null = null;
 
-            variables.forEach(variable => {
+            instruction.variables.forEach(variable => {
                 variable.locations.forEach(location => {
                     if (token === location.location) {
-                        variableMarking = <mark key={i} data-type="variable" data-varname={variable.name}>{token}</mark>
-                        return
+                        const regName = '('+token.split('(')[1]
+                        if(Array.from('89abcdefABCDEF').some(startVal => token.startsWith('0x'+startVal))) {
+                            const offsetNumber = token.slice(2).split('(')[0]
+                            let bigNumber = '1'
+                            for(let i = 0; i<offsetNumber.length; i++) bigNumber += '0';
+                            const complementNumber = parseInt(bigNumber, 16) - parseInt(offsetNumber, 16)
+                            variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={'-'+complementNumber.toString()+regName}>{token}</mark>
+                        }
+                        else {
+                            variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={parseInt(token.slice(3), 16).toString()+regName}>{token}</mark>
+                        }
                     }
                 });
                 if(variableMarking) return
@@ -92,7 +103,7 @@ function DisassemblyLine({ instruction, isHighlighted, mouseEvents, isSelecting,
         return parsedTokens;
     }
 
-    const parsedTokens = parseInstruction(instruction)
+    const parsedTokens = parseInstruction(instruction, block)
 
     return <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}

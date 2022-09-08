@@ -56,7 +56,6 @@ function DisassemblyView({ id }:{
     React.useEffect(() => {
         if (!lineSelection || lineSelection.addresses.length == 0) return;
         const firstFocusLine = lineSelection.addresses[0]
-        console.log(firstFocusLine)
 
         const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
         for(const i in blockAddresses) {
@@ -84,17 +83,6 @@ function DisassemblyView({ id }:{
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
-
-    // Variable Renamer
-    let allVars: Variable[] = [];
-    // TODO: Get only those variables related to current page
-    // if (dyninstInfo) {
-    //     allVars = dyninstInfo.functions.map(f => f.variables).filter(d => d.length !== 0).flat();
-    // }
-    // if (pages[0])
-    //     console.log(pages[0].blocks.map(block => block.instructions).flat().map(ins => ins.variables))
-
-    // Remove all other functions than active functions
 
 
     // // Hidables
@@ -235,21 +223,22 @@ function DisassemblyView({ id }:{
                     }}>
                         {block.instructions.map((ins, j) => {
     
-                            const variables: Variable[] = [];
-                            allVars.forEach(variable => {
-                                let found = false;
-                                variable.locations.forEach(location => {
-                                    if (ins.address >= parseInt(location.start_address.toString(), 16) && ins.address <= parseInt(location.end_address.toString(), 16) && ins.instruction.includes(location.location)) {
-                                        variables.push(variable);
-                                        // ins.instruction = d.code.replace(location.location, "VAR(" + variable.name + ")");
-                                        found = true;
-                                        return;
-                                    }
-                                });
-                                if (found) return;
-                            });
+                            // const variables: Variable[] = [];
+                            // allVars.forEach(variable => {
+                            //     let found = false;
+                            //     variable.locations.forEach(location => {
+                            //         if (ins.address >= parseInt(location.start_address.toString(), 16) && ins.address <= parseInt(location.end_address.toString(), 16) && ins.instruction.includes(location.location)) {
+                            //             variables.push(variable);
+                            //             // ins.instruction = d.code.replace(location.location, "VAR(" + variable.name + ")");
+                            //             found = true;
+                            //             return;
+                            //         }
+                            //     });
+                            //     if (found) return;
+                            // });
 
                             return <DisassemblyLine
+                                block={block}
                                 isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection?lineSelection.addresses.includes(ins.address):false)}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                                 key={i.toString() + j.toString()}
@@ -257,7 +246,6 @@ function DisassemblyView({ id }:{
                                 isSelecting={isSelecting}
                                 onGoingSelection={onGoingSelection}
                                 color={codeColors[id]}
-                                variables={variables}
                             />
                         })}
                     </ListGroup>

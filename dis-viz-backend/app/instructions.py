@@ -14,6 +14,7 @@ class Variable:
     source_line: int
     locations: list[VariableLocation]
 
+
 @dataclass
 class SourceLine:
     line: str
@@ -45,6 +46,8 @@ class InstructionBlock(AddressRange):
     function_name: str
     instructions: list[Instruction]
 
+    next_block_numbers: list[int] = field(init=False)
+
     start_address: int = field(init=False)
     end_address: int = field(init=False)
     n_instructions: int = field(init=False)
@@ -53,6 +56,7 @@ class InstructionBlock(AddressRange):
         self.start_address = min(instruction.address for instruction in self.instructions)
         self.end_address = max(instruction.address for instruction in self.instructions)
         self.n_instructions = len(self.instructions)
+        self.next_block_numbers = []
 
 @dataclass
 class BlockLink:
