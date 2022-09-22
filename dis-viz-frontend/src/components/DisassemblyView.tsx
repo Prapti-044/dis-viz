@@ -1,6 +1,6 @@
 import React  from 'react';
 import { Card, ListGroup } from 'react-bootstrap';
-import { codeColors } from '../utils';
+import { codeColors, useForceUpdate } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
@@ -9,6 +9,72 @@ import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 import { Variable, DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
+import Minimap from './Minimap';
+
+function useVisibleBlockWindow(ref: React.MutableRefObject<{
+    [start_address: number]: {
+        ref: HTMLDivElement;
+    };
+}>) {
+    const observerRef = React.useRef<IntersectionObserver | null>(null);
+    const [blockIsVisible, setBlockIsVisible] = React.useState<{blockAddress:number, inside:boolean}[]>([])
+
+    React.useEffect(() => {
+        observerRef.current = new IntersectionObserver(entries => {
+
+            const changedBlockAddresses = Object.keys(ref.current)
+                .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)].ref))
+
+            const newBlockVisibility = [...blockIsVisible]
+            changedBlockAddresses.forEach((address,i) => {
+                const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
+                if(!foundBlock) {
+                    newBlockVisibility.push({
+                        blockAddress: parseInt(address),
+                        inside: entries[i].isIntersecting
+                    })
+                }
+                else {
+                    foundBlock.inside = entries[i].isIntersecting
+                }
+            });
+            
+            newBlockVisibility.sort((a,b) => a.blockAddress - b.blockAddress)
+
+            console.log("BlockIsVisible", blockIsVisible)
+            console.log("newBlockVisibility", newBlockVisibility)
+
+            const allKeys = [...newBlockVisibility.map(block => block.blockAddress), ...blockIsVisible.map(block => block.blockAddress)]
+            for(const key of allKeys) {
+                if(!(key in newBlockVisibility && key in blockIsVisible && newBlockVisibility[key] != blockIsVisible[key])) {
+                    setBlockIsVisible(newBlockVisibility)
+                    break
+                }
+            }
+
+        });
+    }, [blockIsVisible]);
+
+    React.useEffect(() => {
+        for(const start_address in ref.current) {
+            observerRef.current?.observe(ref.current[start_address].ref);
+        }
+
+        return () => {
+            for(const start_address in ref.current) {
+                observerRef.current?.disconnect();
+            }
+        };
+    }, [ref.current, ref.current[parseInt(Object.keys(ref.current)[0])]]);
+
+    const visibleBlocks = blockIsVisible.filter(block => block.inside).map(block => block.blockAddress)
+    return {
+        start: Math.min(...visibleBlocks),
+        end: Math.max(...visibleBlocks)
+    }
+}
+
+
 
 function DisassemblyView({ id }:{
     id: number,
@@ -53,6 +119,11 @@ function DisassemblyView({ id }:{
     }
 
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
+    console.log('disassemblyblockrefs',disassemblyBlockRefs)
+    const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
+    console.log("onScreenFirstBlockAddress", onScreenFirstBlockAddress)
+
+
     React.useEffect(() => {
         if (!lineSelection || lineSelection.addresses.length == 0) return;
         const firstFocusLine = lineSelection.addresses[0]
@@ -175,7 +246,7 @@ function DisassemblyView({ id }:{
         <label className="toggle" style={{
             position: 'absolute',
             top: '10px',
-            right: '30px',
+            right: '200px',
             height: '40px',
             zIndex: 10,
         }}>
@@ -221,23 +292,8 @@ function DisassemblyView({ id }:{
                     <ListGroup variant="flush" style={{
                         paddingLeft: '10px',
                     }}>
-                        {block.instructions.map((ins, j) => {
-    
-                            // const variables: Variable[] = [];
-                            // allVars.forEach(variable => {
-                            //     let found = false;
-                            //     variable.locations.forEach(location => {
-                            //         if (ins.address >= parseInt(location.start_address.toString(), 16) && ins.address <= parseInt(location.end_address.toString(), 16) && ins.instruction.includes(location.location)) {
-                            //             variables.push(variable);
-                            //             // ins.instruction = d.code.replace(location.location, "VAR(" + variable.name + ")");
-                            //             found = true;
-                            //             return;
-                            //         }
-                            //     });
-                            //     if (found) return;
-                            // });
-
-                            return <DisassemblyLine
+                        {block.instructions.map((ins, j) =>
+                            <DisassemblyLine
                                 block={block}
                                 isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection?lineSelection.addresses.includes(ins.address):false)}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
@@ -247,7 +303,7 @@ function DisassemblyView({ id }:{
                                 onGoingSelection={onGoingSelection}
                                 color={codeColors[id]}
                             />
-                        })}
+                        )}
                     </ListGroup>
                 </Card>
             )
@@ -255,6 +311,11 @@ function DisassemblyView({ id }:{
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
+            {onScreenFirstBlockAddress?
+            <Minimap
+                width={120}
+                visibleBlockWindow={onScreenFirstBlockAddress}
+            ></Minimap>:<></>}
             </div> :
             <div>
                 <h1>Please select a binary file to get disassembly code here.</h1>

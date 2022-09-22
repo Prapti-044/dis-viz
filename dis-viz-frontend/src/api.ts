@@ -1,6 +1,7 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
 import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile } from './types'
+import { MinimapType } from './features/minimap/minimapSlice';
 
 
 
@@ -19,6 +20,25 @@ export async function getSourceFiles(filepath: string) : Promise<string[]> {
     );
     const result = await response.json();
     return result.map((d: {'file': string}) => d.file);
+}
+
+export async function getMinimapData(filepath: string) : Promise<MinimapType> {
+    const response = await fetch(
+        apiURL + "getminimapdata", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
+    const result = await response.json();
+
+    return {
+        blockHeights: result.block_heights,
+        builtInBlock: result.built_in_block,
+        blockStartAddress: result.block_start_address
+    };
 }
 
 export async function getSourceLines(binaryFile: string, sourceFile: string): Promise<SourceFile> {

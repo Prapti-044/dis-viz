@@ -1,10 +1,11 @@
 import React from 'react'
-import { Form } from 'react-bootstrap';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import * as api from "../api";
+import { Form } from 'react-bootstrap'
+import 'bootstrap/dist/css/bootstrap.min.css'
+import * as api from "../api"
 import '../styles/inputsourcefilepath.css'
 import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { initBlocks } from '../features/minimap/minimapSlice'
+import { useAppSelector, useAppDispatch } from '../app/hooks'
 
 function InputFilePath() {
     const [binaryList, setBinaryList] = React.useState<{
@@ -31,6 +32,10 @@ function InputFilePath() {
                 aria-label="Binary File Selection"
                 onChange={(event: React.FormEvent<HTMLSelectElement>) => {
                     dispatch(setBinaryFilePath((event.target as HTMLSelectElement).value))
+
+                    api.getMinimapData((event.target as HTMLSelectElement).value).then(minimap => {
+                        dispatch(initBlocks(minimap))
+                    })
                 }}
                 value={binaryFilePath}
             >

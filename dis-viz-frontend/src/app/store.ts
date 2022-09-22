@@ -1,11 +1,13 @@
 import { configureStore, ThunkAction, Action } from '@reduxjs/toolkit';
 import selectionsReducer from '../features/selections/selectionsSlice';
+import minimapReducer from '../features/minimap/minimapSlice';
 import binaryFilePathReducer from '../features/binary-data/binaryDataSlice';
 
 export const store = configureStore({
   reducer: {
     selections: selectionsReducer,
-    binaryFilePath: binaryFilePathReducer
+    binaryFilePath: binaryFilePathReducer,
+    minimap: minimapReducer,
   },
 });
 

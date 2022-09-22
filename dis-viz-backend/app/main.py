@@ -6,12 +6,19 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 import json
 from functools import lru_cache, reduce
+from .utils import binary_search
+import math
 
 import simpleoptparser as sopt
 from .instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, SourceFile, SourceLine, Variable, VariableLocation
 from tqdm import tqdm
 
+N_INSTRUCTIONS_PER_PIXEL_MINIMAP = 5
 N_INSTRUCTIONS_PER_PAGE = 500
+SYSTEM_LOCATIONS = [
+    '/usr/',
+
+]
 
 class FilePath(BaseModel):
     path: str
@@ -42,14 +49,17 @@ def decode_cache_binary(filepath: str):
     ]
     links.sort(key=lambda link: link.source)
 
-    for link in links:
-        block = next(block for block in blocks if block.block_number == link.source)
-        if block.block_number + 1 != link.target:
-            block.next_block_numbers.append(link.target)
+    for link in tqdm(links, desc="Adding block links"):
+        # block = next((block for block in blocks if block.block_number == link.source and link.source + 1 != link.target), None)
+        if link.source+1 == link.target: continue
+        block_pos = binary_search(blocks, link.source, 0, len(blocks), lambda block: block.block_number, not_found=None)
 
+        if block_pos:
+            blocks[block_pos].next_block_numbers.append(link.target)
+
+    print("Nothing found")
     blocks.sort(key=lambda block: block.start_address)
 
-    print([(block.block_number, block.next_block_numbers) for block in blocks])
 
     pages = [[ blocks[0] ]]
     for block in blocks[1:]:
@@ -129,6 +139,13 @@ def decode_cache_binary(filepath: str):
                     if variable_location.start_address <= ins.address <= variable_location.end_address and variable_location.location in ins.instruction:
                         ins.variables.append(variable)
 
+    # Minimap data
+    block_heights = [block.n_instructions for block in blocks]
+
+    built_in_block = [
+        all(
+            source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
+        ) for block in blocks]
 
 
 
@@ -140,6 +157,11 @@ def decode_cache_binary(filepath: str):
             'blocks': blocks,
             'links': links,
             'pages': pages
+        },
+        'minimap': {
+            'block_heights': block_heights,
+            'built_in_block': built_in_block,
+            'block_start_address': [block.start_address for block in blocks]
         },
         'source_files': source_files,
         'dyninst_info': {
@@ -175,6 +197,12 @@ async def getdisassembly(start_address: int, filepath: FilePath):
     pages = decode_cache_binary(filepath.path)['disassembly']['pages']
     start_address = max(pages[0].start_address, min(pages[-1].end_address, start_address))
     return next(page for page in pages if page.start_address <= start_address <= page.end_address)
+
+@app.post("/getminimapdata")
+async def getminimapdata(filepath: FilePath):
+    minimap = decode_cache_binary(filepath.path)['minimap']
+    return minimap
+
 
 @app.post("/sourcefiles")
 async def getsourcefiles(filepath: FilePath):
