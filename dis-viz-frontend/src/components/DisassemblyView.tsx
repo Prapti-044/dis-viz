@@ -12,60 +12,52 @@ import * as api from '../api'
 import Minimap from './Minimap';
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
-    [start_address: number]: {
-        ref: HTMLDivElement;
-    };
+    [start_address: number]: HTMLDivElement
 }>) {
-    const observerRef = React.useRef<IntersectionObserver | null>(null);
     const [blockIsVisible, setBlockIsVisible] = React.useState<{blockAddress:number, inside:boolean}[]>([])
 
-    React.useEffect(() => {
-        observerRef.current = new IntersectionObserver(entries => {
+    const observer = new IntersectionObserver(entries => {
+        const changedBlockAddresses = Object.keys(ref.current)
+            .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)]))
 
-            const changedBlockAddresses = Object.keys(ref.current)
-                .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)].ref))
-
-            const newBlockVisibility = [...blockIsVisible]
-            changedBlockAddresses.forEach((address,i) => {
-                const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
-                if(!foundBlock) {
-                    newBlockVisibility.push({
-                        blockAddress: parseInt(address),
-                        inside: entries[i].isIntersecting
-                    })
-                }
-                else {
-                    foundBlock.inside = entries[i].isIntersecting
-                }
-            });
-            
-            newBlockVisibility.sort((a,b) => a.blockAddress - b.blockAddress)
-
-            console.log("BlockIsVisible", blockIsVisible)
-            console.log("newBlockVisibility", newBlockVisibility)
-
-            const allKeys = [...newBlockVisibility.map(block => block.blockAddress), ...blockIsVisible.map(block => block.blockAddress)]
-            for(const key of allKeys) {
-                if(!(key in newBlockVisibility && key in blockIsVisible && newBlockVisibility[key] != blockIsVisible[key])) {
-                    setBlockIsVisible(newBlockVisibility)
-                    break
-                }
+        const newBlockVisibility = structuredClone(blockIsVisible)
+        changedBlockAddresses.forEach((address, i) => {
+            const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
+            if (!foundBlock) {
+                newBlockVisibility.push({
+                    blockAddress: parseInt(address),
+                    inside: entries[i].isIntersecting
+                })
             }
-
+            else {
+                foundBlock.inside = entries[i].isIntersecting
+            }
         });
-    }, [blockIsVisible]);
+
+        newBlockVisibility.sort((a, b) => a.blockAddress - b.blockAddress)
+
+        const allKeys = Array.from(new Set([...newBlockVisibility.map(block => block.blockAddress), ...blockIsVisible.map(block => block.blockAddress)]))
+        for (const key of allKeys) {
+            const newBlock = newBlockVisibility.find(block => block.blockAddress === key)
+            const block = blockIsVisible.find(block => block.blockAddress === key)
+
+            if (!block || !newBlock || block.inside !== newBlock.inside) {
+                setBlockIsVisible(newBlockVisibility)
+                break
+            }
+        }
+    })
 
     React.useEffect(() => {
         for(const start_address in ref.current) {
-            observerRef.current?.observe(ref.current[start_address].ref);
+            if(ref.current[start_address])
+                observer.observe(ref.current[start_address])
         }
 
         return () => {
-            for(const start_address in ref.current) {
-                observerRef.current?.disconnect();
-            }
+            observer.disconnect();
         };
-    }, [ref.current, ref.current[parseInt(Object.keys(ref.current)[0])]]);
+    }, [ref.current[parseInt(Object.keys(ref.current)[0])], observer]);
 
     const visibleBlocks = blockIsVisible.filter(block => block.inside).map(block => block.blockAddress)
     return {
@@ -118,11 +110,8 @@ function DisassemblyView({ id }:{
         })
     }
 
-    const disassemblyBlockRefs = React.useRef<{[start_address: number]: {ref: HTMLDivElement}}>({})
-    console.log('disassemblyblockrefs',disassemblyBlockRefs)
+    const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
-    console.log("onScreenFirstBlockAddress", onScreenFirstBlockAddress)
-
 
     React.useEffect(() => {
         if (!lineSelection || lineSelection.addresses.length == 0) return;
@@ -133,7 +122,7 @@ function DisassemblyView({ id }:{
             const blockAddress = blockAddresses[i]
             if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
                 if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
-                const scrollRef = disassemblyBlockRefs.current[blockAddress].ref;
+                const scrollRef = disassemblyBlockRefs.current[blockAddress];
                 setTimeout(() => {
                     scrollRef.scrollIntoView({
                         behavior: 'smooth'
@@ -275,7 +264,7 @@ function DisassemblyView({ id }:{
                     textAlign: 'center'
                 }}
                 ref={(thisRef: HTMLDivElement) => {
-                    disassemblyBlockRefs.current[block.start_address] = {ref: thisRef}
+                    disassemblyBlockRefs.current[block.start_address] = thisRef
                 }}
                 >
                     <Card.Header style={{
@@ -311,7 +300,7 @@ function DisassemblyView({ id }:{
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
-            {onScreenFirstBlockAddress?
+            {(onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start))?
             <Minimap
                 width={120}
                 visibleBlockWindow={onScreenFirstBlockAddress}

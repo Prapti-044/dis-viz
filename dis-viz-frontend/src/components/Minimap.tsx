@@ -9,6 +9,7 @@ const BLOCK_LINE_WIDTH = 120
 const BLOCK_SEP = 5
 const BLOCK_LINE_LEFT = 20
 const BLOCKS_START_TOP = 50
+const BRUSH_OFFSET = 10
 
 export default function Minimap({ visibleBlockWindow, width, ...props }: {
     width: number,
@@ -17,27 +18,34 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
 
     const minimap = useAppSelector(selectMinimap)
     const selections = useAppSelector(selectSelections)
-    const totalBlocks = minimap.blockStartAddress.length
-    // const startBlockIdx = minimap.blockStartAddress.find(address => startBlockAddress == address)!
-    // const scrollPercent = startBlockIdx/totalBlocks
-
-    // console.log('scrollPercent',scrollPercent)
-
+    const totalBlocks = minimap.blockStartAddress.length // b
+    const scrollPercent = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.start)/totalBlocks // s
 
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
 
     const draw = (ctx: CanvasRenderingContext2D, frameCount: number) => {
         // Assuming each block has only 1 instruction, at most how many blocks we need to draw?
-        const blocksToDraw = Math.ceil((ctx.canvas.height - BLOCKS_START_TOP)/(BLOCK_LINE_HEIGHT_FACTOR*1 + BLOCK_SEP))
-        // const startBlock = scrollPercent - (blocksToDraw*(1 - scrollPercent))
+        const blocksToDraw = Math.ceil((ctx.canvas.height - BLOCKS_START_TOP)/(BLOCK_LINE_HEIGHT_FACTOR*1 + BLOCK_SEP)) // n
+
+        let startBlockI:number, endBlockI:number
+        if(blocksToDraw >= totalBlocks) {
+            startBlockI = 0
+            endBlockI = totalBlocks-1
+        }
+        else {
+            startBlockI = Math.floor(totalBlocks * scrollPercent - blocksToDraw * (scrollPercent))
+            endBlockI = startBlockI + blocksToDraw
+        }
 
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.fillStyle = "#FFFFFF"
 
         let cumulativeHeight = 0;
         minimap.blockHeights.forEach((blockHeight, i) => {
+            if(i < startBlockI || i > endBlockI) return
+            const curBlock = i - startBlockI
             ctx.beginPath()
-            ctx.moveTo(BLOCK_LINE_LEFT, BLOCKS_START_TOP + i * BLOCK_SEP + cumulativeHeight + blockHeight / 2)
+            ctx.moveTo(BLOCK_LINE_LEFT, BLOCKS_START_TOP + curBlock * BLOCK_SEP + cumulativeHeight + blockHeight / 2)
 
             ctx.strokeStyle = minimap.builtInBlock[i] === true ? "lightgrey" : "grey"
             for(const disViewId in selections) {
@@ -45,8 +53,6 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
                 if(addresses === undefined || addresses.length === 0) continue
                 for(const address of addresses) {
                     if(minimap.blockStartAddress[i] <= address && (i >= minimap.blockStartAddress.length || address <= minimap.blockStartAddress[i+1])) {
-
-                        console.log(codeColors[disViewId])
                         const {h, s, l} = hexToHSL(codeColors[disViewId])
                         if(minimap.builtInBlock[i])
                             ctx.strokeStyle = "hsl(" + Math.max(h-10, 0) + "," + s + "%," + l + "%)"
@@ -59,10 +65,27 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
 
 
             ctx.lineWidth = blockHeight * BLOCK_LINE_HEIGHT_FACTOR
-            ctx.lineTo(BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH, BLOCKS_START_TOP + i * BLOCK_SEP + cumulativeHeight + blockHeight / 2)
+            ctx.lineTo(BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH, BLOCKS_START_TOP + curBlock * BLOCK_SEP + cumulativeHeight + blockHeight / 2)
             ctx.stroke()
 
             cumulativeHeight += blockHeight
+
+            // Draw the brush
+            // console.log('startBlockI', startBlockI)
+            // console.log('endBlockI', endBlockI)
+            const brushTop = minimap.blockHeights.slice(0,startBlockI+1).reduce((total, current) => total+current) + startBlockI*BLOCK_SEP + BLOCKS_START_TOP
+            const brushBottom = minimap.blockHeights.slice(0,endBlockI+1).reduce((total, current) => total+current) + endBlockI*BLOCK_SEP + BLOCKS_START_TOP
+            ctx.fillStyle = 'rgba(200,200,200,0.02)';
+
+            // console.log(brushTop, brushBottom)
+            ctx.fillRect(
+                BLOCK_LINE_LEFT-BRUSH_OFFSET,
+                // brushTop,
+                50,
+                BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
+                // brushBottom
+                100
+            );
         })
     }
 
