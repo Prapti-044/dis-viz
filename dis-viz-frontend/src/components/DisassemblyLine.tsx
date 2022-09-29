@@ -1,5 +1,6 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
+import inteldocs from '../inteldocs.json'
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock } from '../types'
 
@@ -16,6 +17,8 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     onGoingSelection: DisassemblyLineSelection|null,
     color: string
 }) {
+
+    const [showDoc, setShowDoc] = React.useState(false)
 
     let instruction_address = instruction.address.toString(16).toUpperCase();
     while (instruction_address.length < 4)
@@ -38,11 +41,46 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
         const parsedTokens = tokens.map((token, i) => {
             if (i === 0) {
-                return <mark key={i} data-type="mnemonic">{token}</mark>
+                const doc = inteldocs.find(doc => doc.instruction == token.toUpperCase())
+                return <span key={instruction.address.toString(16)+"id"+i}>
+                    {showDoc&&doc?<div className="tooltipitem">
+                        {Object.entries(doc).map(([key, value]) => value?<p><b>{key}</b>: {value}</p>:<></>)}
+                    </div>:<></>}
+                    <mark key={i} data-type="mnemonic"
+                        onMouseEnter={() => setShowDoc(true)}
+                        onMouseLeave={() => setShowDoc(false)}
+                    >{token}</mark>
+                </span>
             }
 
-            if (i === tokens.length-1 && block.next_block_numbers.length !== 0 && block.instructions[block.instructions.length-1].address === instruction.address) {
-                return <mark key={i} data-type="jump" data-blockname={'B'+block.next_block_numbers[0]}>{token}</mark>
+            let title = "";
+            function addToTitle(val: string) {
+                if(val === "") return title
+                if(title == "") title = val
+                else title += " || " + val
+                return title
+            }
+
+            if (i === tokens.length-1 
+                    // && block.next_block_numbers.length !== 0 
+                    && block.instructions[block.instructions.length-1].address === instruction.address
+                ) {
+                let nextAddress: number|null = null;
+                if(token.startsWith("0x") && token.endsWith("(%rip)")) {
+                    const value = token.slice(2).split('(')[0]
+                    let finalValue = parseInt(value, 16);
+                    if(value.length == 8 && Array.from('89abcdefABCDEF').some(startVal => value.startsWith(startVal))) {
+                        let bigNumber = '1'
+                        for(let i = 0; i<value.length; i++) bigNumber += '0';
+                        finalValue = -parseInt(bigNumber, 16) + parseInt(value, 16)
+                    }
+                    nextAddress = instruction.address + finalValue
+                }
+                addToTitle(nextAddress?"0x"+nextAddress.toString(16).toUpperCase():"")
+
+                const nextBlock = block.next_block_numbers[0]
+                if(nextBlock)
+                    return <mark key={i} data-type="jump" data-blockname={"B"+nextBlock} title={title}>{token}</mark>
             }
 
             let variableMarking: React.ReactElement | null = null;
@@ -56,13 +94,15 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                             let bigNumber = '1'
                             for(let i = 0; i<offsetNumber.length; i++) bigNumber += '0';
                             const complementNumber = parseInt(bigNumber, 16) - parseInt(offsetNumber, 16)
-                            variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={'-'+complementNumber.toString()+regName}>{token}</mark>
+                            addToTitle('-'+complementNumber.toString()+regName)
                         }
                         else {
-                            variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={parseInt(token.slice(3), 16).toString()+regName}>{token}</mark>
+                            addToTitle(parseInt(token.slice(3), 16).toString()+regName)
                         }
+                        variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={title}>{token}</mark>
+                        return
                     }
-                });
+                })
                 if(variableMarking) return
             })
             if(variableMarking) return variableMarking
@@ -78,11 +118,12 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                     let bigNumber = '1'
                     for(let i = 0; i<offsetNumber.length; i++) bigNumber += '0';
                     const complementNumber = parseInt(bigNumber, 16) - parseInt(offsetNumber, 16)
-                    return <span key={i} className="hex-number" title={'-'+complementNumber.toString()}>{token}</span>
+                    addToTitle('-'+complementNumber.toString())
                 }
                 else {
-                    return <span key={i} className="hex-number" title={parseInt(token.slice(3), 16).toString()}>{token}</span>
+                    addToTitle(parseInt(token.slice(3), 16).toString())
                 }
+                return <span key={i} className="hex-number" title={title}>{token}</span>
             }
 
             if (token.startsWith('0x') && token.endsWith(')') && token.length > 6 && token[token.length - 5] === '%' && token[token.length - 6] === '(') {
@@ -91,11 +132,12 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                     let bigNumber = '1'
                     for(let i = 0; i<offsetNumber.length; i++) bigNumber += '0';
                     const complementNumber = parseInt(bigNumber, 16) - parseInt(offsetNumber, 16)
-                    return <span key={i} className="hex-number" title={'-'+complementNumber.toString()+token.slice(token.length-6)}>{token}</span>
+                    addToTitle('-'+complementNumber.toString()+token.slice(token.length-6))
                 }
                 else {
-                    return <span key={i} className="hex-number" title={parseInt(token.slice(2,token.length-6), 16).toString()+token.slice(token.length-6)}>{token}</span>
+                    addToTitle(parseInt(token.slice(2,token.length-6), 16).toString()+token.slice(token.length-6))
                 }
+                return <span key={i} className="hex-number" title={title}>{token}</span>
             }
 
             return token

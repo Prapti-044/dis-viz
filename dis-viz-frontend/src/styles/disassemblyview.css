@@ -132,3 +132,14 @@ span.hex-number {
 .toggle input:checked~.labels::before {
     transform: translateX(var(--width));
 }
+
+.tooltipitem {
+    position: absolute;
+    z-index: 5;
+    background-color: white;
+    border: 1px solid green;
+    padding: 3px;
+    color: green;
+    top: 20px;
+    left: 200px;
+}

@@ -73,18 +73,19 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
             // Draw the brush
             // console.log('startBlockI', startBlockI)
             // console.log('endBlockI', endBlockI)
-            const brushTop = minimap.blockHeights.slice(0,startBlockI+1).reduce((total, current) => total+current) + startBlockI*BLOCK_SEP + BLOCKS_START_TOP
-            const brushBottom = minimap.blockHeights.slice(0,endBlockI+1).reduce((total, current) => total+current) + endBlockI*BLOCK_SEP + BLOCKS_START_TOP
+            const brushTop = (minimap.blockHeights.slice(0,startBlockI+1).reduce((total, current) => total+current) + startBlockI*BLOCK_SEP + BLOCKS_START_TOP)/totalBlocks * ctx.canvas.height
+            const brushBottom = (minimap.blockHeights.slice(0,endBlockI+1).reduce((total, current) => total+current) + endBlockI*BLOCK_SEP + BLOCKS_START_TOP)/totalBlocks * ctx.canvas.height
+            const brushHeight = brushBottom - brushTop
             ctx.fillStyle = 'rgba(200,200,200,0.02)';
 
-            // console.log(brushTop, brushBottom)
+            // console.log('brushTop', brushTop, 'brushBottom', brushBottom)
             ctx.fillRect(
                 BLOCK_LINE_LEFT-BRUSH_OFFSET,
-                // brushTop,
-                50,
+                brushTop,
+                // 50,
                 BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
-                // brushBottom
-                100
+                brushBottom
+                // 100
             );
         })
     }
@@ -121,7 +122,7 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
         height: "100%",
         background: "#eeeded",
         border: "1px solid lightgrey",
-        zIndex: "10"
+        zIndex: "5"
     }}>
         <canvas ref={canvasRef} {...props} />
     </div>

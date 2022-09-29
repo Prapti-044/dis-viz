@@ -1,0 +1,679 @@
+[
+    {
+        "instruction": "AAA",
+        "meaning": "ASCII adjust AL after addition",
+        "notes": "used with unpacked binary-coded decimal",
+        "opcode": "0x37"
+    },
+    {
+        "instruction": "AAD",
+        "meaning": "ASCII adjust AX before division",
+        "notes": "8086/8088 datasheet documents only base 10 version of the AAD instruction (\nopcode0xD50x0A), but any other base will work. Later Intel's documentation \nhas the generic form too. NEC V20 and V30 (and possibly other NEC V-series \nCPUs) always use base 10, and ignore the argument, causing a number of \nincompatibilities",
+        "opcode": "0xD5"
+    },
+    {
+        "instruction": "AAM",
+        "meaning": "ASCII adjust AX after multiplication",
+        "notes": "Only base 10 version (Operand is 0xA) is documented, see notes for AAD",
+        "opcode": "0xD4"
+    },
+    {
+        "instruction": "AAS",
+        "meaning": "ASCII adjust AL after subtraction",
+        "notes": "",
+        "opcode": "0x3F"
+    },
+    {
+        "instruction": "ADC",
+        "meaning": "Add with carry",
+        "notes": "destination = destination + source + carry_flag",
+        "opcode": "0x10…0x15, 0x80…0x81/2, 0x82…0x83/2 (since 80186)"
+    },
+    {
+        "instruction": "ADD",
+        "meaning": "Add",
+        "notes": "(1) r/m += r/imm; (2) r += m/imm;",
+        "opcode": "0x00…0x05, 0x80/0…0x81/0, 0x82/0…0x83/0 (since 80186)"
+    },
+    {
+        "instruction": "AND",
+        "meaning": "Logical AND",
+        "notes": "(1) r/m &= r/imm; (2) r &= m/imm;",
+        "opcode": "0x20…0x25, 0x80…0x81/4, 0x82…0x83/4 (since 80186)"
+    },
+    {
+        "instruction": "CALL",
+        "meaning": "Call procedure",
+        "notes": "pusheip; eip points to the instruction directly after the call",
+        "opcode": "0x9A, 0xE8, 0xFF/2, 0xFF/3"
+    },
+    {
+        "instruction": "CBW",
+        "meaning": "Convert byte to word",
+        "notes": "",
+        "opcode": "0x98"
+    },
+    {
+        "instruction": "CLC",
+        "meaning": "Clear carry flag",
+        "notes": "CF = 0;",
+        "opcode": "0xF8"
+    },
+    {
+        "instruction": "CLD",
+        "meaning": "Clear direction flag",
+        "notes": "DF = 0;",
+        "opcode": "0xFC"
+    },
+    {
+        "instruction": "CLI",
+        "meaning": "Clear interrupt flag",
+        "notes": "IF = 0;",
+        "opcode": "0xFA"
+    },
+    {
+        "instruction": "CMC",
+        "meaning": "Complement carry flag",
+        "notes": "",
+        "opcode": "0xF5"
+    },
+    {
+        "instruction": "CMP",
+        "meaning": "Compare operands",
+        "notes": "",
+        "opcode": "0x38…0x3D, 0x80…0x81/7, 0x82…0x83/7 (since 80186)"
+    },
+    {
+        "instruction": "CMPSB",
+        "meaning": "Compare bytes in memory. May be used with a REP prefix to repeat the \ninstruction CX times.",
+        "notes": "",
+        "opcode": "0xA6"
+    },
+    {
+        "instruction": "CMPSW",
+        "meaning": "Compare words. May be used with a REP prefix to repeat the instruction CX \ntimes.",
+        "notes": "",
+        "opcode": "0xA7"
+    },
+    {
+        "instruction": "CWD",
+        "meaning": "Convert word to doubleword",
+        "notes": "",
+        "opcode": "0x99"
+    },
+    {
+        "instruction": "DAA",
+        "meaning": "Decimal adjust AL after addition",
+        "notes": "(used with packed binary-coded decimal)",
+        "opcode": "0x27"
+    },
+    {
+        "instruction": "DAS",
+        "meaning": "Decimal adjust AL after subtraction",
+        "notes": "",
+        "opcode": "0x2F"
+    },
+    {
+        "instruction": "DEC",
+        "meaning": "Decrement by 1",
+        "notes": "",
+        "opcode": "0x48…0x4F, 0xFE/1, 0xFF/1"
+    },
+    {
+        "instruction": "DIV",
+        "meaning": "Unsigned divide",
+        "notes": "(1) AX = DX:AX / r/m; resulting DX = remainder (2) AL = AX / r/m; resulting AH \n= remainder",
+        "opcode": "0xF7/6, 0xF6/6"
+    },
+    {
+        "instruction": "ESC",
+        "meaning": "Used with floating-point unit",
+        "notes": "",
+        "opcode": "0xD8..0xDF"
+    },
+    {
+        "instruction": "HLT",
+        "meaning": "Enter halt state",
+        "notes": "",
+        "opcode": "0xF4"
+    },
+    {
+        "instruction": "IDIV",
+        "meaning": "Signed divide",
+        "notes": "(1) AX = DX:AX / r/m; resulting DX = remainder (2) AL = AX / r/m; resulting AH \n= remainder",
+        "opcode": "0xF7/7, 0xF6/7"
+    },
+    {
+        "instruction": "IMUL",
+        "meaning": "Signed multiply in One-operand form",
+        "notes": "(1) DX:AX = AX * r/m; (2) AX = AL * r/m",
+        "opcode": "0x69, 0x6B (both since 80186), 0xF7/5, 0xF6/5, 0x0FAF (since 80386)"
+    },
+    {
+        "instruction": "IN",
+        "meaning": "Input from port",
+        "notes": "(1) AL = port[imm]; (2) AL = port[DX]; (3) AX = port[imm]; (4) AX = \nport[DX];",
+        "opcode": "0xE4, 0xE5, 0xEC, 0xED"
+    },
+    {
+        "instruction": "INC",
+        "meaning": "Increment by 1",
+        "notes": "",
+        "opcode": "0x40…0x47, 0xFE/0, 0xFF/0"
+    },
+    {
+        "instruction": "INT",
+        "meaning": "Call to interrupt",
+        "notes": "",
+        "opcode": "0xCC, 0xCD"
+    },
+    {
+        "instruction": "INTO",
+        "meaning": "Call to interrupt if overflow",
+        "notes": "",
+        "opcode": "0xCE"
+    },
+    {
+        "instruction": "IRET",
+        "meaning": "Return from interrupt",
+        "notes": "",
+        "opcode": "0xCF"
+    },
+    {
+        "instruction": "JA",
+        "meaning": "Jump if above",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JAE",
+        "meaning": "Jump if above or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JB",
+        "meaning": "Jump if below",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JBE",
+        "meaning": "Jump if below or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JC",
+        "meaning": "Jump if carry",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JE",
+        "meaning": "Jump if equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JG",
+        "meaning": "Jump if greater",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JGE",
+        "meaning": "Jump if greater or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JL",
+        "meaning": "Jump if less",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JLE",
+        "notes": "",
+        "meaning": "Jump if less or equal",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNA",
+        "meaning": "Jump if not above",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNAE",
+        "meaning": "Jump if not above or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNB",
+        "meaning": "Jump if not below",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNBE",
+        "meaning": "Jump if not below or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNC",
+        "meaning": "Jump if not carry",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNE",
+        "meaning": "Jump if not equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNG",
+        "meaning": "Jump if not greater",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNGE",
+        "meaning": "Jump if not greater or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNL",
+        "meaning": "Jump if not less",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNLE",
+        "meaning": "Jump if not less or equal",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNL",
+        "meaning": "Jump if condition",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNO",
+        "meaning": "Jump if not overflow",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNP",
+        "notes": "",
+        "meaning": "Jump if not parity",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNS",
+        "meaning": "Jump if not sign",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JNZ",
+        "meaning": "Jump if not zero",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JO",
+        "meaning": "Jump if overflow",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JP",
+        "meaning": "Jump if parity",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JPE",
+        "meaning": "Jump if parity even",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JPO",
+        "meaning": "Jump if parity odd",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JS",
+        "meaning": "Jump if sign",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JZ",
+        "meaning": "Jump if zero",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JCXZ",
+        "meaning": "Jump if %CX register is 0",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JECXZ",
+        "meaning": "Jump if %ECX register is 0",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "JCXZ",
+        "meaning": "Jump if CX is zero",
+        "notes": "",
+        "opcode": "0xE3"
+    },
+    {
+        "instruction": "JMP",
+        "meaning": "Unconditional Jump",
+        "notes": "",
+        "opcode": ""
+    },
+    {
+        "instruction": "LAHF",
+        "meaning": "Load FLAGS into AH register",
+        "notes": "",
+        "opcode": "0x9F"
+    },
+    {
+        "instruction": "LDS",
+        "meaning": "Load pointer using DS",
+        "notes": "",
+        "opcode": "0xC5"
+    },
+    {
+        "instruction": "LEA",
+        "meaning": "Load Effective Address",
+        "notes": "",
+        "opcode": "0x8D"
+    },
+    {
+        "instruction": "LES",
+        "meaning": "Load ES with pointer",
+        "notes": "",
+        "opcode": "0xC4"
+    },
+    {
+        "instruction": "LOCK",
+        "meaning": "Assert BUS LOCK# signal",
+        "notes": "(for multiprocessing)",
+        "opcode": "0xF0"
+    },
+    {
+        "instruction": "LODSB",
+        "meaning": "Load string byte. May be used with a REP prefix to repeat the instruction CX \ntimes.",
+        "notes": "if(DF==0)AL=*SI++;elseAL=*SI--;",
+        "opcode": "0xAC"
+    },
+    {
+        "instruction": "LODSW",
+        "meaning": "Load string word. May be used with a REP prefix to repeat the instruction CX \ntimes.",
+        "notes": "if(DF==0)AX=*SI++;elseAX=*SI--;",
+        "opcode": "0xAD"
+    },
+    {
+        "instruction": "LOOP/LOOPx",
+        "meaning": "Loop control",
+        "notes": "(LOOPE, LOOPNE, LOOPNZ, LOOPZ) if(x&&--CX)gotolbl;",
+        "opcode": "0xE0…0xE2"
+    },
+    {
+        "instruction": "MOV",
+        "meaning": "Move",
+        "notes": "copies data from one location to another, (1) r/m = r; (2) r = r/m;",
+        "opcode": "0xA0...0xA3"
+    },
+    {
+        "instruction": "MOVSB",
+        "meaning": "Move byte from string to string. May be used with a REP prefix to repeat \nthe instruction CX times.",
+        "notes": "if(DF==0)*(byte*)DI++=*(byte*)SI++;else*(byte*)DI--=*(byte*)SI--;\n\n.",
+        "opcode": "0xA4"
+    },
+    {
+        "instruction": "MOVSW",
+        "meaning": "Move word from string to string. May be used with a REP prefix to repeat \nthe instruction CX times.",
+        "notes": "if(DF==0)*(word*)DI++=*(word*)SI++;else*(word*)DI--=*(word*)SI--;",
+        "opcode": "0xA5"
+    },
+    {
+        "instruction": "MUL",
+        "meaning": "Unsigned multiply",
+        "notes": "(1) DX:AX = AX * r/m; (2) AX = AL * r/m;",
+        "opcode": "0xF7/4, 0xF6/4"
+    },
+    {
+        "instruction": "NEG",
+        "meaning": "Two's complement negation",
+        "notes": "r/m*=-1;",
+        "opcode": "0xF6/3…0xF7/3"
+    },
+    {
+        "instruction": "NOP",
+        "meaning": "No operation",
+        "notes": "opcode equivalent to XCHG EAX, EAX",
+        "opcode": "0x90"
+    },
+    {
+        "instruction": "NOT",
+        "meaning": "Negate the operand, logical NOT",
+        "notes": "r/m^=-1;",
+        "opcode": "0xF6/2…0xF7/2"
+    },
+    {
+        "instruction": "OR",
+        "meaning": "Logical OR",
+        "notes": "(1) r/m|=r/imm; (2) r|=m/imm;",
+        "opcode": "0x08…0x0D, 0x80…0x81/1, 0x82…0x83/1 (since 80186)"
+    },
+    {
+        "instruction": "OUT",
+        "meaning": "Output to port",
+        "notes": "(1) port[imm] = AL; (2) port[DX] = AL; (3) port[imm] = AX; (4) port[DX] = \nAX;",
+        "opcode": "0xE6, 0xE7, 0xEE, 0xEF"
+    },
+    {
+        "instruction": "POP",
+        "meaning": "Pop data from stack",
+        "notes": "r/m = *SP++; POP CS (opcode 0x0F) works only on 8086/8088. Later CPUs use \n0x0F as a prefix for newer instructions.",
+        "opcode": "0x07, 0x0F(8086/8088 only), 0x17, 0x1F, 0x58…0x5F, 0x8F/0"
+    },
+    {
+        "instruction": "POPF",
+        "meaning": "Pop FLAGS register from stack",
+        "notes": "FLAGS = *SP++;",
+        "opcode": "0x9D"
+    },
+    {
+        "instruction": "PUSH",
+        "meaning": "Push data onto stack",
+        "notes": "*--SP=r/m;",
+        "opcode": "0x06, 0x0E, 0x16, 0x1E, 0x50…0x57, 0x68, 0x6A (both since 80186), 0xFF/6"
+    },
+    {
+        "instruction": "PUSHF",
+        "meaning": "Push FLAGS onto stack",
+        "notes": "*--SP=FLAGS;",
+        "opcode": "0x9C"
+    },
+    {
+        "instruction": "RCL",
+        "meaning": "Rotate left (with carry)",
+        "notes": "",
+        "opcode": "0xC0…0xC1/2 (since 80186), 0xD0…0xD3/2"
+    },
+    {
+        "instruction": "RCR",
+        "meaning": "Rotate right (with carry)",
+        "notes": "",
+        "opcode": "0xC0…0xC1/3 (since 80186), 0xD0…0xD3/3"
+    },
+    {
+        "instruction": "REPxx",
+        "meaning": "Repeat MOVS/STOS/CMPS/LODS/SCAS",
+        "notes": "(REP, REPE, REPNE, REPNZ, REPZ)",
+        "opcode": "0xF2, 0xF3"
+    },
+    {
+        "instruction": "RET",
+        "meaning": "Return from procedure",
+        "notes": "Not a real instruction. The assembler will translate these to a RETN or a \nRETF depending on the memory model of the target system."
+    },
+    {
+        "instruction": "RETN",
+        "meaning": "Return from near procedure",
+        "notes": "",
+        "opcode": "0xC2, 0xC3"
+    },
+    {
+        "instruction": "RETF",
+        "meaning": "Return from far procedure",
+        "notes": "",
+        "opcode": "0xCA, 0xCB"
+    },
+    {
+        "instruction": "ROL",
+        "meaning": "Rotate left",
+        "notes": "",
+        "opcode": "0xC0…0xC1/0 (since 80186), 0xD0…0xD3/0"
+    },
+    {
+        "instruction": "ROR",
+        "meaning": "Rotate right",
+        "notes": "",
+        "opcode": "0xC0…0xC1/1 (since 80186), 0xD0…0xD3/1"
+    },
+    {
+        "instruction": "SAHF",
+        "meaning": "Store AH into FLAGS",
+        "notes": "",
+        "opcode": "0x9E"
+    },
+    {
+        "instruction": "SAL",
+        "meaning": "Shift Arithmetically left (signed shift left)",
+        "notes": "(1) r/m <<= 1; (2) r/m <<= CL;",
+        "opcode": "0xC0…0xC1/4 (since 80186), 0xD0…0xD3/4"
+    },
+    {
+        "instruction": "SAR",
+        "meaning": "Shift Arithmetically right (signed shift right)",
+        "notes": "(1) (signed) r/m >>= 1; (2) (signed) r/m >>= CL;",
+        "opcode": "0xC0…0xC1/7 (since 80186), 0xD0…0xD3/7"
+    },
+    {
+        "instruction": "SBB",
+        "meaning": "Subtraction with borrow",
+        "notes": "alternative 1-byte encoding of SBB AL, AL is available via undocumented \nSALC instruction",
+        "opcode": "0x18…0x1D, 0x80…0x81/3, 0x82…0x83/3 (since 80186)"
+    },
+    {
+        "instruction": "SCASB",
+        "meaning": "Compare byte string. May be used with a REP prefix to repeat the \ninstruction CX times.",
+        "notes": "",
+        "opcode": "0xAE"
+    },
+    {
+        "instruction": "SCASW",
+        "meaning": "Compare word string. May be used with a REP prefix to repeat the \ninstruction CX times.",
+        "notes": "",
+        "opcode": "0xAF"
+    },
+    {
+        "instruction": "SHL",
+        "meaning": "Shift left (unsigned shift left)",
+        "notes": "",
+        "opcode": "0xC0…0xC1/4 (since 80186), 0xD0…0xD3/4"
+    },
+    {
+        "instruction": "SHR",
+        "meaning": "Shift right (unsigned shift right)",
+        "notes": "",
+        "opcode": "0xC0…0xC1/5 (since 80186), 0xD0…0xD3/5"
+    },
+    {
+        "instruction": "STC",
+        "meaning": "Set carry flag",
+        "notes": "CF = 1;",
+        "opcode": "0xF9"
+    },
+    {
+        "instruction": "STD",
+        "meaning": "Set direction flag",
+        "notes": "DF = 1;",
+        "opcode": "0xFD"
+    },
+    {
+        "instruction": "STI",
+        "meaning": "Set interrupt flag",
+        "notes": "IF = 1;",
+        "opcode": "0xFB"
+    },
+    {
+        "instruction": "STOSB",
+        "meaning": "Store byte in string. May be used with a REP prefix to repeat the \ninstruction CX times.",
+        "notes": "if(DF==0)*ES:DI++=AL;else*ES:DI--=AL;",
+        "opcode": "0xAA"
+    },
+    {
+        "instruction": "STOSW",
+        "meaning": "Store word in string. May be used with a REP prefix to repeat the \ninstruction CX times.",
+        "notes": "if(DF==0)*ES:DI++=AX;else*ES:DI--=AX;",
+        "opcode": "0xAB"
+    },
+    {
+        "instruction": "SUB",
+        "meaning": "Subtraction",
+        "notes": "(1) r/m -= r/imm; (2) r -= m/imm;",
+        "opcode": "0x28…0x2D, 0x80…0x81/5, 0x82…0x83/5 (since 80186)"
+    },
+    {
+        "instruction": "TEST",
+        "meaning": "Logical compare (AND)",
+        "notes": "(1) r/m & r/imm; (2) r & m/imm;",
+        "opcode": "0x84, 0x84, 0xA8, 0xA9, 0xF6/0, 0xF7/0"
+    },
+    {
+        "instruction": "WAIT",
+        "meaning": "Wait until not busy",
+        "notes": "Waits until BUSY# pin is inactive (used with floating-point unit)",
+        "opcode": "0x9B"
+    },
+    {
+        "instruction": "XCHG",
+        "meaning": "Exchange data",
+        "notes": "r:=:r/m; A spinlock typically uses xchg as an atomic operation. (coma bug).",
+        "opcode": "0x86, 0x87, 0x91…0x97"
+    },
+    {
+        "instruction": "XLAT",
+        "meaning": "Table look-up translation",
+        "notes": "behaves like MOV AL, [BX+AL]",
+        "opcode": "0xD7"
+    },
+    {
+        "instruction": "XOR",
+        "meaning": "Exclusive OR",
+        "notes": "(1) r/m ^= r/imm; (2) r ^= m/imm;",
+        "opcode": "0x30…0x35, 0x80…0x81/6, 0x82…0x83/6 (since 80186)"
+    }
+]
