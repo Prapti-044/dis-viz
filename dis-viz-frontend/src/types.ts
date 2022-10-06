@@ -52,15 +52,15 @@ export class AddressRange {
 }
 
 export class InstructionBlock extends AddressRange {
-    @Expose() block_number: number
+    @Expose() name: string
     @Type(() => Instruction)
     @Expose() instructions: Instruction[]
     @Expose() function_name: string
     @Expose() next_block_numbers: number[]
 
-    constructor(block_number: number, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: number[]) {
+    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: number[]) {
         super(start_address, end_address, n_instructions)
-        this.block_number = block_number
+        this.name = name
         this.instructions = instructions
         this.function_name = function_name
         this.next_block_numbers = next_block_numbers
@@ -70,18 +70,18 @@ export class InstructionBlock extends AddressRange {
 
 
 export class BlockLink {
-    @Expose() source: number
-    @Expose() target: number
+    @Expose() source: string
+    @Expose() target: string
 
-    constructor(source: number, target: number) {
+    constructor(source: string, target: string) {
         this.source = source
         this.target = target
     }
 
     getBlockFromNumber(blocks: InstructionBlock[]) {
         return {
-            source: blocks.find(block => block.block_number === this.source),
-            target: blocks.find(block => block.block_number === this.source),
+            source: blocks.find(block => block.name === this.source),
+            target: blocks.find(block => block.name === this.source),
         }
     }
 }
@@ -210,26 +210,4 @@ export type SourceViewData = {
 export type DyninstInfo = {
     line_correspondence: LineCorrespondence[],
     functions: Function[]
-}
-
-export type ReactContext = {
-  binaryFilePath: string,
-  setBinaryFilePath: (path: string) => void,
-  binaryData: {
-    dotString: string|null,
-    dyninstInfo: DyninstInfo
-  },
-  setBinaryData: (_: {
-    dotString: string|null,
-    dyninstInfo: DyninstInfo
-  }) => void,
-  sourceViewStates: SourceViewData[],
-  setSourceViewStates: (_: SourceViewData[]) => void,
-  activeDisassemblyView: number|null,
-  setActiveDisassemblyView: (_: number|null) => void,
-  disassemblyViewStates: {
-    id: number,
-    lineSelection: DisassemblyLineSelection|null
-  }[],
-  setDisassemblyViewStates: (_: {id: number, lineSelection: DisassemblyLineSelection|null}[]) => void
 }

@@ -42,11 +42,11 @@ class AddressRange:
 
 @dataclass
 class InstructionBlock(AddressRange):
-    block_number: int
+    name: str
     function_name: str
     instructions: list[Instruction]
 
-    next_block_numbers: list[int] = field(init=False)
+    next_block_numbers: list[str] = field(init=False)
 
     start_address: int = field(init=False)
     end_address: int = field(init=False)
@@ -60,13 +60,13 @@ class InstructionBlock(AddressRange):
 
 @dataclass
 class BlockLink:
-    source: int
-    target: int
+    source: str
+    target: str
 
     def get_block_from_number(self, blocks: list[InstructionBlock]):
         return {
-            'source': next(block for block in blocks if block.block_number == self.source),
-            'target': next(block for block in blocks if block.block_number == self.target),
+            'source': next(block for block in blocks if block.name == self.source),
+            'target': next(block for block in blocks if block.name == self.target),
         }
 
 

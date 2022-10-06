@@ -274,7 +274,7 @@ function DisassemblyView({ id }:{
                         padding: '2px',
                         paddingLeft: '10px'
                     }}>
-                        B{block.block_number} ({block.function_name})
+                        {block.name}
                         {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
                     </Card.Header>
 

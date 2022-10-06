@@ -30,29 +30,29 @@ def decode_cache_binary(filepath: str):
     disassembly = json.loads(sopt.get_assembly())
 
     blocks = [InstructionBlock(
-        block_number = int(next(iter(block.keys()))[1:]),
+        name = block["name"],
         function_name = block['function_name'],
         instructions = [Instruction(
             address = instruction['address'],
             instruction = instruction['instruction'],
             correspondence = {},
             variables = [],
-        ) for instruction in next(iter(block.values()))]
+        ) for instruction in block["instructions"]]
     ) for block in disassembly['blocks']]
 
-    blocks.sort(key=lambda block: block.block_number)
+    blocks.sort(key=lambda block: block.name)
     links = [
         BlockLink(
-            source=int(link['source']),
-            target=int(link['target'])
+            source=link['source'],
+            target=link['target']
         ) for link in disassembly['links']
     ]
     links.sort(key=lambda link: link.source)
 
-    for link in tqdm(links, desc="Adding block links"):
-        # block = next((block for block in blocks if block.block_number == link.source and link.source + 1 != link.target), None)
-        if link.source+1 == link.target: continue
-        block_pos = binary_search(blocks, link.source, 0, len(blocks), lambda block: block.block_number, not_found=None)
+    for link_i, link in tqdm(enumerate(links), desc="Adding block links"):
+        # block = next((block for block in blocks if block.name == link.source and link.source + 1 != link.target), None)
+        if link_i < len(links)-1 and links[link_i+1].source == link.target: continue
+        block_pos = binary_search(blocks, link.source, 0, len(blocks), lambda block: block.name, not_found=None)
 
         if block_pos:
             blocks[block_pos].next_block_numbers.append(link.target)
@@ -235,11 +235,6 @@ async def getsourcefile(binary_file_path: FilePath, filepath: FilePath) -> Sourc
     source_file = SourceFile(lines=lines)
     
     return source_file
-
-# Get all variables from dyninst_info given start and end address.
-@app.get("/getvariables")
-async def getvariables(filepath: FilePath, start_address: int, end_address: int):
-    pass
 
 @app.post("/getdyninstinfo")
 async def getdyninstinfo(filepath: FilePath):

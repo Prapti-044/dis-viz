@@ -55,7 +55,7 @@ RUN make
 WORKDIR /root/
 COPY simple-optparser simple-optparser
 WORKDIR /root/simple-optparser
-RUN python3.10 setup.py install
+RUN python3.10 -m pip install .
 WORKDIR /
 RUN rm -rf /root/simple-optparser
 
