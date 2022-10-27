@@ -1,6 +1,6 @@
 import React  from 'react';
 import { Card, ListGroup } from 'react-bootstrap';
-import { codeColors, useForceUpdate } from '../utils';
+import { codeColors, MAX_FN_SIZE, useForceUpdate } from '../utils';
 import DisassemblyLine from './DisassemblyLine';
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
@@ -10,6 +10,7 @@ import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { Variable, DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
+
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
     [start_address: number]: HTMLDivElement
@@ -274,7 +275,7 @@ function DisassemblyView({ id }:{
                         padding: '2px',
                         paddingLeft: '10px'
                     }}>
-                        {block.name}
+                        {block.name.length<=MAX_FN_SIZE?block.name:(block.name.slice(0,10)+'...'+block.name.slice(block.name.length-10, block.name.length))}
                         {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
                     </Card.Header>
 

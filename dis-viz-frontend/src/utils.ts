@@ -7,6 +7,11 @@ export const codeColors = [
   '#FCE694'
 ]
 
+export const MAX_FN_SIZE = 32
+export function shortenName(name: string, len: number): string {
+  return name.length<=len ? name : name.slice(0, len-10) + '...' + name.slice(-10);
+}
+
 export function hexToHSL(H: string) {
   // Convert hex to RGB first
   let r: number = 0, g: number = 0, b: number = 0;

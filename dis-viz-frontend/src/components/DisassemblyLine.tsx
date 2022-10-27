@@ -3,6 +3,7 @@ import '../styles/disassemblyview.css'
 import inteldocs from '../inteldocs.json'
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock } from '../types'
+import { MAX_FN_SIZE, shortenName } from '../utils'
 
 function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color }:{
     block: InstructionBlock,
@@ -80,7 +81,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
                 const nextBlock = block.next_block_numbers[0]
                 if(nextBlock)
-                    return <mark key={i} data-type="jump" data-blockname={"B"+nextBlock} title={title}>{token}</mark>
+                    return <mark key={i} data-type="jump" data-blockname={shortenName(nextBlock, MAX_FN_SIZE)} title={title}>{token}</mark>
             }
 
             let variableMarking: React.ReactElement | null = null;

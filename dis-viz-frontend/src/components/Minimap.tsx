@@ -70,24 +70,22 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
 
             cumulativeHeight += blockHeight
 
-            // Draw the brush
-            // console.log('startBlockI', startBlockI)
-            // console.log('endBlockI', endBlockI)
-            const brushTop = (minimap.blockHeights.slice(0,startBlockI+1).reduce((total, current) => total+current) + startBlockI*BLOCK_SEP + BLOCKS_START_TOP)/totalBlocks * ctx.canvas.height
-            const brushBottom = (minimap.blockHeights.slice(0,endBlockI+1).reduce((total, current) => total+current) + endBlockI*BLOCK_SEP + BLOCKS_START_TOP)/totalBlocks * ctx.canvas.height
-            const brushHeight = brushBottom - brushTop
-            ctx.fillStyle = 'rgba(200,200,200,0.02)';
-
-            // console.log('brushTop', brushTop, 'brushBottom', brushBottom)
-            ctx.fillRect(
-                BLOCK_LINE_LEFT-BRUSH_OFFSET,
-                brushTop,
-                // 50,
-                BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
-                brushBottom
-                // 100
-            );
         })
+        // Draw the brush
+        const brushTop = scrollPercent * ctx.canvas.height + BRUSH_OFFSET
+        const brushBottom = brushTop + minimap.blockHeights.slice(startBlockI,endBlockI+1).reduce((total, current) => total+current)
+        const brushHeight = brushBottom - brushTop
+        ctx.fillStyle = 'rgba(200,200,200,0.02)';
+
+        console.log('startBlockI', startBlockI, 'endBlockI', endBlockI, 'scrollPercent', scrollPercent, 'brushTop', brushTop, 'brushBottom', brushBottom, 'brushHeight', brushHeight)
+        ctx.fillRect(
+            BLOCK_LINE_LEFT-BRUSH_OFFSET,
+            brushTop,
+            // 50,
+            BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
+            brushBottom
+            // 100
+        );
     }
 
     React.useEffect(() => {
