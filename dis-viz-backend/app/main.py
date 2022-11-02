@@ -29,6 +29,7 @@ def decode_cache_binary(filepath: str):
     sopt.decode(filepath)
     disassembly = json.loads(sopt.get_assembly())
 
+    # Getting block objects
     blocks = [InstructionBlock(
         name = block["name"],
         function_name = block['function_name'],
@@ -40,6 +41,7 @@ def decode_cache_binary(filepath: str):
         ) for instruction in block["instructions"]]
     ) for block in disassembly['blocks']]
 
+    # Creating links between blocks
     blocks.sort(key=lambda block: block.name)
     links = [
         BlockLink(
@@ -49,6 +51,7 @@ def decode_cache_binary(filepath: str):
     ]
     links.sort(key=lambda link: link.source)
 
+    # Populating blocks with their next block
     for link_i, link in tqdm(enumerate(links), desc="Adding block links"):
         # block = next((block for block in blocks if block.name == link.source and link.source + 1 != link.target), None)
         if link_i < len(links)-1 and links[link_i+1].source == link.target: continue
@@ -57,10 +60,10 @@ def decode_cache_binary(filepath: str):
         if block_pos:
             blocks[block_pos].next_block_numbers.append(link.target)
 
-    print("Nothing found")
     blocks.sort(key=lambda block: block.start_address)
 
 
+    # Preprocessing pages
     pages = [[ blocks[0] ]]
     for block in blocks[1:]:
         if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
@@ -74,6 +77,7 @@ def decode_cache_binary(filepath: str):
 
     dyninst_info = json.loads(sopt.get_json())
 
+    # Getting line correspondences
     line_correspondence = sorted([
         LineCorrespondence(
             source_file=line['file'],
@@ -83,7 +87,7 @@ def decode_cache_binary(filepath: str):
         ) for line in dyninst_info['lines']
     ], key=lambda lc: lc.start_address)
 
-
+    # Creating functions objects
     functions = [
         Function(
             name=function['name'],
@@ -114,6 +118,7 @@ def decode_cache_binary(filepath: str):
         ) for function in dyninst_info['functions']
     ]
 
+    # Embedding correspondence between each instructions
     lc_i = 0
     for block in tqdm(blocks, desc="Preprocessing Correspondence"):
         for ins in block.instructions:
@@ -131,6 +136,7 @@ def decode_cache_binary(filepath: str):
                 if lc.start_address > ins.address:
                     break
             
+    # Embedding Variables in each instructions
     for function in tqdm(functions, desc="Variable Renaming"):
         fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
         for variable in function.variables:
