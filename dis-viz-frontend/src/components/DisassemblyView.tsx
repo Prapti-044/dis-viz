@@ -7,7 +7,7 @@ import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 
-import { Variable, DisassemblyLineSelection, BlockPage } from '../types'
+import { DisassemblyLineSelection, BlockPage } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
 
@@ -22,6 +22,9 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
             .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)]))
 
         const newBlockVisibility = structuredClone(blockIsVisible)
+        newBlockVisibility.forEach(block => {
+            block.inside = false
+        })
         changedBlockAddresses.forEach((address, i) => {
             const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
             if (!foundBlock) {
@@ -56,7 +59,7 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
         }
 
         return () => {
-            observer.disconnect();
+            observer.disconnect()
         };
     }, [ref.current[parseInt(Object.keys(ref.current)[0])], observer]);
 
@@ -89,6 +92,8 @@ function DisassemblyView({ id }:{
     const marginSameVertical = '10px'
     const marginDifferentVertical = '100px'
 
+    const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
+    const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
@@ -110,9 +115,6 @@ function DisassemblyView({ id }:{
             setPages(pagesCopy)
         })
     }
-
-    const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
-    const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
 
     React.useEffect(() => {
         if (!lineSelection || lineSelection.addresses.length == 0) return;
