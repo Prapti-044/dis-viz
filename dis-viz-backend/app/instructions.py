@@ -41,13 +41,19 @@ class AddressRange:
         return self.n_instructions
 
 @dataclass
+class Hidable:
+    name: str
+    start_address: int
+    end_address: int
+
+@dataclass
 class InstructionBlock(AddressRange):
     name: str
     function_name: str
     instructions: list[Instruction]
 
+    hidables: list[Hidable] = field(init=False)
     next_block_numbers: list[str] = field(init=False)
-
     start_address: int = field(init=False)
     end_address: int = field(init=False)
     n_instructions: int = field(init=False)
@@ -57,6 +63,7 @@ class InstructionBlock(AddressRange):
         self.end_address = max(instruction.address for instruction in self.instructions)
         self.n_instructions = len(self.instructions)
         self.next_block_numbers = []
+        self.hidables = []
 
 @dataclass
 class BlockLink:
@@ -101,12 +108,6 @@ class Loop:
     backedges: list[dict[str, int]]
     loops: list['Loop'] | None
     name: str
-
-@dataclass
-class Hidable:
-    name: str
-    start_address: int
-    end_address: int
 
 
 @dataclass

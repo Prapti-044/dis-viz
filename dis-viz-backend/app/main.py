@@ -151,8 +151,16 @@ def decode_cache_binary(filepath: str):
     built_in_block = [
         all(
             source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
-        ) for block in blocks]
+        ) for block in blocks
+    ]
 
+    # Hidables
+    for function in tqdm(functions, desc="Embedding Hidables"):
+        fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
+        for block in fn_blocks:
+            for hidable in function.hidables:
+                if hidable.start_address >= block.start_address and hidable.end_address <= block.end_address:
+                    block.hidables.append(hidable)
 
 
 
@@ -203,6 +211,11 @@ async def getdisassembly(start_address: int, filepath: FilePath):
     pages = decode_cache_binary(filepath.path)['disassembly']['pages']
     start_address = max(pages[0].start_address, min(pages[-1].end_address, start_address))
     return next(page for page in pages if page.start_address <= start_address <= page.end_address)
+
+@app.post("/getdisassemblyblockbyid/{block_id}")
+async def getdisassemblybyid(block_id: str, filepath: FilePath):
+    blocks = decode_cache_binary(filepath.path)['disassembly']['blocks']
+    return next(block for block in blocks if block.name == block_id)
 
 @app.post("/getminimapdata")
 async def getminimapdata(filepath: FilePath):

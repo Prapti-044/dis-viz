@@ -41,7 +41,7 @@ const App = () => {
     })
 
     if(Object.keys(selections).length !== 0) return
-    dispatch(addDisassemblyView())
+    dispatch(addDisassemblyView(null))
   }, [binaryFilePath])
 
   React.useEffect(() => {
@@ -193,7 +193,7 @@ const App = () => {
               minHeight: 300,
               panelExtra: (panelData) => (
                     <button onClick={e => {
-                      dispatch(addDisassemblyView())
+                      dispatch(addDisassemblyView(null))
                     }}>
                       add
                     </button>

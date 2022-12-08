@@ -65,3 +65,7 @@ export function useForceUpdate(){
     // An function that increment 👆🏻 the previous state like here 
     // is better than directly setting `value + 1`
 }
+
+export function disLineToId(disId: number, address: number) {
+  return disId.toString() + "-" + "instruction-"+address
+}

@@ -7,9 +7,10 @@ import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 
 
-import { DisassemblyLineSelection, BlockPage } from '../types'
+import { DisassemblyLineSelection, BlockPage, Instruction } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
+import HidableDisassembly from './HidableDisassembly';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -69,8 +70,6 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
         end: Math.max(...visibleBlocks)
     }
 }
-
-
 
 function DisassemblyView({ id }:{
     id: number,
@@ -148,26 +147,6 @@ function DisassemblyView({ id }:{
     }, [active])
 
 
-    // // Hidables
-    // if(dyninstInfo) {
-    //     const hidables = dyninstInfo["functions"].map(d => d.hidables).filter(d => d && d.length !== 0).flat();
-    //     let finalData = [];
-    //     for(let i = 0; i<disassemblyData.blocks.length; i++) {
-    //         const assembly = disassemblyData.blocks[i]
-    //         let hidable = hidables.filter(hiddable => hiddable.start === assembly.id)
-    //         let hidableAllLines = hidables.filter(hiddable => hiddable.start <= assembly.id && hiddable.end >= assembly.id);
-    //         if(hidable.length !== 0) {
-    //             finalData.push({
-    //                 "type": "button",
-    //                 "lines": hidable
-    //             });
-    //         }
-    //         assembly.type = "line";
-    //         assembly.hidden = hidableAllLines.length !== 0;
-    //         finalData.push(assembly);
-    //     }
-    // }
-
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
         setOnGoingSelection({
@@ -234,6 +213,10 @@ function DisassemblyView({ id }:{
         }))
     }
 
+    let currentHidableName = ""
+    const currentHidableInstructions: Instruction[] = []
+    let totalHidables = 0
+
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -284,8 +267,37 @@ function DisassemblyView({ id }:{
                     <ListGroup variant="flush" style={{
                         paddingLeft: '10px',
                     }}>
-                        {block.instructions.map((ins, j) =>
-                            <DisassemblyLine
+                        {block.instructions.map((ins, j) => {
+                            let isHidable = false
+                            for(let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
+                                const hidable = block.hidables[hidableI]
+                                if(hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
+                                    isHidable = true;
+                                }
+                                if(ins.address === hidable.start_address) {
+                                    return <>
+                                        <HidableDisassembly
+                                            key={block.name + id}
+                                            name={hidable.name}
+                                            block={block}
+                                            disId={id}
+                                        ></HidableDisassembly>
+                                        <DisassemblyLine
+                                            block={block}
+                                            isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                                            mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
+                                            key={i.toString() + j.toString()}
+                                            instruction={ins}
+                                            isSelecting={isSelecting}
+                                            onGoingSelection={onGoingSelection}
+                                            color={codeColors[id]}
+                                            disId={id}
+                                            isHidable={isHidable}
+                                        />
+                                    </>
+                                }
+                            }
+                            return (<DisassemblyLine
                                 block={block}
                                 isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection?lineSelection.addresses.includes(ins.address):false)}
                                 mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
@@ -294,7 +306,10 @@ function DisassemblyView({ id }:{
                                 isSelecting={isSelecting}
                                 onGoingSelection={onGoingSelection}
                                 color={codeColors[id]}
-                            />
+                                disId={id}
+                                isHidable={isHidable}
+                            />)
+                        }
                         )}
                     </ListGroup>
                 </Card>
@@ -305,7 +320,7 @@ function DisassemblyView({ id }:{
             </button>:<></>}
             {(onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start))?
             <Minimap
-                width={120}
+                width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
             ></Minimap>:<></>}
             </div> :

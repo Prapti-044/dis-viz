@@ -1,3 +1,34 @@
+.assemblycode {
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.hidablebtn {
+    text-align: start;
+    position: relative;
+    left: -10px;
+    border: none;
+    background-color: transparent;
+}
+
+.hidablegutter {
+    background-color: red;
+    width: 2px;
+    height: 13px;
+    position: relative;
+    display: inline-block;
+    left: -2px;
+    top: 1px;
+}
+
+.hidablebtn.open::before {
+    content: " >\00a0\00a0\00a0\00a0\00a0\00a0\00a0";
+}
+
+.hidablebtn.closed::before {
+    content: " V\00a0\00a0\00a0\00a0\00a0\00a0\00a0";
+}
+
 .assemblycode.hoverable:hover {
     background-color: #ddd;
     border: 2px solid black;
@@ -142,4 +173,10 @@ span.hex-number {
     color: green;
     top: 20px;
     left: 200px;
+}
+
+button.opennewbutton:hover {
+    background-color: #aaa;
+    border: 2px solid black;
+    cursor: pointer;
 }

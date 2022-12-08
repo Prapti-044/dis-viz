@@ -1,6 +1,6 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
-import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile } from './types'
+import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile, InstructionBlock } from './types'
 import { MinimapType } from './features/minimap/minimapSlice';
 
 
@@ -68,6 +68,21 @@ export async function getDisassemblyPage(filepath: string, pageNo: number): Prom
     const result: Object = await response.json();
     const blockPage = await plainToInstance(BlockPage, result, { excludeExtraneousValues: true })
     return blockPage;
+}
+
+export async function getDisassemblyBlock(filepath: string, blockId: string): Promise<InstructionBlock> {
+    const response = await fetch(
+        apiURL + "getdisassemblyblockbyid/" + blockId, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
+    const result: Object = await response.json();
+    const block = await plainToInstance(InstructionBlock, result, { excludeExtraneousValues: true })
+    return block;
 }
 
 export async function getDisassemblyPageByAddress(filepath: string, startAddress: number): Promise<BlockPage> {

@@ -51,19 +51,34 @@ export class AddressRange {
     }
 }
 
+export class Hidable {
+    @Expose() name: string
+    @Expose() start_address: number
+    @Expose() end_address: number
+
+    constructor(name: string, start_address: number, end_address: number) {
+        this.name = name
+        this.start_address = start_address
+        this.end_address = end_address
+    }
+}
+
+
 export class InstructionBlock extends AddressRange {
     @Expose() name: string
     @Type(() => Instruction)
     @Expose() instructions: Instruction[]
     @Expose() function_name: string
     @Expose() next_block_numbers: string[]
+    @Expose() hidables: Hidable[]
 
-    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[]) {
+    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[]) {
         super(start_address, end_address, n_instructions)
         this.name = name
         this.instructions = instructions
         this.function_name = function_name
         this.next_block_numbers = next_block_numbers
+        this.hidables = hidables
     }
 
 }
@@ -159,18 +174,6 @@ export class Loop {
         this.backedges = backedges
         this.loops = loops
         this.name = name
-    }
-}
-
-export class Hidable {
-    @Expose() name: string
-    @Expose() start_address: number
-    @Expose() end_address: number
-
-    constructor(name: string, start_address: number, end_address: number) {
-        this.name = name
-        this.start_address = start_address
-        this.end_address = end_address
     }
 }
 
