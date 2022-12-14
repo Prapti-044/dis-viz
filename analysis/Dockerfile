@@ -5,6 +5,8 @@ ENV LD_LIBRARY_PATH /opt/view/lib
 
 RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:deadsnakes/ppa && DEBIAN_FRONTEND=noninteractive apt-get install -y python3.10 gcc g++ libboost-dev yajl-tools git neovim graphviz libtbb2 libtbb-dev libboost-atomic-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-system-dev libboost-thread-dev libboost-timer-dev curl xz-utils m4 zlib1g zlib1g-dev fish build-essential libssl-dev wget openmpi-bin python3.10-distutils python3.10-dev && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
 
+RUN pip3.10 install -U jupyterlab numpy pandas plotly ipywidgets matplotlib tqdm
+
 # Install CMake
 WORKDIR /root/cmake
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.23.2/cmake-3.23.2.tar.gz
@@ -62,8 +64,8 @@ RUN gcc -g -O3 hello.c -o hello-O3
 # hello exe is in /samples/multisource/hello
 
 # Copy dis-viz
-WORKDIR /App
+WORKDIR /jupyter
 
-RUN pip3.10 install -U jupyterlab numpy pandas plotly ipywidgets matplotlib tqdm
 
-ENTRYPOINT ["jupyter-lab", "--allow-root", "--ip=0.0.0.0", "--app_dir=/App"]
+
+ENTRYPOINT ["jupyter-lab", "--allow-root", "--ip=0.0.0.0", "--app_dir=/jupyter"]
