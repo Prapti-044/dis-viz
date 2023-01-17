@@ -17,7 +17,6 @@ N_INSTRUCTIONS_PER_PIXEL_MINIMAP = 5
 N_INSTRUCTIONS_PER_PAGE = 500
 SYSTEM_LOCATIONS = [
     '/usr/',
-
 ]
 
 class FilePath(BaseModel):
@@ -53,9 +52,10 @@ def decode_cache_binary(filepath: str):
 
     # Populating blocks with their next block
     for link_i, link in tqdm(enumerate(links), desc="Adding block links"):
-        # block = next((block for block in blocks if block.name == link.source and link.source + 1 != link.target), None)
-        if link_i < len(links)-1 and links[link_i+1].source == link.target: continue
+
         block_pos = binary_search(blocks, link.source, 0, len(blocks), lambda block: block.name, not_found=None)
+
+        if block_pos and block_pos+1 < len(blocks) and link.target == blocks[block_pos+1].name: continue
 
         if block_pos:
             blocks[block_pos].next_block_numbers.append(link.target)
@@ -87,6 +87,17 @@ def decode_cache_binary(filepath: str):
         ) for line in dyninst_info['lines']
     ], key=lambda lc: lc.start_address)
 
+    def create_loop_obj(loop):
+        return Loop(
+            blocks=loop['blocks'],
+            backedges=[{
+                'start_address': ad_range['from'],
+                'end_address': ad_range['to'],
+            } for ad_range in loop['backedges']],
+            name=loop['name'],
+            loops=[create_loop_obj(inner_loop) for inner_loop in loop['loops']] if 'loops' in loop and loop['loops'] else []
+        ) if loop else []
+
     # Creating functions objects
     functions = [
         Function(
@@ -101,15 +112,7 @@ def decode_cache_binary(filepath: str):
                     location=location['location']
                 ) for location in variable['locations']]
             ) for variable in function['vars']],
-            loops=[Loop(
-                blocks=loop['blocks'],
-                backedges=[{
-                    'start_address': ad_range['from'],
-                    'end_address': ad_range['to'],
-                } for ad_range in loop['backedges']],
-                name=loop['name'],
-                loops=None # TODO: fix this
-            ) for loop in function['loops']] if function['loops'] else [],
+            loops=[create_loop_obj(loop) for loop in function['loops']] if function['loops'] else [],
             hidables=[Hidable(
                 start_address=hidable['start'],
                 end_address=hidable['end'],
