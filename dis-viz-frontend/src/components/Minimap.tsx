@@ -12,6 +12,7 @@ const BLOCKS_START_TOP = 50
 const BRUSH_OFFSET = 10
 const HIDDEN_ARROW_GAP = 30
 const HIDDEN_ARROW_LEN = 20
+const LOOP_INDENT_SIZE = 6
 
 function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: number, tox: number, toy: number) {
   var headlen = 10; // length of head in pixels
@@ -36,6 +37,8 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
     const totalBlocks = minimap.blockStartAddress.length // b
     const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.start)
     const brushEndBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.end)
+
+    console.log(minimap.blockLoopIndents)
 
     let drawingStartBlockI:number = brushStartBlockI, drawingEndBlockI:number = brushStartBlockI+1
     
@@ -88,7 +91,7 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
 
 
             const curBlock = i - drawingStartBlockI
-            const x = BLOCK_LINE_LEFT
+            const x = BLOCK_LINE_LEFT + minimap.blockLoopIndents[i] * LOOP_INDENT_SIZE
             const y = BLOCKS_START_TOP + curBlock * BLOCK_SEP + cumulativeHeight
 
             // Detect if the brush should start here

@@ -79,6 +79,11 @@ RUN gcc -g -O0 loop_outer_block.c -o loop_outer_block-O0
 RUN gcc -g -O3 loop_outer_block.c -o loop_outer_block-O3
 # loop_outer_block exe is in /samples/loop_outer_block
 
+RUN g++ -g -O0 eg1.cpp -o eg1-O0
+RUN g++ -g -O3 eg1.cpp -o eg1-O3
+# eg1 exe is in /samples/eg1
+
+
 WORKDIR /samples/multisource
 RUN gcc -g -O0 hello.c -o hello-O0
 RUN gcc -g -O3 hello.c -o hello-O3

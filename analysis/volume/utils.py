@@ -3,6 +3,7 @@ import simpleoptparser as sopt
 import json
 from instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
 from tqdm import tqdm
+from bisect import bisect_left
 
 N_INSTRUCTIONS_PER_PIXEL_MINIMAP = 5
 N_INSTRUCTIONS_PER_PAGE = 500
@@ -135,9 +136,6 @@ def decode_cache_binary(filepath: str):
                     if variable_location.start_address <= ins.address <= variable_location.end_address and variable_location.location in ins.instruction:
                         ins.variables.append(variable)
 
-    # Minimap data
-    block_heights = [block.n_instructions for block in blocks]
-
     built_in_block = [
         all(
             source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
@@ -152,7 +150,25 @@ def decode_cache_binary(filepath: str):
                 if hidable.start_address >= block.start_address and hidable.end_address <= block.end_address:
                     block.hidables.append(hidable)
 
+    def add_loops_to_blocks(blocks, loop):
+        for block in blocks:
+            if block.name in loop.blocks:
+                block.loop_indents += 1
+        if loop.loops:
+            for inner_loop in loop.loops:
+                add_loops_to_blocks(blocks, inner_loop)
 
+    # Loops
+    for function in tqdm(functions, desc="Loop Processing"):
+        fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
+        for loop in function.loops:
+            add_loops_to_blocks(fn_blocks, loop)
+
+    # Minimap data
+    block_heights = [block.n_instructions for block in blocks]
+    block_loop_indents = [block.loop_indents for block in blocks]
+
+    print("Maximum indentation: ", max(block_loop_indents))
 
     dot : dict[str, str] = {"dot": sopt.get_dot()}
 
@@ -165,7 +181,8 @@ def decode_cache_binary(filepath: str):
         'minimap': {
             'block_heights': block_heights,
             'built_in_block': built_in_block,
-            'block_start_address': [block.start_address for block in blocks]
+            'block_start_address': [block.start_address for block in blocks],
+            'block_loop_indents': block_loop_indents
         },
         'source_files': source_files,
         'dyninst_info': {
@@ -175,9 +192,6 @@ def decode_cache_binary(filepath: str):
         'dot': dot
     }
 
-    
-
-from bisect import bisect_left
 
 class KeyWrapper:
     def __init__(self, iterable, key):

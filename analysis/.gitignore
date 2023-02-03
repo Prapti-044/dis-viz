@@ -124,5 +124,8 @@ docs/source/contributing.md
 ui-tests/test-results
 ui-tests/playwright-report
 
+# all json files
+*.json
+
 # VSCode
 .vscode

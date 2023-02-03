@@ -37,7 +37,8 @@ export async function getMinimapData(filepath: string) : Promise<MinimapType> {
     return {
         blockHeights: result.block_heights,
         builtInBlock: result.built_in_block,
-        blockStartAddress: result.block_start_address
+        blockStartAddress: result.block_start_address,
+        blockLoopIndents: result.block_loop_indents,
     };
 }
 

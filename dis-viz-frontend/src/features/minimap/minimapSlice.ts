@@ -6,6 +6,7 @@ export type MinimapType = {
     blockHeights: number[],
     builtInBlock: boolean[],
     blockStartAddress: number[],
+    blockLoopIndents: number[],
 }
 
 export interface Minimap {
@@ -17,6 +18,7 @@ const initialState: Minimap = {
         blockHeights: [],
         builtInBlock: [],
         blockStartAddress: [],
+        blockLoopIndents: [],
     }
 }
 

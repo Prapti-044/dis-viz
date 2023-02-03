@@ -43,6 +43,14 @@
         {
             "name": "[-O3] Loop with Outer Block",
             "executable_path": "/samples/loop_outer_block-O3"
+        },
+        {
+            "name": "[-O0] Example-1",
+            "executable_path": "/samples/eg1-O0"
+        },
+        {
+            "name": "[-O3] Example-1",
+            "executable_path": "/samples/eg1-O3"
         }
 
     ]

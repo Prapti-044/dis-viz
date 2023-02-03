@@ -71,14 +71,16 @@ export class InstructionBlock extends AddressRange {
     @Expose() function_name: string
     @Expose() next_block_numbers: string[]
     @Expose() hidables: Hidable[]
+    @Expose() loop_indents: number
 
-    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[]) {
+    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[], loop_indents: number) {
         super(start_address, end_address, n_instructions)
         this.name = name
         this.instructions = instructions
         this.function_name = function_name
         this.next_block_numbers = next_block_numbers
         this.hidables = hidables
+        this.loop_indents = loop_indents
     }
 
 }
@@ -163,13 +165,13 @@ export class Variable {
 
 
 export class Loop {
-    @Expose() blocks: number[]
+    @Expose() blocks: string[]
     @Expose() backedges: {'start_address':number, 'end_address': number}[]
     @Type(() => Loop)
     @Expose() loops: Loop[] | null
     @Expose() name: string
 
-    constructor(blocks: number[], backedges: {'start_address':number, 'end_address': number}[], loops: Loop[] | null, name: string) {
+    constructor(blocks: string[], backedges: {'start_address':number, 'end_address': number}[], loops: Loop[] | null, name: string) {
         this.blocks = blocks
         this.backedges = backedges
         this.loops = loops

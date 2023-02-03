@@ -71,6 +71,8 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
+
+
 function DisassemblyView({ id }:{
     id: number,
 }) {
@@ -87,9 +89,10 @@ function DisassemblyView({ id }:{
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const [pages, setPages] = React.useState<BlockPage[]>([]);
 
-    const marginHorizontal = '10px'
-    const marginSameVertical = '10px'
-    const marginDifferentVertical = '100px'
+    const marginHorizontal = 10
+    const marginSameVertical = 10
+    const marginDifferentVertical = 100
+    const LOOP_INDENT_SIZE = 26
 
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
@@ -243,9 +246,9 @@ function DisassemblyView({ id }:{
             </button>:<></>}
             {pages.map(page => page.blocks).flat().map((block, i, allBlocks) => (
                 <Card key={i} style={{
-                    marginLeft: marginHorizontal,
-                    marginRight: marginHorizontal,
-                    marginTop: (i > 0 && allBlocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical,
+                    marginLeft: marginHorizontal + block.loop_indents*LOOP_INDENT_SIZE + 'px',
+                    marginRight: marginHorizontal + 'px',
+                    marginTop: (i > 0 && allBlocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical + 'px',
                     maxWidth: '400px',
                     textAlign: 'center'
                 }}
@@ -260,7 +263,7 @@ function DisassemblyView({ id }:{
                         padding: '2px',
                         paddingLeft: '10px'
                     }}>
-                        {block.name.length<=MAX_FN_SIZE?block.name:(block.name.slice(0,10)+'...'+block.name.slice(block.name.length-10, block.name.length))}
+                        <span title={block.name}> {block.name.length<=MAX_FN_SIZE?block.name:(block.name.slice(0,10)+'...'+block.name.slice(block.name.length-15, block.name.length))} (Loops Indentation: {block.loop_indents})</span>
                         {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
                     </Card.Header>
 

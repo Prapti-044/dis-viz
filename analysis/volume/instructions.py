@@ -14,6 +14,7 @@ class Variable:
     source_line: int
     locations: list[VariableLocation]
 
+
 @dataclass
 class SourceLine:
     line: str
@@ -50,6 +51,7 @@ class InstructionBlock(AddressRange):
     name: str
     function_name: str
     instructions: list[Instruction]
+    loop_indents: int = field(init=False)
 
     hidables: list[Hidable] = field(init=False)
     next_block_numbers: list[str] = field(init=False)
@@ -57,12 +59,14 @@ class InstructionBlock(AddressRange):
     end_address: int = field(init=False)
     n_instructions: int = field(init=False)
 
+
     def __post_init__(self):
         self.start_address = min(instruction.address for instruction in self.instructions)
         self.end_address = max(instruction.address for instruction in self.instructions)
         self.n_instructions = len(self.instructions)
         self.next_block_numbers = []
         self.hidables = []
+        self.loop_indents = 0
 
 @dataclass
 class BlockLink:
@@ -103,7 +107,7 @@ class BlockFlag(Enum):
 
 @dataclass
 class Loop:
-    blocks: list[int]
+    blocks: list[str]
     backedges: list[dict[str, int]]
     loops: list['Loop'] | None
     name: str
