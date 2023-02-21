@@ -1,16 +1,13 @@
 import React  from 'react';
-import { Card, ListGroup } from 'react-bootstrap';
-import { codeColors, MAX_FN_SIZE, useForceUpdate } from '../utils';
-import DisassemblyLine from './DisassemblyLine';
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
-
-
-import { DisassemblyLineSelection, BlockPage, Instruction } from '../types'
+import { BlockPage, Instruction } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
-import HidableDisassembly from './HidableDisassembly';
+
+import DisassemblyBlock from './DisassemblyBlock';
+import { useAppDispatch, useAppSelector } from '../app/hooks';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -84,16 +81,7 @@ function DisassemblyView({ id }:{
     const active = activeDisassemblyView === id
 
     const lineSelection = selections[id]
-
-    const [isSelecting, setIsSelecting] = React.useState(false);
-    const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const [pages, setPages] = React.useState<BlockPage[]>([]);
-
-    const marginHorizontal = 10
-    const marginSameVertical = 10
-    const marginDifferentVertical = 100
-    const LOOP_INDENT_SIZE = 26
-
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
 
@@ -140,7 +128,7 @@ function DisassemblyView({ id }:{
 
     const borderStyle: {[style: string]: string} = {}
     if(active) {
-        borderStyle.border = '3px solid red'
+        borderStyle.border = '1px solid red'
     }
 
     const activeRef = React.useRef<HTMLInputElement>(null);
@@ -148,73 +136,6 @@ function DisassemblyView({ id }:{
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
-
-
-    const onMouseDown = (lineNum: number) => {
-        setIsSelecting(true);
-        setOnGoingSelection({
-            start_address: lineNum,
-            end_address: lineNum
-        })
-    }
-
-    const onMouseOver = (lineNum: number) => {
-        if(isSelecting) {
-            setOnGoingSelection({
-                ...onGoingSelection!,
-                end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
-            })
-        }
-    }
-
-    const onMouseUp = (lineNum: number) => {
-        setIsSelecting(false);
-        const finalSelection = {
-            ...onGoingSelection!,
-            end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum,
-        }
-        setOnGoingSelection(finalSelection)
-
-        const selectedDisassemblyLines = pages
-            .filter(page => (
-                (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
-                (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
-            ))
-            .map(page => page.blocks)
-            .flat()
-            .filter(block => (
-                (block.start_address <= finalSelection.start_address && finalSelection.start_address <= block.end_address && block.end_address >= finalSelection.start_address) ||
-                (block.start_address >= finalSelection.start_address && block.start_address <= finalSelection.end_address)
-            ))
-            .map(block => block.instructions)
-            .flat()
-            .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
-
-        const selectedSourceLines: {
-            [source_file: string]: Set<number>,
-        } = {}
-        selectedDisassemblyLines.forEach(line => {
-            Object.entries(line.correspondence).forEach(([source_file, lines]) => {
-                if (!(source_file in selectedSourceLines)) {
-                    selectedSourceLines[source_file] = new Set()
-                }
-                lines.forEach(line => {
-                    selectedSourceLines[source_file].add(line)
-                })
-            })
-        })
-
-        dispatch(setDisassemblyLineSelection({
-            disIdSelections: {
-                addresses: selectedDisassemblyLines.map(instruction => instruction.address),
-                source_selection: Object.entries(selectedSourceLines).map(([source_file, lines]) => ({
-                    source_file,
-                    lines: Array.from(lines)
-                }))
-            },
-            disassemblyViewId: id,
-        }))
-    }
 
     let currentHidableName = ""
     const currentHidableInstructions: Instruction[] = []
@@ -239,85 +160,15 @@ function DisassemblyView({ id }:{
         {pages ?  
         <div style={{
             ...borderStyle,
+            overflow: 'scroll',
         }}
         >
             {pages.length > 0 && pages[0].page_no > 1?<button onClick={e => {addNewPage(pages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
             {pages.map(page => page.blocks).flat().map((block, i, allBlocks) => (
-                <Card key={i} style={{
-                    marginLeft: marginHorizontal + block.loop_indents*LOOP_INDENT_SIZE + 'px',
-                    marginRight: marginHorizontal + 'px',
-                    marginTop: (i > 0 && allBlocks[i-1].function_name === block.function_name)?marginSameVertical:marginDifferentVertical + 'px',
-                    maxWidth: '400px',
-                    textAlign: 'center'
-                }}
-                ref={(thisRef: HTMLDivElement) => {
-                    disassemblyBlockRefs.current[block.start_address] = thisRef
-                }}
-                >
-                    <Card.Header style={{
-                        background: '#ddd',
-                        textAlign: 'left',
-                        fontSize: '14px',
-                        padding: '2px',
-                        paddingLeft: '10px'
-                    }}>
-                        <span title={block.name}> {block.name.length<=MAX_FN_SIZE?block.name:(block.name.slice(0,10)+'...'+block.name.slice(block.name.length-15, block.name.length))} (Loops Indentation: {block.loop_indents})</span>
-                        {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
-                    </Card.Header>
-
-                    <ListGroup variant="flush" style={{
-                        paddingLeft: '10px',
-                    }}>
-                        {block.instructions.map((ins, j) => {
-                            let isHidable = false
-                            for(let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
-                                const hidable = block.hidables[hidableI]
-                                if(hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
-                                    isHidable = true;
-                                }
-                                if(ins.address === hidable.start_address) {
-                                    return <>
-                                        <HidableDisassembly
-                                            key={block.name + id}
-                                            name={hidable.name}
-                                            block={block}
-                                            disId={id}
-                                        ></HidableDisassembly>
-                                        <DisassemblyLine
-                                            block={block}
-                                            isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
-                                            mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
-                                            key={i.toString() + j.toString()}
-                                            instruction={ins}
-                                            isSelecting={isSelecting}
-                                            onGoingSelection={onGoingSelection}
-                                            color={codeColors[id]}
-                                            disId={id}
-                                            isHidable={isHidable}
-                                        />
-                                    </>
-                                }
-                            }
-                            return (<DisassemblyLine
-                                block={block}
-                                isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection?lineSelection.addresses.includes(ins.address):false)}
-                                mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
-                                key={i.toString() + j.toString()}
-                                instruction={ins}
-                                isSelecting={isSelecting}
-                                onGoingSelection={onGoingSelection}
-                                color={codeColors[id]}
-                                disId={id}
-                                isHidable={isHidable}
-                            />)
-                        }
-                        )}
-                    </ListGroup>
-                </Card>
-            )
-            )}
+                <DisassemblyBlock block={block} i={i} allBlocks={allBlocks} id={id} pages={pages} disassemblyBlockRefs={disassemblyBlockRefs} lineSelection={lineSelection} block_type={block.block_type}/>
+            ))}
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}

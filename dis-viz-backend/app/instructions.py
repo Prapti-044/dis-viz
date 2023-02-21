@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import TypedDict
 
 @dataclass
 class VariableLocation:
@@ -46,12 +47,19 @@ class Hidable:
     start_address: int
     end_address: int
 
+class BlockLoopState(TypedDict):
+    name: str
+    loop_count: int
+    loop_total: int
+
 @dataclass
 class InstructionBlock(AddressRange):
     name: str
     function_name: str
     instructions: list[Instruction]
-    loop_indents: int = field(init=False)
+    loops: list[BlockLoopState] = field(init=False)
+    block_type: str = field(init=False)
+    # loop_indents: int = field(init=False)
 
     hidables: list[Hidable] = field(init=False)
     next_block_numbers: list[str] = field(init=False)
@@ -66,7 +74,9 @@ class InstructionBlock(AddressRange):
         self.n_instructions = len(self.instructions)
         self.next_block_numbers = []
         self.hidables = []
-        self.loop_indents = 0
+        # self.loop_indents = 0
+        self.loops = []
+        self.block_type = 'normal'
 
 @dataclass
 class BlockLink:

@@ -115,7 +115,7 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
                         if(minimap.builtInBlock[i])
                             ctx.strokeStyle = "hsl(" + Math.max(h-10, 0) + "," + s + "%," + l + "%)"
                         else
-                            ctx.strokeStyle = "hsl(" + h + "," + s + "%," + l + "%)"
+                            ctx.strokeStyle = "hsl(" + h + "," + s + "%," + Math.max(l-20, 0) + "%)"
                         break
                     }
                 }
@@ -129,7 +129,7 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
             cumulativeHeight += blockHeight * BLOCK_LINE_HEIGHT_FACTOR
         })
         // Draw the brush
-        ctx.fillStyle = 'rgba(0,0,0,0.4)';
+        ctx.fillStyle = 'rgba(0,0,0,0.1)'; //'rgba(0,0,0,0.4)
 
         ctx.fillRect(
             BLOCK_LINE_LEFT-BRUSH_OFFSET,
@@ -192,16 +192,26 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
         }
     }, [draw])
 
-    return <div style={{
+    return <>
+    <h5 style={{
         position: "absolute",
+        fontSize: "17px",
         top: "5px",
+        right: "60px",
+        color: "#4b89e7",
+    }}>Overview</h5>
+    <div style={{
+        position: "absolute",
+        top: "30px",
         right: "20px",
         width: width+"px",
         height: "100%",
-        background: "#eeeded",
-        border: "1px solid lightgrey",
+        background: "#ffffff",
+        border: "5px solid lightgrey",
         zIndex: "5"
     }}>
         <canvas ref={canvasRef} {...props} />
     </div>
+    </>
+    
 }

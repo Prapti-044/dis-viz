@@ -1,9 +1,11 @@
 from functools import lru_cache
+from typing import Iterable
 import simpleoptparser as sopt
 import json
-from instructions import AddressRange, BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
+from .instructions import BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
 from tqdm import tqdm
 from bisect import bisect_left
+import copy
 
 N_INSTRUCTIONS_PER_PIXEL_MINIMAP = 5
 N_INSTRUCTIONS_PER_PAGE = 500
@@ -49,17 +51,6 @@ def decode_cache_binary(filepath: str):
             blocks[block_pos].next_block_numbers.append(link.target)
 
     blocks.sort(key=lambda block: block.start_address)
-
-
-    # Preprocessing pages
-    pages = [[ blocks[0] ]]
-    for block in blocks[1:]:
-        if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
-            pages.append([])
-        pages[-1].append(block)
-
-    pages = [BlockPage(blocks=page, page_no=i) for i, page in enumerate(pages)]
-    pages[-1].is_last = True
 
     source_files = json.loads(sopt.get_sourcefiles())
 
@@ -150,25 +141,107 @@ def decode_cache_binary(filepath: str):
                 if hidable.start_address >= block.start_address and hidable.end_address <= block.end_address:
                     block.hidables.append(hidable)
 
+    loop_count = {}
     def add_loops_to_blocks(blocks, loop):
         for block in blocks:
             if block.name in loop.blocks:
-                block.loop_indents += 1
+                for inner_loop in loop.loops:
+                    if block.name in inner_loop.blocks:
+                        loop_count[loop.name] = loop_count.setdefault(loop.name, 0)
+                        break
+                else:
+                    loop_count[loop.name] = loop_count.setdefault(loop.name, 0) + 1
+                    
+                block.loops.append({
+                    'name': loop.name,
+                    'loop_count': loop_count[loop.name],
+                    'loop_total': -1
+                })
         if loop.loops:
             for inner_loop in loop.loops:
                 add_loops_to_blocks(blocks, inner_loop)
 
     # Loops
+    max_loop_count: int = -1
     for function in tqdm(functions, desc="Loop Processing"):
         fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
         for loop in function.loops:
+            loop_count.clear()
             add_loops_to_blocks(fn_blocks, loop)
+
+            for block in fn_blocks:
+                if len(block.loops) > max_loop_count:
+                    max_loop_count = len(block.loops)
+
+                for loop in block.loops:
+                    if loop['name'] in loop_count:
+                        loop['loop_total'] = loop_count[loop['name']]
+
+    # Creating pseudo blocks for loops
+    i = 0
+    while i < len(blocks):
+        block = blocks[i]
+        if block.loops:
+            loop = block.loops[-1]
+            if loop['loop_count'] < loop['loop_total']:
+                next_blocks_loop = blocks[i+1].loops[-1] if i+1 < len(blocks) else None
+                if not (next_blocks_loop and next_blocks_loop['name'] == loop['name'] and next_blocks_loop['loop_count'] == loop['loop_count']+1):
+                    i += 1
+                    next_loop_block = next(filter(lambda b: b.loops and b.loops[-1]['name'] == loop['name'] and b.loops[-1]['loop_count'] == loop['loop_count']+1, blocks[i:]))
+                    blocks.insert(i, copy.deepcopy(next_loop_block))
+                    blocks[i].name = blocks[i].name + "_pseudo"
+                    blocks[i].block_type = "pseudoloop"
+        i += 1
+    
+    
+    # def flatten(xs):
+    #     for x in xs:
+    #         if isinstance(x, Iterable) and not isinstance(x, (str, bytes)):
+    #             yield from flatten(x)
+    #         else:
+    #             yield x
+
+    # loops = list(flatten(filter(lambda loop: loop, map(lambda fn: fn.loops, functions))))
+
+    # def flatten_inner_loops(loops):
+    #     for loop in loops:
+    #         if loop.loops:
+    #             loops += flatten_inner_loops(loop.loops)
+    #     return loops
+        
+    # loops = flatten_inner_loops(loops)
+
+    # loop_blocks = list(map(lambda loop: sorted(loop.blocks), loops))
+    # loop_blocks = list(map(lambda loop: list(map(lambda block: next(filter(lambda b: b.name == block, blocks)), loop)), loop_blocks))
+
+    # # Insert blocks which are not consecutive in loop_without_consecutive_blocks_idx index
+    # for loop_block in tqdm(loop_blocks, desc="Inserting loop pseudoblocks"):
+    #     loop_block = sorted(loop_block, key=lambda block: block.start_address)
+    #     start_block = loop_block[0]
+    #     start_block_idx = next(idx for idx, block in enumerate(blocks) if block.name == start_block.name)
+
+    #     for i in range(1, len(loop_block)):
+    #         if loop_block[i].name != blocks[start_block_idx+i].name:
+    #             blocks.insert(start_block_idx+i, copy.deepcopy(loop_block[i]))
+    #             blocks[start_block_idx+i].name = loop_block[i].name + "_pseudo"
+    #             blocks[start_block_idx+i].block_type = "pseudoloop"
+
+    #             # start_block_idx += 1
+
 
     # Minimap data
     block_heights = [block.n_instructions for block in blocks]
-    block_loop_indents = [block.loop_indents for block in blocks]
+    block_loop_indents = [len(block.loops) for block in blocks]
 
-    print("Maximum indentation: ", max(block_loop_indents))
+    # Preprocessing pages
+    pages = [[ blocks[0] ]]
+    for block in blocks[1:]:
+        if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
+            pages.append([])
+        pages[-1].append(block)
+
+    pages = [BlockPage(blocks=page, page_no=i) for i, page in enumerate(pages)]
+    pages[-1].is_last = True
 
     dot : dict[str, str] = {"dot": sopt.get_dot()}
 
