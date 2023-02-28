@@ -69,10 +69,7 @@ def decode_cache_binary(filepath: str):
     def create_loop_obj(loop):
         return Loop(
             blocks=loop['blocks'],
-            backedges=[{
-                'start_address': ad_range['from'],
-                'end_address': ad_range['to'],
-            } for ad_range in loop['backedges']],
+            backedges=loop['backedges'],
             name=loop['name'],
             loops=[create_loop_obj(inner_loop) for inner_loop in loop['loops']] if 'loops' in loop and loop['loops'] else []
         ) if loop else []
@@ -157,6 +154,11 @@ def decode_cache_binary(filepath: str):
                     'loop_count': loop_count[loop.name],
                     'loop_total': -1
                 })
+
+                for backedge in loop.backedges:
+                    if backedge['from'] == block.name:
+                        block.backedges.append(backedge['to'])
+
         if loop.loops:
             for inner_loop in loop.loops:
                 add_loops_to_blocks(blocks, inner_loop)
@@ -178,55 +180,35 @@ def decode_cache_binary(filepath: str):
                         loop['loop_total'] = loop_count[loop['name']]
 
     # Creating pseudo blocks for loops
-    i = 0
-    while i < len(blocks):
-        block = blocks[i]
-        if block.loops:
-            loop = block.loops[-1]
-            if loop['loop_count'] < loop['loop_total']:
-                next_blocks_loop = blocks[i+1].loops[-1] if i+1 < len(blocks) else None
-                if not (next_blocks_loop and next_blocks_loop['name'] == loop['name'] and next_blocks_loop['loop_count'] == loop['loop_count']+1):
-                    i += 1
-                    next_loop_block = next(filter(lambda b: b.loops and b.loops[-1]['name'] == loop['name'] and b.loops[-1]['loop_count'] == loop['loop_count']+1, blocks[i:]))
-                    blocks.insert(i, copy.deepcopy(next_loop_block))
-                    blocks[i].name = blocks[i].name + "_pseudo"
-                    blocks[i].block_type = "pseudoloop"
-        i += 1
-    
-    
-    # def flatten(xs):
-    #     for x in xs:
-    #         if isinstance(x, Iterable) and not isinstance(x, (str, bytes)):
-    #             yield from flatten(x)
-    #         else:
-    #             yield x
+    processed_loops = [] # fn_name:loop_name
+    idx = 0
+    while idx+1 < len(blocks):
+        if blocks[idx].loops and blocks[idx].loops[-1]['name'] in processed_loops:
+            idx += 1
+            continue
 
-    # loops = list(flatten(filter(lambda loop: loop, map(lambda fn: fn.loops, functions))))
+        block_loop_names = [loop['name'] for loop in blocks[idx].loops]
+        next_block_loop_names = [loop['name'] for loop in blocks[idx+1].loops]
 
-    # def flatten_inner_loops(loops):
-    #     for loop in loops:
-    #         if loop.loops:
-    #             loops += flatten_inner_loops(loop.loops)
-    #     return loops
-        
-    # loops = flatten_inner_loops(loops)
+        if all(loop_name in block_loop_names for loop_name in next_block_loop_names) and len(block_loop_names) > len(next_block_loop_names):
+            # Check if this is the last block of this loop
+            if blocks[idx].loops[-1]['loop_count'] != blocks[idx].loops[-1]['loop_total']:
+                
+                pseudo_blocks = []
+                for block in blocks[idx+1:]:
+                    if block.loops and block.loops[-1]['name'] == blocks[idx].loops[-1]['name'] and blocks[idx].function_name == block.function_name:
+                        pseudo_block = copy.deepcopy(block)
+                        pseudo_block.block_type = 'pseudoloop'
+                        pseudo_blocks.append(pseudo_block)
+                        if pseudo_block.loops[-1]['loop_count'] == pseudo_block.loops[-1]['loop_total']:
+                            break
 
-    # loop_blocks = list(map(lambda loop: sorted(loop.blocks), loops))
-    # loop_blocks = list(map(lambda loop: list(map(lambda block: next(filter(lambda b: b.name == block, blocks)), loop)), loop_blocks))
-
-    # # Insert blocks which are not consecutive in loop_without_consecutive_blocks_idx index
-    # for loop_block in tqdm(loop_blocks, desc="Inserting loop pseudoblocks"):
-    #     loop_block = sorted(loop_block, key=lambda block: block.start_address)
-    #     start_block = loop_block[0]
-    #     start_block_idx = next(idx for idx, block in enumerate(blocks) if block.name == start_block.name)
-
-    #     for i in range(1, len(loop_block)):
-    #         if loop_block[i].name != blocks[start_block_idx+i].name:
-    #             blocks.insert(start_block_idx+i, copy.deepcopy(loop_block[i]))
-    #             blocks[start_block_idx+i].name = loop_block[i].name + "_pseudo"
-    #             blocks[start_block_idx+i].block_type = "pseudoloop"
-
-    #             # start_block_idx += 1
+                processed_loops.append(f"{blocks[idx].function_name}:{blocks[idx].loops[-1]['name']}")
+                idx += 1
+                for pseudo_block in pseudo_blocks:
+                    blocks.insert(idx, pseudo_block)
+                    idx += 1
+        idx += 1
 
 
     # Minimap data
@@ -236,7 +218,7 @@ def decode_cache_binary(filepath: str):
     # Preprocessing pages
     pages = [[ blocks[0] ]]
     for block in blocks[1:]:
-        if sum(len(block) for block in pages[-1]) >= N_INSTRUCTIONS_PER_PAGE:
+        if sum(len(block) for block in pages[-1] if block.block_type == 'normal') >= N_INSTRUCTIONS_PER_PAGE:
             pages.append([])
         pages[-1].append(block)
 

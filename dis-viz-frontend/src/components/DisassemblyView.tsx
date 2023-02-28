@@ -93,7 +93,7 @@ function DisassemblyView({ id }:{
             api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0]).then(setAfterFetch)
         }
         else {
-            api.getDisassemblyPage(binaryFilePath, 1).then(setAfterFetch)
+            api.getDisassemblyPage(binaryFilePath, 0).then(setAfterFetch)
         }
     }, [lineSelection])
 

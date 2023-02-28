@@ -1,19 +1,19 @@
 import React from 'react';
-import * as api from "./api";
+import * as api from "../api";
 
 import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
-import TabContent from "./components/TabContent";
+import TabContent from "./TabContent";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 
-import { useAppSelector, useAppDispatch } from './app/hooks';
-import { selectSelections, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from './features/selections/selectionsSlice'
-import { selectBinaryFilePath } from './features/binary-data/binaryDataSlice'
-import DisassemblyView from './components/DisassemblyView';
-import SourceView from './components/SourceView';
-import InputFilePath from './components/InputFilePath';
-import SourceFileTree from "./components/SourceFileTree";
+import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { selectSelections, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import DisassemblyView from './DisassemblyView';
+import SourceView from './SourceView';
+import InputFilePath from './InputFilePath';
+import SourceFileTree from "./SourceFileTree";
 
 
 const App = () => {
@@ -24,6 +24,7 @@ const App = () => {
     file_name: string,
     status: "opened" | "closed"
   }[]>([])
+
   const selections = useAppSelector(selectSelections)
 
   let dockRef: DockLayout | null;
@@ -31,7 +32,7 @@ const App = () => {
 
   // Automatically create a disassemblyView if there is none but binaryFilePath is selected
   React.useEffect(() => {
-    if(binaryFilePath.length === 0) return;
+    if (binaryFilePath.length === 0) return;
 
     api.getSourceFiles(binaryFilePath).then(files => {
       setSourceViewStates(files.map(file_name => ({
@@ -40,7 +41,9 @@ const App = () => {
       })))
     })
 
-    if(Object.keys(selections).length !== 0) return
+    // TODO: close all disassembly views and create a new one
+
+    if (Object.keys(selections).length !== 0) return
     dispatch(addDisassemblyView(null))
   }, [binaryFilePath])
 
@@ -48,7 +51,7 @@ const App = () => {
     dockRef!.updateTab("InputFilePath:1", {
       id: "InputFilePath:1",
       title: "Input File",
-      content: <TabContent><InputFilePath/></TabContent>,
+      content: <TabContent><InputFilePath /></TabContent>,
       closable: false,
       minHeight: 150,
       minWidth: 250,
@@ -71,12 +74,12 @@ const App = () => {
     if (dockRef === null || Object.keys(selections).length === 0) return;
     Object.keys(selections)
       .map<TabData>(disId => ({
-        id: "DisassemblyView:"+disId,
+        id: "DisassemblyView:" + disId,
         title: "Disassembly View: " + disId,
         content: <TabContent><DisassemblyView
-                key={"DisassemblyView:" + disId}
-                id={parseInt(disId)}
-            /></TabContent>,
+          key={"DisassemblyView:" + disId}
+          id={parseInt(disId)}
+        /></TabContent>,
         closable: true,
       }))
       .forEach(disassemblyViewComponent => {
@@ -92,10 +95,10 @@ const App = () => {
           dockRef!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
         }
       })
-      // set it active if there is only one dis-view
-      if (Object.keys(selections).length === 1) {
-        dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
-      }
+    // set it active if there is only one dis-view
+    if (Object.keys(selections).length === 1) {
+      dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
+    }
   }, [selections])
 
   // Reconcile sourceViewStates and source-views
@@ -104,28 +107,28 @@ const App = () => {
     sourceViewStates
       .forEach(sourceViewDaton => {
         if (sourceViewDaton.status === "opened") {
-          const foundTab = dockRef!.find("SourceView:"+sourceViewDaton.file_name) as TabData
+          const foundTab = dockRef!.find("SourceView:" + sourceViewDaton.file_name) as TabData
           const newTab: TabData = {
-              id: "SourceView:"+sourceViewDaton.file_name,
-              title: "Source: " + sourceViewDaton.file_name.split("/")[sourceViewDaton.file_name.split("/").length - 1],
-              content: <TabContent><SourceView
-                file_name={sourceViewDaton.file_name}
-              />
-              </TabContent>,
-              closable: true
+            id: "SourceView:" + sourceViewDaton.file_name,
+            title: "Source: " + sourceViewDaton.file_name.split("/")[sourceViewDaton.file_name.split("/").length - 1],
+            content: <TabContent><SourceView
+              file_name={sourceViewDaton.file_name}
+            />
+            </TabContent>,
+            closable: true
           }
           if (foundTab === undefined) {
             const newPanel: PanelData = {
-                tabs: [newTab],
-                x: 10, y: 10, w: 400, h: 400
+              tabs: [newTab],
+              x: 10, y: 10, w: 400, h: 400
             }
             dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
           }
           else {
-            dockRef!.updateTab("SourceView:"+sourceViewDaton.file_name, newTab)
+            dockRef!.updateTab("SourceView:" + sourceViewDaton.file_name, newTab)
           }
         }
-    });
+      });
   }, [sourceViewStates])
 
   const [layout, setLayout] = React.useState<LayoutData>({
@@ -142,7 +145,7 @@ const App = () => {
                 {
                   id: "InputFilePath:1",
                   title: "Input File",
-                  content: <TabContent><InputFilePath/></TabContent>,
+                  content: <TabContent><InputFilePath /></TabContent>,
                   closable: false,
                   minHeight: 150,
                   minWidth: 250
@@ -192,13 +195,13 @@ const App = () => {
               minWidth: 300,
               minHeight: 300,
               panelExtra: (panelData) => (
-                    <button onClick={e => {
-                      dispatch(addDisassemblyView(null))
-                    }}>
-                      add
-                    </button>
-                  )
-                }
+                <button onClick={e => {
+                  dispatch(addDisassemblyView(null))
+                }}>
+                  add
+                </button>
+              )
+            }
           }]
         },
       ]
@@ -239,7 +242,7 @@ const App = () => {
         pauseOnHover
       />
       <DockLayout
-        ref={(r) => {dockRef = r}}
+        ref={(r) => { dockRef = r }}
         defaultLayout={layout}
         onLayoutChange={onLayoutChange}
         style={{

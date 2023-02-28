@@ -39,7 +39,7 @@ async def getdisassembly(start_address: int, filepath: FilePath):
 @app.post("/getdisassemblyblockbyid/{block_id}")
 async def getdisassemblybyid(block_id: str, filepath: FilePath):
     blocks = decode_cache_binary(filepath.path)['disassembly']['blocks']
-    return next(block for block in blocks if block.name == block_id)
+    return next(block for block in blocks if block.name == block_id and block.block_type == 'normal')
 
 @app.post("/getminimapdata")
 async def getminimapdata(filepath: FilePath):

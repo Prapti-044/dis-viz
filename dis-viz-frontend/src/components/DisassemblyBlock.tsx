@@ -6,11 +6,17 @@ import { MAX_FN_SIZE, codeColors } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
+import * as api from "../api";
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
+import { addDisassemblyView } from '../features/selections/selectionsSlice';
+import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 
 const marginHorizontal = 10
 const marginSameVertical = 10
 const marginDifferentVertical = 100
 const LOOP_INDENT_SIZE = 26
+
+
 
 function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, block_type }: { 
     block: InstructionBlock, 
@@ -27,6 +33,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
+    const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
 
     const onMouseDown = (lineNum: number) => {
@@ -96,7 +103,24 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     }
 
     return (
-        <Card key={i} style={{
+        <Card className={block_type=='normal'?'':'pseudoloop'} onClick={() => {
+            if (block_type=='pseudoloop') {
+                dispatch(setDisassemblyLineSelection({
+                    disassemblyViewId: id,
+                    disIdSelections: {
+                        addresses: block.instructions.map(instruction => instruction.address),
+                        source_selection: block.instructions
+                            .map(instruction => Object.keys(instruction.correspondence)
+                                .map(source_file => ({
+                                    source_file,
+                                    lines: instruction.correspondence[source_file]
+                                }))
+                            ).flat()
+                    }
+                }))
+            }
+        }}
+        key={i} style={{
             marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
             marginRight: marginHorizontal + 'px',
             marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
@@ -117,11 +141,10 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 fontSize: '14px'
             }}>
             <span style={{float: 'left'}}>
-                {block.name.length-7 <= MAX_FN_SIZE ? block.name.slice(0,block.name.length-7) : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15 - 7, block.name.length-7))}
+                {block.name.length-7 <= MAX_FN_SIZE ? block.name : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15 - 7, block.name.length-7))}
             </span>
-            <span style= {{background: 'white', float: 'right', fontStyle: 'italic'}}>
+            <span style= {{ float: 'right', fontStyle: 'italic'}}>
                 {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
-                <button> Go </button>
             </span> </span>}
 
             {block.block_type !== 'pseudoloop' &&
@@ -133,6 +156,46 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 padding: '2px',
                 paddingLeft: '10px'
             }}>
+                {block.backedges.length > 0 &&
+                 <svg className="backedge">
+                    <title>{block.backedges[0]}</title>
+                    <path id="sauce"
+                        d="M4.918342,-2.160804l-1.793342,-2.214196v1.25a5,5,0,0,0,-6.476131,7.003769a4.294744,4.294744,0,0,1,6.476131,-5.128769v1.25l1.755653,-1.988065Z" 
+                        vectorEffect="non-scaling-stroke"
+                        fill= "rosybrown"
+                        stroke= "black"
+                        strokeWidth= "1px"
+                        transform="translate(25, 80) scale(5, -5) rotate(90)" 
+                        
+                    />
+                    <path className="block"
+                        d="M3,1l-1,-3.5h-6v7h6Z" 
+                        vectorEffect="non-scaling-stroke"
+                        pointerEvents="all"
+                        fill= "rosybrown"
+                        stroke= "black"
+                        strokeWidth= "1px"
+                        transform="translate(25, 30) rotate(-90) scale(5,5)"
+                        onClick={(e) => {
+                            api.getDisassemblyBlock(binaryFilePath, block.backedges[0]).then(block => {
+                                dispatch(setDisassemblyLineSelection({
+                                    disassemblyViewId: id,
+                                    disIdSelections: {
+                                        addresses: block.instructions.map(instruction => instruction.address),
+                                        source_selection: block.instructions
+                                            .map(instruction => Object.keys(instruction.correspondence)
+                                                .map(source_file => ({
+                                                    source_file,
+                                                    lines: instruction.correspondence[source_file]
+                                                }))
+                                            ).flat()
+                                    }
+                                }))
+                            })
+                            
+                        }}
+                    />
+                </svg> }
                 <span title={block.name}>
                     <span>
                         {block.name.length <= MAX_FN_SIZE ? block.name : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15, block.name.length))}
@@ -142,6 +205,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         marginRight: '16px',
                         fontStyle: 'italic',
                     }}>
+                        
                         {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
                     </span>
                 </span>
@@ -181,6 +245,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                             </>
                         }
                     }
+
                     return (<DisassemblyLine
                         block={block}
                         isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
@@ -196,6 +261,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 }
                 )}
             </ListGroup>}
+            
         </Card>
     );
 }
