@@ -38,8 +38,6 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
     const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.start)
     const brushEndBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.end)
 
-    console.log(minimap.blockLoopIndents)
-
     let drawingStartBlockI:number = brushStartBlockI, drawingEndBlockI:number = brushStartBlockI+1
     
     const height = canvasRef.current?canvasRef.current.height:window.innerHeight

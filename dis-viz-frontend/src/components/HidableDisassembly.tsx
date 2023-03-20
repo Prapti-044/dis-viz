@@ -20,7 +20,6 @@ function HidableDisassembly({ name, block, disId }: {
 
     React.useEffect(() => {
         if(isHidden) return
-        console.log(isHidden)
         block.hidables
             // Get all instructions that are in hidables
             .map(hidable => block.instructions.filter(ins => ins.address >= hidable.start_address && ins.address <= hidable.end_address)).flat()

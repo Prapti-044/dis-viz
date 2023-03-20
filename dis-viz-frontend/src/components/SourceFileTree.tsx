@@ -128,7 +128,6 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
 
     function getJSXfromFiles(rootFile: FileType) {
         if (rootFile.type === "file") {
-            console.log(finalSourceCSSBackground[rootFile.fullPath])
             const style: CSS.Properties = {
                 background: finalSourceCSSBackground[rootFile.fullPath],
                 border: finalSourceCSSBackground[rootFile.fullPath]=='white'?'0':'1px solid black',

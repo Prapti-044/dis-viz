@@ -209,10 +209,10 @@ const App = () => {
   });
 
   const onLayoutChange = (newLayout: LayoutData, currentTabId: string, direction: DropDirection) => {
-    console.log("Layout Change Called")
-    console.log("    currentTabId", currentTabId)
-    console.log("    direction", direction)
-    console.log("    newLayout", newLayout)
+    // console.log("Layout Change Called")
+    // console.log("    currentTabId", currentTabId)
+    // console.log("    direction", direction)
+    // console.log("    newLayout", newLayout)
 
     if (direction === 'remove') {
       if (currentTabId.split(':')[0] === 'SourceView') {

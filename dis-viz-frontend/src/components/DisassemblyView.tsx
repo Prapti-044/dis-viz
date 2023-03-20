@@ -8,6 +8,7 @@ import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
+import BackEdge from './BackEdge';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -84,6 +85,7 @@ function DisassemblyView({ id }:{
     const [pages, setPages] = React.useState<BlockPage[]>([]);
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
+    const [backedges, setBackedges] = React.useState<{source: HTMLDivElement, target: HTMLDivElement}[]>([])
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
@@ -126,16 +128,39 @@ function DisassemblyView({ id }:{
         }
     }, [lineSelection])
 
-    const borderStyle: {[style: string]: string} = {}
-    if(active) {
-        borderStyle.border = '1px solid red'
-    }
-
     const activeRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
         if(activeRef.current)
             activeRef.current.checked = active;
     }, [active])
+
+    React.useEffect(() => {
+        // Check if disassemblyBlockRefs is initialized
+        if(Object.keys(disassemblyBlockRefs.current).length === 0) return;
+        const currBackedges: { source: HTMLDivElement, target: HTMLDivElement }[] = []
+        pages.forEach(page => {
+            page.blocks.forEach(block => {
+                if(block.backedges.length > 0) {
+                    const sourceElem = disassemblyBlockRefs.current[block.start_address]
+                    const targetBlock = pages.map(page => page.blocks).flat().find(b => b.name === block.backedges[0])
+                    if(targetBlock === undefined) return
+                    if(targetBlock.start_address in disassemblyBlockRefs.current) {
+                        const targetElem = disassemblyBlockRefs.current[targetBlock.start_address]
+                        currBackedges.push({
+                            source: sourceElem,
+                            target: targetElem
+                        })
+                    }
+                }
+            })
+        })
+        setBackedges(currBackedges)
+    }, [pages])
+    
+    const borderStyle: {[style: string]: string} = {}
+    if(active) {
+        borderStyle.border = '1px solid red'
+    }
 
     let currentHidableName = ""
     const currentHidableInstructions: Instruction[] = []
@@ -163,11 +188,12 @@ function DisassemblyView({ id }:{
             overflow: 'scroll',
         }}
         >
+            <BackEdge disassemblyViewId={id} backedges={backedges} />
             {pages.length > 0 && pages[0].page_no > 1?<button onClick={e => {addNewPage(pages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
             {pages.map(page => page.blocks).flat().map((block, i, allBlocks) => (
-                <DisassemblyBlock block={block} i={i} allBlocks={allBlocks} id={id} pages={pages} disassemblyBlockRefs={disassemblyBlockRefs} lineSelection={lineSelection} block_type={block.block_type}/>
+                <DisassemblyBlock block={block} i={i} key={i} allBlocks={allBlocks} id={id} pages={pages} disassemblyBlockRefs={disassemblyBlockRefs} lineSelection={lineSelection} block_type={block.block_type}/>
             ))}
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more

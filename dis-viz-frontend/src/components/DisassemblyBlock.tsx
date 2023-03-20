@@ -120,14 +120,14 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 }))
             }
         }}
-        key={i} style={{
-            marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
-            marginRight: marginHorizontal + 'px',
-            marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
-            maxWidth: '400px',
-            textAlign: 'center',
-            border: block_type=='normal'?'1px solid black':'3px dashed lightgray',
-        }}
+            key={i} style={{
+                marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
+                marginRight: marginHorizontal + 'px',
+                marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
+                maxWidth: '400px',
+                textAlign: 'center',
+                border: block_type=='normal'?'1px solid black':'3px dashed lightgray',
+            }}
             ref={(thisRef: HTMLDivElement) => {
                 disassemblyBlockRefs.current[block.start_address] = thisRef
             }}
@@ -149,14 +149,13 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
 
             {block.block_type !== 'pseudoloop' &&
             <Card.Header style={{
-                
                 background: '#ddd',
                 textAlign: 'left',
                 fontSize: '14px',
                 padding: '2px',
                 paddingLeft: '10px'
             }}>
-                {block.backedges.length > 0 &&
+               {/* {block.backedges.length > 0 &&
                  <svg className="backedge">
                     <title>{block.backedges[0]}</title>
                     <path id="sauce"
@@ -195,7 +194,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                             
                         }}
                     />
-                </svg> }
+                </svg> } */}
                 <span title={block.name}>
                     <span>
                         {block.name.length <= MAX_FN_SIZE ? block.name : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15, block.name.length))}
@@ -225,7 +224,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         if (ins.address === hidable.start_address) {
                             return <>
                                 <HidableDisassembly
-                                    key={block.name + id}
+                                    key={i.toString() + j.toString() + 'hidable'}
                                     name={hidable.name}
                                     block={block}
                                     disId={id}
