@@ -9,7 +9,10 @@ export const codeColors = [
 
 export const MAX_FN_SIZE = 32
 export function shortenName(name: string, len: number): string {
-  return name.length<=len ? name : name.slice(0, len-10) + '...' + name.slice(-10);
+  console.assert(len >= 20, "len should be larger than 20")
+  const suffix = name.split(": ")[1]
+  name = name.split(": ")[0]
+  return (name.length<=len ? name : name.slice(0, 10) + '...' + name.slice(-10)) + ":" + suffix;
 }
 
 export function hexToHSL(H: string) {

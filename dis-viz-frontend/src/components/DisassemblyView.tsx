@@ -8,7 +8,6 @@ import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import BackEdge from './BackEdge';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -85,7 +84,7 @@ function DisassemblyView({ id }:{
     const [pages, setPages] = React.useState<BlockPage[]>([]);
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
-    const [backedges, setBackedges] = React.useState<{source: HTMLDivElement, target: HTMLDivElement}[]>([])
+    const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
@@ -137,21 +136,20 @@ function DisassemblyView({ id }:{
     React.useEffect(() => {
         // Check if disassemblyBlockRefs is initialized
         if(Object.keys(disassemblyBlockRefs.current).length === 0) return;
-        const currBackedges: { source: HTMLDivElement, target: HTMLDivElement }[] = []
-        pages.forEach(page => {
-            page.blocks.forEach(block => {
-                if(block.backedges.length > 0) {
-                    const sourceElem = disassemblyBlockRefs.current[block.start_address]
-                    const targetBlock = pages.map(page => page.blocks).flat().find(b => b.name === block.backedges[0])
-                    if(targetBlock === undefined) return
-                    if(targetBlock.start_address in disassemblyBlockRefs.current) {
-                        const targetElem = disassemblyBlockRefs.current[targetBlock.start_address]
-                        currBackedges.push({
-                            source: sourceElem,
-                            target: targetElem
-                        })
-                    }
+        const currBackedges: typeof backedges = {}
+        const doneBlocks: string[] = []
+        pages.forEach((page,i) => {
+            page.blocks.forEach((block,j) => {
+                if(doneBlocks.includes(block.name)) {
+                    currBackedges[i+':'+j] = []
+                    return
                 }
+                doneBlocks.push(block.name)
+                currBackedges[i+':'+j] = pages.map(page => page.blocks)
+                    .flat()
+                    .filter(b => block.backedges.includes(b.name) && b.start_address in disassemblyBlockRefs.current)
+                    .map(b => disassemblyBlockRefs.current[b.start_address])
+                    .filter(elem => elem !== undefined)
             })
         })
         setBackedges(currBackedges)
@@ -188,13 +186,22 @@ function DisassemblyView({ id }:{
             overflow: 'scroll',
         }}
         >
-            <BackEdge disassemblyViewId={id} backedges={backedges} />
             {pages.length > 0 && pages[0].page_no > 1?<button onClick={e => {addNewPage(pages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
-            {pages.map(page => page.blocks).flat().map((block, i, allBlocks) => (
-                <DisassemblyBlock block={block} i={i} key={i} allBlocks={allBlocks} id={id} pages={pages} disassemblyBlockRefs={disassemblyBlockRefs} lineSelection={lineSelection} block_type={block.block_type}/>
-            ))}
+            {pages.map((page,i) => page.blocks.map((block, j, allBlocks) => (
+                <DisassemblyBlock
+                    block={block}
+                    i={j}
+                    key={j}
+                    allBlocks={allBlocks}
+                    id={id}
+                    pages={pages}
+                    disassemblyBlockRefs={disassemblyBlockRefs}
+                    lineSelection={lineSelection}
+                    block_type={block.block_type}
+                    backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
+            ))).flat()}
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}

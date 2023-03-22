@@ -2,7 +2,7 @@ import React from "react";
 import { Card, ListGroup } from "react-bootstrap";
 import { DisIdSelections, setDisassemblyLineSelection } from "../features/selections/selectionsSlice";
 import { BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
-import { MAX_FN_SIZE, codeColors } from "../utils";
+import { MAX_FN_SIZE, codeColors, shortenName } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
@@ -10,6 +10,7 @@ import * as api from "../api";
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
+import BackEdge from "./BackEdge";
 
 const marginHorizontal = 10
 const marginSameVertical = 10
@@ -18,7 +19,7 @@ const LOOP_INDENT_SIZE = 26
 
 
 
-function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, block_type }: { 
+function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, block_type, backedgeTargets }: { 
     block: InstructionBlock, 
     i: number,
     allBlocks: InstructionBlock[],
@@ -28,14 +29,15 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
         [start_address: number]: HTMLDivElement
     }>,
     lineSelection: DisIdSelections|null,
-    block_type: 'pseudoloop'|'normal'
+    block_type: 'pseudoloop'|'normal',
+    backedgeTargets: HTMLDivElement[],
 }) {
-    
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
-
+    const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
+    
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
         setOnGoingSelection({
@@ -101,10 +103,10 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
             disassemblyViewId: id,
         }))
     }
-
-    return (
-        <Card className={block_type=='normal'?'':'pseudoloop'} onClick={() => {
-            if (block_type=='pseudoloop') {
+    
+    return <>
+        <Card className={block_type==='normal'?'':'pseudoloop'} onClick={() => {
+            if (block_type==='pseudoloop') {
                 dispatch(setDisassemblyLineSelection({
                     disassemblyViewId: id,
                     disIdSelections: {
@@ -126,10 +128,11 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
                 maxWidth: '400px',
                 textAlign: 'center',
-                border: block_type=='normal'?'1px solid black':'3px dashed lightgray',
+                border: block_type==='normal'?'1px solid black':'3px dashed lightgray',
             }}
             ref={(thisRef: HTMLDivElement) => {
                 disassemblyBlockRefs.current[block.start_address] = thisRef
+                thisBlockRef.current.ref = thisRef
             }}
         >
             {block.block_type === 'pseudoloop' && 
@@ -139,9 +142,10 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 paddingLeft: '10px',
                 paddingRight: '10px', 
                 fontSize: '14px'
-            }}>
+            }} title={block.name}>
             <span style={{float: 'left'}}>
-                {block.name.length-7 <= MAX_FN_SIZE ? block.name : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15 - 7, block.name.length-7))}
+                {shortenName(block.name, 24)}
+                {/* {block.backedges.length>0?<span style={{color: 'red'}}>|({block.backedges.map(backedge => backedge.split(': ')[1])})</span>:''} */}
             </span>
             <span style= {{ float: 'right', fontStyle: 'italic'}}>
                 {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
@@ -155,7 +159,8 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 padding: '2px',
                 paddingLeft: '10px'
             }}>
-               {/* {block.backedges.length > 0 &&
+               {/* TODO: filter the backedges that are not in current page */}
+               {false &&
                  <svg className="backedge">
                     <title>{block.backedges[0]}</title>
                     <path id="sauce"
@@ -194,10 +199,10 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                             
                         }}
                     />
-                </svg> } */}
+                </svg> }
                 <span title={block.name}>
                     <span>
-                        {block.name.length <= MAX_FN_SIZE ? block.name : (block.name.slice(0, 10) + '...' + block.name.slice(block.name.length - 15, block.name.length))}
+                        {shortenName(block.name, 24)}
                     </span>
                     <span style={{
                         float: 'right',
@@ -260,9 +265,15 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 }
                 )}
             </ListGroup>}
-            
+{/* block.block_type === 'normal' &&  */}
+            {backedgeTargets.map((backedgeTarget,i) => <BackEdge
+                key={i}
+                source={thisBlockRef.current.ref}
+                target={backedgeTarget}
+                level={block.loops.length}
+            />)}
         </Card>
-    );
+    </>
 }
 
 export default DisassemblyBlock;

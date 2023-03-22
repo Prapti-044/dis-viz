@@ -1,69 +1,54 @@
 import React from 'react'
 
 const BACKEDGE_MIDDLE_OFFSET = 40
-const ARROW_SIZE = 5
-const BLOCK_TOP_OFFSET = 0
+const ARROW_SIZE = 20
+const BLOCK_ARROW_GAP = 4
+const BLOCK_TOP_OFFSET = 10
 
-function BackEdge({ backedges, zIndex, borderColor, borderStyle, borderWidth, className, disassemblyViewId }: {
-    backedges: {
-        source: HTMLDivElement,
-        target: HTMLDivElement
-    }[],
+const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, borderWidth, className }: {
+    source: HTMLDivElement|undefined,
+    target: HTMLDivElement,
+    level: number,
     zIndex?: number,
     borderColor?: string,
     borderStyle?: string,
     borderWidth?: string,
     className?: string,
-    disassemblyViewId: number,
-}) {
-    const [scrollPosition, setScrollPosition] = React.useState(0);
-
-    React.useEffect(() => {
-        if(backedges.length === 0) return;
-
-        const updateScrollPosition = () => {
-            console.log("Scrolling")
-            setScrollPosition(window.pageYOffset);
-        }
-        const div = backedges[0].source.parentElement as HTMLDivElement
-        div.addEventListener("scroll", updateScrollPosition);
-        return () => window.removeEventListener("scroll", updateScrollPosition)
-    })
-
-    if (backedges.length === 0) return <></>
-
-    const linePoints = backedges.map(backedge => {
-        const box0 = backedge.source.getBoundingClientRect()
-        const box1 = backedge.target.getBoundingClientRect()
-
-        const offsetX = window.scrollX
-        const offsetY = window.scrollY
-
-        const x0 = box0.left + box0.width + offsetX
-        const x1 = box1.left + box1.width + offsetX
-        const y0 = box0.top + offsetY
-        const y1 = box1.top + offsetY
-
-        return {
-            x0: Math.max(x0, x1),
-            x1: Math.max(x0, x1),
-            y0: y0 + BLOCK_TOP_OFFSET,
-            y1: y1 + BLOCK_TOP_OFFSET,
-        }
-    })
-
+}) => {
     const lineStyle = {
         stroke: 'red',
         strokeWidth: '2px',
     }
+    
+    if(source === undefined) return null
+
+    const box0 = source.getBoundingClientRect()
+    const box1 = target.getBoundingClientRect()
+
+    const offsetX = window.scrollX
+    const offsetY = window.scrollY
+
+    const x0 = box0.left + box0.width + offsetX
+    const x1 = box1.left + box1.width + offsetX
+    const y0 = box0.top + offsetY
+    const y1 = box1.top + offsetY
+    
+    const up = y0 > y1
+    
+    const blockWidth = box0.width
+    const width = Math.abs(x1 - x0)
+    const height = Math.abs(y1 - y0)
+    const svgPad = 10
+    const levelIndent = 5 - level
+
     return (
         <svg style={{
             zIndex: 10,
-            position: 'fixed',
-            top: '0px',
-            left: '0px',
-            width: '100%',
-            height: '100%',
+            position: 'absolute',
+            top: BLOCK_TOP_OFFSET-svgPad - (up?height:0),
+            left: blockWidth + BLOCK_ARROW_GAP - svgPad,
+            width: width + BACKEDGE_MIDDLE_OFFSET * levelIndent + svgPad*2,
+            height: height + 10 + svgPad*2,
             pointerEvents: 'none',
         }}
         >
@@ -73,30 +58,34 @@ function BackEdge({ backedges, zIndex, borderColor, borderStyle, borderWidth, cl
                     <polygon points="0 0, 10 3.5, 0 7" />
                 </marker>
             </defs>
-            {linePoints.map(({ x0, x1, y0, y1 }, i) => (
-                <g>
-                    <line key={disassemblyViewId + ":" + i + 'start'}
-                        x1={x0 - ARROW_SIZE}
-                        x2={x0 + BACKEDGE_MIDDLE_OFFSET}
-                        y1={y0}
-                        y2={y0}
-                        style={lineStyle} />
-                    <line key={disassemblyViewId + ":" + i + 'middle'}
-                        x1={x0 + BACKEDGE_MIDDLE_OFFSET}
-                        x2={x1 + BACKEDGE_MIDDLE_OFFSET}
-                        y1={y0}
-                        y2={y1}
-                        style={lineStyle} />
-                    <line key={disassemblyViewId + ":" + i + 'end'}
-                        x1={x1 + BACKEDGE_MIDDLE_OFFSET}
-                        x2={x1 - ARROW_SIZE}
-                        y1={y1}
-                        y2={y1}
-                        style={lineStyle} markerEnd="url(#arrowhead)" />
-                </g>
-            ))}
+            <g>
+                <line
+                    x1={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
+                    x2={svgPad + (up?ARROW_SIZE:0)}
+                    y1={svgPad}
+                    y2={svgPad}
+                    style={lineStyle}
+                    markerEnd={up ? "url(#arrowhead)" : ""}
+                />
+                <line
+                    x1={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
+                    x2={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
+                    y1={svgPad}
+                    y2={svgPad + height}
+                    style={lineStyle} />
+                <line
+                    x1={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
+                    x2={svgPad + (!up?ARROW_SIZE:0)}
+                    y1={svgPad + height}
+                    y2={svgPad + height}
+                    style={lineStyle}
+                    markerEnd={!up?"url(#arrowhead)":""} />
+            </g>
         </svg>
     );
 }
+// , (prevProps, nextProps) => {
+//     return prevProps.source === nextProps.source && prevProps.target === nextProps.target
+// }
 
 export default BackEdge
