@@ -137,14 +137,9 @@ function DisassemblyView({ id }:{
         // Check if disassemblyBlockRefs is initialized
         if(Object.keys(disassemblyBlockRefs.current).length === 0) return;
         const currBackedges: typeof backedges = {}
-        const doneBlocks: string[] = []
         pages.forEach((page,i) => {
             page.blocks.forEach((block,j) => {
-                if(doneBlocks.includes(block.name)) {
-                    currBackedges[i+':'+j] = []
-                    return
-                }
-                doneBlocks.push(block.name)
+                if(block.block_type === 'pseudoloop') return;
                 currBackedges[i+':'+j] = pages.map(page => page.blocks)
                     .flat()
                     .filter(b => block.backedges.includes(b.name) && b.start_address in disassemblyBlockRefs.current)
