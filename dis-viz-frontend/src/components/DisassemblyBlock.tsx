@@ -7,7 +7,7 @@ import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import * as api from "../api";
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
+import { selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice';
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 import BackEdge from "./BackEdge";
@@ -19,7 +19,7 @@ const LOOP_INDENT_SIZE = 26
 
 
 
-function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, block_type, backedgeTargets }: { 
+function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo }: { 
     block: InstructionBlock, 
     i: number,
     allBlocks: InstructionBlock[],
@@ -29,14 +29,15 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
         [start_address: number]: HTMLDivElement
     }>,
     lineSelection: DisIdSelections|null,
-    block_type: 'pseudoloop'|'normal',
     backedgeTargets: HTMLDivElement[],
+    drawPseudo: 'full'|'none'|'short'
 }) {
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
+    const blockOrder = useAppSelector(selectOrder)
     
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
@@ -105,8 +106,8 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     }
     
     return <>
-        <Card className={block_type==='normal'?'':'pseudoloop'} onClick={() => {
-            if (block_type==='pseudoloop') {
+        <Card className={block.block_type==='normal'?'':'pseudoloop'} onClick={() => {
+            if (block.block_type==='pseudoloop' && drawPseudo!=='full') {
                 dispatch(setDisassemblyLineSelection({
                     disassemblyViewId: id,
                     disIdSelections: {
@@ -128,14 +129,14 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
                 maxWidth: '400px',
                 textAlign: 'center',
-                border: block_type==='normal'?'1px solid black':'3px dashed lightgray',
+                border: block.block_type==='normal'?'1px solid black':'3px dashed lightgray',
             }}
             ref={(thisRef: HTMLDivElement) => {
                 disassemblyBlockRefs.current[block.start_address] = thisRef
                 thisBlockRef.current.ref = thisRef
             }}
         >
-            {block.block_type === 'pseudoloop' && 
+            {block.block_type === 'pseudoloop' && drawPseudo === 'short' && 
             <span style={{
                 paddingTop: '10px',
                 paddingBottom: '10px',
@@ -151,7 +152,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
             </span> </span>}
 
-            {block.block_type !== 'pseudoloop' &&
+            {(block.block_type === 'normal' || (block.block_type === 'pseudoloop' && drawPseudo === 'full')) && <>
             <Card.Header style={{
                 background: '#ddd',
                 textAlign: 'left',
@@ -181,7 +182,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         strokeWidth= "1px"
                         transform="translate(25, 30) rotate(-90) scale(5,5)"
                         onClick={(e) => {
-                            api.getDisassemblyBlock(binaryFilePath, block.backedges[0]).then(block => {
+                            api.getDisassemblyBlock(binaryFilePath, block.backedges[0], blockOrder).then(block => {
                                 dispatch(setDisassemblyLineSelection({
                                     disassemblyViewId: id,
                                     disIdSelections: {
@@ -214,8 +215,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                     </span>
                 </span>
                 {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
-            </Card.Header>}
-            {block.block_type !== 'pseudoloop' &&
+            </Card.Header>
             <ListGroup variant="flush" style={{
                 paddingLeft: '10px',
             }}>
@@ -264,8 +264,8 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                     />)
                 }
                 )}
-            </ListGroup>}
-{/* block.block_type === 'normal' &&  */}
+            </ListGroup>
+            </>}
             {backedgeTargets.map((backedgeTarget,i) => <BackEdge
                 key={i}
                 source={thisBlockRef.current.ref}

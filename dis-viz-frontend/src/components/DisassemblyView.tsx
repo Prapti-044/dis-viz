@@ -1,13 +1,14 @@
 import React  from 'react';
 
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
-import { BlockPage, Instruction } from '../types'
+import { changeOrder, selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice'
+import { BLOCK_ORDERS, BlockPage, Instruction } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { Form } from 'react-bootstrap';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -85,21 +86,22 @@ function DisassemblyView({ id }:{
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
+    const blockOrder = useAppSelector(selectOrder)
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
         })
         if(lineSelection && lineSelection.addresses.length > 0) {
-            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0]).then(setAfterFetch)
+            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0], blockOrder).then(setAfterFetch)
         }
         else {
-            api.getDisassemblyPage(binaryFilePath, 0).then(setAfterFetch)
+            api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
         }
-    }, [lineSelection])
+    }, [lineSelection, blockOrder])
 
     const addNewPage = (newPageNo: number) => {
-        api.getDisassemblyPage(binaryFilePath, newPageNo).then(page => {
+        api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
             let pagesCopy = [...pages]
             pagesCopy.push(page)
             pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
@@ -154,7 +156,7 @@ function DisassemblyView({ id }:{
         })
         setBackedges(currBackedges)
     }, [pages])
-    
+
     const borderStyle: {[style: string]: string} = {}
     if(active) {
         borderStyle.border = '1px solid red'
@@ -163,6 +165,8 @@ function DisassemblyView({ id }:{
     let currentHidableName = ""
     const currentHidableInstructions: Instruction[] = []
     let totalHidables = 0
+    
+    let finalPages = pages
 
     return <>
         <label className="toggle" style={{
@@ -180,29 +184,52 @@ function DisassemblyView({ id }:{
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>
-        {pages ?  
+        {finalPages.length > 0 ?  
         <div style={{
             ...borderStyle,
             overflow: 'scroll',
         }}
         >
-            {pages.length > 0 && pages[0].page_no > 1?<button onClick={e => {addNewPage(pages[0].page_no-1)}}>
+            <div style={{
+                position: 'absolute',
+                top: '0',
+                width: '100%',
+                backgroundColor: '#f1f1f1',
+                padding: '10px',
+                fontWeight: 'bold',
+                zIndex: 1,
+                display: 'flex',
+                flexDirection: 'row',
+            }}>
+                <Form.Group style={{}} className='form-inline'>
+                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+                        Order By: 
+                        <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
+                            dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
+                        }}>
+                            <option value="memory_order">Memory Address</option>
+                            <option value="loop_order">Loop Structure</option>
+                        </Form.Select>
+                    </Form.Label>
+                </Form.Group>
+            </div>
+            {finalPages.length > 0 && finalPages[0].page_no > 1?<button onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
-            {pages.map((page,i) => page.blocks.map((block, j, allBlocks) => (
+            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) => (
                 <DisassemblyBlock
                     block={block}
                     i={j}
                     key={j}
                     allBlocks={allBlocks}
                     id={id}
-                    pages={pages}
+                    pages={finalPages}
                     disassemblyBlockRefs={disassemblyBlockRefs}
                     lineSelection={lineSelection}
-                    block_type={block.block_type}
+                    drawPseudo={'short'}
                     backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
             ))).flat()}
-            {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
+            {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
             {(onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start))?

@@ -1,6 +1,9 @@
 import 'reflect-metadata' // Import needed for class-transformer
 import { Expose, Type } from "class-transformer";
 
+
+export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
+
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: number[];

@@ -24,21 +24,20 @@ app.add_middleware(
 async def index():
     return RedirectResponse(url='/docs')
     
-@app.post("/getdisassemblypage/{page_no}")
-async def getdisassemblypage(page_no: int, filepath: FilePath):
-    pages = decode_cache_binary(filepath.path)['disassembly']['pages']
+@app.post("/getdisassemblypage/{order}/{page_no}")
+async def getdisassemblypage(order: str, page_no: int, filepath: FilePath):
+    pages = decode_cache_binary(filepath.path)['disassembly'][order]['pages']
     page_no = max(0, min(page_no, len(pages)-1))
     return next(page for page in pages if page.page_no == page_no)
 
-@app.post("/getdisassemblypagebyaddress/{start_address}")
-async def getdisassembly(start_address: int, filepath: FilePath):
-    pages = decode_cache_binary(filepath.path)['disassembly']['pages']
-    start_address = max(pages[0].start_address, min(pages[-1].end_address, start_address))
-    return next(page for page in pages if page.start_address <= start_address <= page.end_address)
+@app.post("/getdisassemblypagebyaddress/{order}/{start_address}")
+async def getdisassembly(order: str, start_address: int, filepath: FilePath):
+    pages = decode_cache_binary(filepath.path)['disassembly'][order]['pages']
+    return next(page for page in pages if any((block.start_address <= start_address <= block.end_address) for block in page.blocks))
 
-@app.post("/getdisassemblyblockbyid/{block_id}")
-async def getdisassemblybyid(block_id: str, filepath: FilePath):
-    blocks = decode_cache_binary(filepath.path)['disassembly']['blocks']
+@app.post("/getdisassemblyblockbyid/{order}/{block_id}")
+async def getdisassemblybyid(order: str, block_id: str, filepath: FilePath):
+    blocks = decode_cache_binary(filepath.path)['disassembly'][order]['blocks']
     return next(block for block in blocks if block.name == block_id and block.block_type == 'normal')
 
 @app.post("/getminimapdata")
@@ -57,7 +56,7 @@ async def getsourcefile(binary_file_path: FilePath, filepath: FilePath) -> Sourc
     with open(filepath.path, "r") as f:
         file_content = f.readlines()
     
-    blocks: list[InstructionBlock] = list(filter(lambda block: filepath.path in block.instructions[0].correspondence, decode_cache_binary(binary_file_path.path)['disassembly']['blocks']))
+    blocks: list[InstructionBlock] = list(filter(lambda block: filepath.path in block.instructions[0].correspondence, decode_cache_binary(binary_file_path.path)['disassembly']['memory_order']['blocks']))
     line_correspondences: list[LineCorrespondence] = list(filter(
         lambda line_correspondence: line_correspondence.source_file == filepath.path,
         decode_cache_binary(binary_file_path.path)['dyninst_info']['line_correspondence'])

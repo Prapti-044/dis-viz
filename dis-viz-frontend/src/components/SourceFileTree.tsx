@@ -131,6 +131,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
             const style: CSS.Properties = {
                 background: finalSourceCSSBackground[rootFile.fullPath],
                 border: finalSourceCSSBackground[rootFile.fullPath]=='white'?'0':'1px solid black',
+                whiteSpace: 'nowrap',
             }
             if (rootFile.status === 'opened') {
                 style.textDecoration = 'underline'

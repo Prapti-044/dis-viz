@@ -1,12 +1,11 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
-import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile, InstructionBlock } from './types'
+import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile, InstructionBlock, BLOCK_ORDERS } from './types'
 import { MinimapType } from './features/minimap/minimapSlice';
 
 
 
 const apiURL = getUrls().backend + '/'
-
 
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(
@@ -56,9 +55,9 @@ export async function getSourceLines(binaryFile: string, sourceFile: string): Pr
     return result;
 }
 
-export async function getDisassemblyPage(filepath: string, pageNo: number): Promise<BlockPage> {
+export async function getDisassemblyPage(filepath: string, pageNo: number, order: BLOCK_ORDERS): Promise<BlockPage> {
     const response = await fetch(
-        apiURL + "getdisassemblypage/" + pageNo, {
+        apiURL + "getdisassemblypage/" + order + '/' + pageNo, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -71,9 +70,9 @@ export async function getDisassemblyPage(filepath: string, pageNo: number): Prom
     return blockPage;
 }
 
-export async function getDisassemblyBlock(filepath: string, blockId: string): Promise<InstructionBlock> {
+export async function getDisassemblyBlock(filepath: string, blockId: string, order: BLOCK_ORDERS): Promise<InstructionBlock> {
     const response = await fetch(
-        apiURL + "getdisassemblyblockbyid/" + blockId, {
+        apiURL + "getdisassemblyblockbyid/" + order + "/" + blockId, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -86,9 +85,9 @@ export async function getDisassemblyBlock(filepath: string, blockId: string): Pr
     return block;
 }
 
-export async function getDisassemblyPageByAddress(filepath: string, startAddress: number): Promise<BlockPage> {
+export async function getDisassemblyPageByAddress(filepath: string, startAddress: number, order: BLOCK_ORDERS): Promise<BlockPage> {
     const response = await fetch(
-        apiURL + "getdisassemblypagebyaddress/" + startAddress, {
+        apiURL + "getdisassemblypagebyaddress/" + order + "/" + startAddress, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

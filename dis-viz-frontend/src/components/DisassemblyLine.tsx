@@ -8,7 +8,7 @@ import { Instruction, DisassemblyLineSelection, InstructionBlock } from '../type
 import { disLineToId, MAX_FN_SIZE, shortenName } from '../utils'
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import * as api from "../api";
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
+import { selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice';
 
 function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable }: {
     block: InstructionBlock,
@@ -28,6 +28,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
     const dispatch = useAppDispatch();
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
+    const blockOrder = useAppSelector(selectOrder)
 
     const [showDoc, setShowDoc] = React.useState(false)
 
@@ -107,7 +108,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                             left: "5px",
                         }} onClick={() => {
 
-                            api.getDisassemblyBlock(binaryFilePath, nextBlock).then(block => {
+                            api.getDisassemblyBlock(binaryFilePath, nextBlock, blockOrder).then(block => {
                                 dispatch(addDisassemblyView({
                                     addresses: block.instructions.map(instruction => instruction.address),
                                     source_selection: []

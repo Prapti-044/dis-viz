@@ -1,5 +1,6 @@
+from ast import List
 from functools import lru_cache
-from typing import Iterable
+from typing import Any, Callable, Dict, Iterable, Type, TypeVar
 import simpleoptparser as sopt
 import json
 from .instructions import BlockPage, Function, Hidable, Instruction, InstructionBlock, BlockLink, LineCorrespondence, Loop, Variable, VariableLocation
@@ -131,12 +132,12 @@ def decode_cache_binary(filepath: str):
     ]
 
     # Hidables
-    for function in tqdm(functions, desc="Embedding Hidables"):
-        fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
-        for block in fn_blocks:
-            for hidable in function.hidables:
-                if hidable.start_address >= block.start_address and hidable.end_address <= block.end_address:
-                    block.hidables.append(hidable)
+    # for function in tqdm(functions, desc="Embedding Hidables"):
+    #     fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
+    #     for block in fn_blocks:
+    #         for hidable in function.hidables:
+    #             if hidable.start_address >= block.start_address and hidable.end_address <= block.end_address:
+    #                 block.hidables.append(hidable)
 
     loop_count = {}
     def add_loops_to_blocks(blocks, loop):
@@ -179,6 +180,62 @@ def decode_cache_binary(filepath: str):
                     if loop['name'] in loop_count:
                         loop['loop_total'] = loop_count[loop['name']]
 
+
+    # Creating order for loop structure
+    def get_all_blocks_in_loop(blocks: list[InstructionBlock], loop: Loop, visited_blocks: list[str]):
+        blocks_in_loop = []
+        for block in filter(lambda b: b.name in loop.blocks, blocks):
+            if block.name in visited_blocks:
+                continue
+            if loop.loops:
+                for inner_loop in loop.loops:
+                    if block.name in inner_loop.blocks:
+                        blocks_in_loop += get_all_blocks_in_loop(blocks, inner_loop, visited_blocks)
+                        break
+                else:
+                    visited_blocks.append(block.name)
+                    blocks_in_loop.append(block)
+            else:
+                visited_blocks.append(block.name)
+                blocks_in_loop.append(block)
+
+        return blocks_in_loop
+        
+
+    loop_order_blocks = []
+    __visited_blocks = []
+    for fn in tqdm(functions, desc="Loop Order"):
+        fn_blocks = sorted(list(filter(lambda b: b.function_name == fn.name, blocks)), key=lambda b: b.start_address)
+        for fn_block in fn_blocks:
+            if fn_block.name in __visited_blocks:
+                continue
+            
+            if fn_block.loops:
+                all_loop_blocks = get_all_blocks_in_loop(
+                    fn_blocks,
+                    next(filter(
+                        lambda l: l.name in map(lambda l2: l2['name'], fn_block.loops),
+                        fn.loops
+                    ), Loop([], [], None, '')),
+                    __visited_blocks
+                )
+                loop_order_blocks += all_loop_blocks
+
+            else:
+                __visited_blocks.append(fn_block.name)
+                loop_order_blocks.append(fn_block)
+                
+    # Loop order pages
+    loop_order_pages = [[ loop_order_blocks[0] ]]
+    for block in loop_order_blocks[1:]:
+        if sum(len(block) for block in loop_order_pages[-1] if block.block_type == 'normal') >= N_INSTRUCTIONS_PER_PAGE:
+            loop_order_pages.append([])
+        loop_order_pages[-1].append(block)
+
+    loop_order_pages = [BlockPage(blocks=page, page_no=i) for i, page in enumerate(loop_order_pages)]
+    loop_order_pages[-1].is_last = True
+
+
     # Creating pseudo blocks for loops
     processed_loops = [] # fn_name:loop_name
     idx = 0
@@ -210,7 +267,6 @@ def decode_cache_binary(filepath: str):
                     idx += 1
         idx += 1
 
-
     # Minimap data
     block_heights = [block.n_instructions for block in blocks]
     block_loop_indents = [len(block.loops) for block in blocks]
@@ -229,9 +285,16 @@ def decode_cache_binary(filepath: str):
 
     return {
         'disassembly': {
-            'blocks': blocks,
-            'links': links,
-            'pages': pages
+            'memory_order': {
+                'blocks': blocks,
+                'links': links,
+                'pages': pages
+            },
+            'loop_order': {
+                'blocks': loop_order_blocks,
+                'links': links,
+                'pages': loop_order_pages
+            },
         },
         'minimap': {
             'block_heights': block_heights,

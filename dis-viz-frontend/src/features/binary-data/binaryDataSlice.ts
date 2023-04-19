@@ -1,12 +1,15 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
+import { BLOCK_ORDERS } from '../../types';
 
 export interface BinaryFilePath {
-    path: string
+    path: string,
+    order: BLOCK_ORDERS,
 }
 
 const initialState: BinaryFilePath = {
-    path: ''
+    path: '',
+    order: 'memory_order',
 }
 
 export const binaryFilePathSlice = createSlice({
@@ -15,11 +18,15 @@ export const binaryFilePathSlice = createSlice({
     reducers: {
         setBinaryFilePath: (state: BinaryFilePath, action: PayloadAction<string>) => {
             state.path = action.payload
+        },
+        changeOrder: (state: BinaryFilePath, action: PayloadAction<BLOCK_ORDERS>) => {
+            state.order = action.payload
         }
     },
 });
 
-export const { setBinaryFilePath } = binaryFilePathSlice.actions;
+export const { setBinaryFilePath, changeOrder } = binaryFilePathSlice.actions;
 export const selectBinaryFilePath = (state: RootState) => state.binaryFilePath.path
+export const selectOrder = (state: RootState) => state.binaryFilePath.order
 
 export default binaryFilePathSlice.reducer;
