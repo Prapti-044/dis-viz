@@ -1,6 +1,6 @@
 import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
-import { BlockPage, LineCorrespondence, Function, DyninstInfo, DisassemblyLineSelection, SourceFile, InstructionBlock, BLOCK_ORDERS } from './types'
+import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS } from './types'
 import { MinimapType } from './features/minimap/minimapSlice';
 
 
@@ -21,9 +21,9 @@ export async function getSourceFiles(filepath: string) : Promise<string[]> {
     return result.map((d: {'file': string}) => d.file);
 }
 
-export async function getMinimapData(filepath: string) : Promise<MinimapType> {
+export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Promise<MinimapType> {
     const response = await fetch(
-        apiURL + "getminimapdata", {
+        apiURL + "getminimapdata/" + order, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

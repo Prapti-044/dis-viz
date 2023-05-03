@@ -125,12 +125,6 @@ def decode_cache_binary(filepath: str):
                     if variable_location.start_address <= ins.address <= variable_location.end_address and variable_location.location in ins.instruction:
                         ins.variables.append(variable)
 
-    built_in_block = [
-        all(
-            source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
-        ) for block in blocks
-    ]
-
     # Hidables
     # for function in tqdm(functions, desc="Embedding Hidables"):
     #     fn_blocks = list(filter(lambda b: b.function_name == function.name, blocks))
@@ -268,8 +262,28 @@ def decode_cache_binary(filepath: str):
         idx += 1
 
     # Minimap data
-    block_heights = [block.n_instructions for block in blocks]
+    # memory order
+    block_heights = [(block.n_instructions if block.block_type == 'normal' else 0) for block in blocks]
     block_loop_indents = [len(block.loops) for block in blocks]
+
+    built_in_block = [
+        all(
+            source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
+        ) for block in blocks
+    ]
+    loop_order_built_in_block = [
+        all(
+            source_file.lower().startswith(tuple(SYSTEM_LOCATIONS)) for source_file in block.instructions[0].correspondence.keys()
+        ) for block in loop_order_blocks
+    ]
+
+    for block in loop_order_blocks:
+        print(block.block_type)
+
+    
+    # loop order
+    loop_order_block_heights = [block.n_instructions if block.block_type == 'normal' else 0 for block in loop_order_blocks]
+    loop_order_block_loop_indents = [len(block.loops) for block in loop_order_blocks]
 
     # Preprocessing pages
     pages = [[ blocks[0] ]]
@@ -297,10 +311,18 @@ def decode_cache_binary(filepath: str):
             },
         },
         'minimap': {
-            'block_heights': block_heights,
-            'built_in_block': built_in_block,
-            'block_start_address': [block.start_address for block in blocks],
-            'block_loop_indents': block_loop_indents
+            'memory_order': {
+                'block_heights': block_heights,
+                'built_in_block': built_in_block,
+                'block_start_address': [block.start_address for block in blocks],
+                'block_loop_indents': block_loop_indents
+            },
+            'loop_order': {
+                'block_heights': loop_order_block_heights,
+                'built_in_block': loop_order_built_in_block,
+                'block_start_address': [block.start_address for block in blocks],
+                'block_loop_indents': loop_order_block_loop_indents
+            },
         },
         'source_files': source_files,
         'dyninst_info': {

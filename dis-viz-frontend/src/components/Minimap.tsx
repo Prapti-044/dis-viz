@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAppSelector } from '../app/hooks';
-import { selectMinimap } from '../features/minimap/minimapSlice'
+import { MinimapType, selectMinimap } from '../features/minimap/minimapSlice'
 import { selectSelections, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
 import { codeColors, hexToHSL } from '../utils'
 
@@ -27,13 +27,14 @@ function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: n
 }
 
 
-export default function Minimap({ visibleBlockWindow, width, ...props }: {
+export default function Minimap({ minimap, visibleBlockWindow, width, ...props }: {
+    minimap: MinimapType,
     width: number,
     visibleBlockWindow: {start: number, end: number}
 }) {
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
-    const minimap = useAppSelector(selectMinimap)
     const selections = useAppSelector(selectSelections)
+
     const totalBlocks = minimap.blockStartAddress.length // b
     const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.start)
     const brushEndBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.end)
@@ -101,6 +102,12 @@ export default function Minimap({ visibleBlockWindow, width, ...props }: {
             }
 
             ctx.beginPath()
+            if(blockHeight === 0) {
+                ctx.setLineDash([5, 5])
+            }
+            else {
+                ctx.setLineDash([])
+            }
             ctx.moveTo(x, y)
 
             ctx.strokeStyle = minimap.builtInBlock[i] === true ? "lightgrey" : "grey"

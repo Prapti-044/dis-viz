@@ -4,13 +4,13 @@ import inteldocs from '../inteldocs.json'
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
-import { Instruction, DisassemblyLineSelection, InstructionBlock } from '../types'
+import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName } from '../utils'
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import * as api from "../api";
-import { selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice';
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 
-function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable }: {
+function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder }: {
     block: InstructionBlock,
     instruction: Instruction,
     isHighlighted: boolean,
@@ -23,12 +23,12 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     onGoingSelection: DisassemblyLineSelection | null,
     color: string,
     disId: number,
-    isHidable: boolean
+    isHidable: boolean,
+    blockOrder: BLOCK_ORDERS,
 }) {
 
     const dispatch = useAppDispatch();
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
-    const blockOrder = useAppSelector(selectOrder)
 
     const [showDoc, setShowDoc] = React.useState(false)
 

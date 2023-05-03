@@ -1,13 +1,13 @@
 import React from "react";
 import { Card, ListGroup } from "react-bootstrap";
 import { DisIdSelections, setDisassemblyLineSelection } from "../features/selections/selectionsSlice";
-import { BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
+import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
 import { MAX_FN_SIZE, codeColors, shortenName } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import * as api from "../api";
-import { selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice';
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 import BackEdge from "./BackEdge";
@@ -19,7 +19,7 @@ const LOOP_INDENT_SIZE = 26
 
 
 
-function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo }: { 
+function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo, blockOrder }: { 
     block: InstructionBlock, 
     i: number,
     allBlocks: InstructionBlock[],
@@ -30,14 +30,14 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     }>,
     lineSelection: DisIdSelections|null,
     backedgeTargets: HTMLDivElement[],
-    drawPseudo: 'full'|'none'|'short'
+    drawPseudo: 'full'|'none'|'short',
+    blockOrder: BLOCK_ORDERS,
 }) {
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
-    const blockOrder = useAppSelector(selectOrder)
     
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
@@ -245,6 +245,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                     color={codeColors[id]}
                                     disId={id}
                                     isHidable={isHidable}
+                                    blockOrder={blockOrder}
                                 />
                             </>
                         }
@@ -261,6 +262,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         color={codeColors[id]}
                         disId={id}
                         isHidable={isHidable}
+                        blockOrder={blockOrder}
                     />)
                 }
                 )}

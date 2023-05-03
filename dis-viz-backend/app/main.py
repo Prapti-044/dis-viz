@@ -40,9 +40,9 @@ async def getdisassemblybyid(order: str, block_id: str, filepath: FilePath):
     blocks = decode_cache_binary(filepath.path)['disassembly'][order]['blocks']
     return next(block for block in blocks if block.name == block_id and block.block_type == 'normal')
 
-@app.post("/getminimapdata")
-async def getminimapdata(filepath: FilePath):
-    minimap = decode_cache_binary(filepath.path)['minimap']
+@app.post("/getminimapdata/{order}")
+async def getminimapdata(order: str, filepath: FilePath):
+    minimap = decode_cache_binary(filepath.path)['minimap'][order]
     return minimap
 
 

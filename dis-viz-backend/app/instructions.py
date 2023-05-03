@@ -59,7 +59,7 @@ class InstructionBlock(AddressRange):
     function_name: str
     instructions: list[Instruction]
     loops: list[BlockLoopState] = field(init=False)
-    block_type: str = field(init=False)
+    block_type: str = field(init=False) # 'normal' | 'pseudoloop'
     # loop_indents: int = field(init=False)
 
     backedges: list[str] = field(init=False)

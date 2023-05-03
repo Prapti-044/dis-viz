@@ -1,7 +1,7 @@
 import React  from 'react';
 
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
-import { changeOrder, selectBinaryFilePath, selectOrder } from '../features/binary-data/binaryDataSlice'
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage, Instruction } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
@@ -9,6 +9,7 @@ import Minimap from './Minimap';
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { Form } from 'react-bootstrap';
+import { MinimapType } from '../features/minimap/minimapSlice';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -80,13 +81,14 @@ function DisassemblyView({ id }:{
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
     const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
     const active = activeDisassemblyView === id
+    const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
 
     const lineSelection = selections[id]
     const [pages, setPages] = React.useState<BlockPage[]>([]);
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
-    const blockOrder = useAppSelector(selectOrder)
+    const [minimap, setMinimap] = React.useState<MinimapType>()
 
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
@@ -128,6 +130,10 @@ function DisassemblyView({ id }:{
             }
         }
     }, [lineSelection])
+    
+    React.useEffect(() => {
+        api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
+    }, [binaryFilePath, blockOrder])
 
     const activeRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
@@ -205,7 +211,8 @@ function DisassemblyView({ id }:{
                     <Form.Label style={{whiteSpace: 'nowrap'}}>
                         Order By: 
                         <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
-                            dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
+                            // dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
+                            setBlockOrder(e.currentTarget.value as BLOCK_ORDERS)
                         }}>
                             <option value="memory_order">Memory Address</option>
                             <option value="loop_order">Loop Structure</option>
@@ -227,16 +234,17 @@ function DisassemblyView({ id }:{
                     disassemblyBlockRefs={disassemblyBlockRefs}
                     lineSelection={lineSelection}
                     drawPseudo={'short'}
+                    blockOrder={blockOrder}
                     backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
             ))).flat()}
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
-            {(onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start))?
-            <Minimap
+            {minimap && (onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start)) && <Minimap
                 width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
-            ></Minimap>:<></>}
+                minimap={minimap}
+            ></Minimap>}
             </div> :
             <div>
                 <h1>Please select a binary file to get disassembly code here.</h1>

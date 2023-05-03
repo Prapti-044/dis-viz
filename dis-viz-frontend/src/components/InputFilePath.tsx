@@ -15,6 +15,7 @@ function InputFilePath() {
 
     const dispatch = useAppDispatch();
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    // const blockOrder = useAppSelector(selectOrder)
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -33,9 +34,9 @@ function InputFilePath() {
                 onChange={(event: React.FormEvent<HTMLSelectElement>) => {
                     dispatch(setBinaryFilePath((event.target as HTMLSelectElement).value))
 
-                    api.getMinimapData((event.target as HTMLSelectElement).value).then(minimap => {
-                        dispatch(initBlocks(minimap))
-                    })
+                    // api.getMinimapData((event.target as HTMLSelectElement).value, blockOrder).then(minimap => {
+                    //     dispatch(initBlocks(minimap))
+                    // })
                 }}
                 value={binaryFilePath}
             >
