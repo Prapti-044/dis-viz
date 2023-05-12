@@ -16,7 +16,7 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
     className?: string,
 }) => {
     const lineStyle = {
-        stroke: 'red',
+        stroke: '#D3D3D3',
         strokeWidth: '2px',
     }
     
@@ -55,7 +55,7 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
             <defs>
                 <marker id="arrowhead" markerWidth="10" markerHeight="7"
                     refX="0" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" />
+                    <polygon points="0 0, 10 3.5, 0 7" fill='grey' />
                 </marker>
             </defs>
             <g>

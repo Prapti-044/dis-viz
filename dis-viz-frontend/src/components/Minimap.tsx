@@ -5,7 +5,7 @@ import { selectSelections, selectActiveDisassemblyView } from '../features/selec
 import { codeColors, hexToHSL } from '../utils'
 
 const BLOCK_LINE_HEIGHT_FACTOR = 1.2
-const BLOCK_LINE_WIDTH = 120
+const BLOCK_LINE_WIDTH = 90
 const BLOCK_SEP = 5
 const BLOCK_LINE_LEFT = 20
 const BLOCKS_START_TOP = 50
@@ -91,7 +91,7 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
 
             const curBlock = i - drawingStartBlockI
             const x = BLOCK_LINE_LEFT + minimap.blockLoopIndents[i] * LOOP_INDENT_SIZE
-            const y = BLOCKS_START_TOP + curBlock * BLOCK_SEP + cumulativeHeight
+            const y = BLOCKS_START_TOP + curBlock * BLOCK_SEP + cumulativeHeight + blockHeight * BLOCK_LINE_HEIGHT_FACTOR / 2
 
             // Detect if the brush should start here
             if(i === brushStartBlockI) {
@@ -201,13 +201,13 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
     <h5 style={{
         position: "absolute",
         fontSize: "17px",
-        top: "5px",
+        top: "5px", //5px
         right: "60px",
         color: "#4b89e7",
     }}>Overview</h5>
     <div style={{
         position: "absolute",
-        top: "30px",
+        top: "0px", //30
         right: "20px",
         width: width+"px",
         height: "100%",
