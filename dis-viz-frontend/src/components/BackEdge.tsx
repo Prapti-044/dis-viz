@@ -22,6 +22,8 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
     
     if(source === undefined) return null
 
+    console.log(source.childNodes[0].childNodes[0], '->', target.childNodes[0].childNodes[0])
+
     const box0 = source.getBoundingClientRect()
     const box1 = target.getBoundingClientRect()
 
@@ -33,7 +35,7 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
     const y0 = box0.top + offsetY
     const y1 = box1.top + offsetY
     
-    const up = y0 > y1
+    const up = (source === target)?true:(y0 > y1)
     
     const blockWidth = box0.width
     const width = Math.abs(x1 - x0)
@@ -45,10 +47,10 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
         <svg style={{
             zIndex: 10,
             position: 'absolute',
-            top: BLOCK_TOP_OFFSET-svgPad - (up?height:0),
+            top: BLOCK_TOP_OFFSET-svgPad - (up?height:0) + (up?0:box0.height-25),
             left: blockWidth + BLOCK_ARROW_GAP - svgPad,
             width: width + BACKEDGE_MIDDLE_OFFSET * levelIndent + svgPad*2,
-            height: height + 10 + svgPad*2,
+            height: height + 10 + svgPad*2 + (up?box0.height:0),
             pointerEvents: 'none',
         }}
         >
@@ -71,13 +73,13 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
                     x1={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
                     x2={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
                     y1={svgPad}
-                    y2={svgPad + height}
+                    y2={svgPad + height + (up?box0.height-25:-box0.height+25)}
                     style={lineStyle} />
                 <line
                     x1={svgPad + BACKEDGE_MIDDLE_OFFSET * levelIndent}
                     x2={svgPad + (!up?ARROW_SIZE:0)}
-                    y1={svgPad + height}
-                    y2={svgPad + height}
+                    y1={svgPad + height + (up?box0.height-25:-box0.height+25)}
+                    y2={svgPad + height + (up?box0.height-25:-box0.height+25)}
                     style={lineStyle}
                     markerEnd={!up?"url(#arrowhead)":""} />
             </g>

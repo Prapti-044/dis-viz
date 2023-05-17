@@ -1,6 +1,9 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
+
+// JSON: https://www.wikitable2json.com/#/API/GetByPage
 import inteldocs from '../inteldocs.json'
+
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
@@ -54,7 +57,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
         const parsedTokens = tokens.map((token, i) => {
             // The opcode
             if (i === 0) {
-                const doc = inteldocs.find(doc => doc.instruction == token.toUpperCase())
+                const doc = inteldocs.find(doc => doc["Instruction"] == token.toUpperCase())
                 return <span key={instruction.address.toString(16) + "id" + i}>
                     {showDoc && doc ? <div className="tooltipitem">
                         {Object.entries(doc).map(([key, value]) => value ? <p><b>{key}</b>: {value}</p> : <></>)}

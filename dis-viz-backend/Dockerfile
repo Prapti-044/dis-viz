@@ -106,6 +106,11 @@ RUN gcc -g -O0 hello.c -o hello-O0
 RUN gcc -g -O3 hello.c -o hello-O3
 # hello exe is in /samples/multisource/hello
 
+WORKDIR /samples
+RUN gcc -g -O0 ifelse.c -o ifelse-O0
+RUN gcc -g -O3 ifelse.c -o ifelse-O3
+# hello exe is in /samples/ifelse
+
 # Copy dis-viz
 WORKDIR /App
 COPY app app

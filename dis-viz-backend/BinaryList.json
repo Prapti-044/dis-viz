@@ -51,6 +51,14 @@
         {
             "name": "[-O3] Example-1",
             "executable_path": "/samples/eg1-O3"
+        },
+        {
+            "name": "[-O0] If Block",
+            "executable_path": "/samples/ifelse-O0"
+        },
+        {
+            "name": "[-O3] If Block",
+            "executable_path": "/samples/ifelse-O3"
         }
 
     ]
