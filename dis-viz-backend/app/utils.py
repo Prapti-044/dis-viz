@@ -277,8 +277,6 @@ def decode_cache_binary(filepath: str):
         ) for block in loop_order_blocks
     ]
 
-    for block in loop_order_blocks:
-        print(block.block_type)
 
     
     # loop order

@@ -590,5 +590,35 @@
         "Instruction": "REPNZ",
         "Meaning": "Repeat MOVS/STOS/CMPS/LODS/SCAS",
         "Opcode": "0xF2, 0xF3"
+      },
+      {
+        "Instruction": "JZ",
+        "Meaning": "Jump if Zero",
+        "Opcode": "0x70...0x7F, 0x0F80...0x0F8F"
+      },
+      {
+        "Instruction": "JNLE",
+        "Meaning": "Jump if Not Less or Equal",
+        "Opcode": "0x70...0x7F, 0x0F80...0x0F8F"
+      },
+      {
+        "Instruction": "JLE",
+        "Meaning": "Jump if Less or Equal",
+        "Opcode": "0x70...0x7F, 0x0F80...0x0F8F"
+      },
+      {
+        "Instruction": "JNZ",
+        "Meaning": "Jump if Not Zero",
+        "Opcode": "0x70...0x7F, 0x0F80...0x0F8F"
+      },
+      {
+        "Instruction": "MOVDQA",
+        "Meaning": "Move Aligned Double Quadword",
+        "Opcode": "66 0F 6F /r"
+      },
+      {
+        "Instruction": "MOVAPS",
+        "Meaning": "Move Aligned Packed Single-Precision Floating-Point Values",
+        "Opcode": "0F 28 /r"
       }
 ]

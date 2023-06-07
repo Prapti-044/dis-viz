@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from enum import Enum, auto
+from typing import TypedDict
 
 @dataclass
 class VariableLocation:
@@ -46,12 +47,22 @@ class Hidable:
     start_address: int
     end_address: int
 
+class BlockLoopState(TypedDict):
+    name: str
+    loop_count: int
+    loop_total: int
+  
+
 @dataclass
 class InstructionBlock(AddressRange):
     name: str
     function_name: str
     instructions: list[Instruction]
-    loop_indents: int = field(init=False)
+    loops: list[BlockLoopState] = field(init=False)
+    block_type: str = field(init=False) # 'normal' | 'pseudoloop'
+    # loop_indents: int = field(init=False)
+
+    backedges: list[str] = field(init=False)
 
     hidables: list[Hidable] = field(init=False)
     next_block_numbers: list[str] = field(init=False)
@@ -66,7 +77,10 @@ class InstructionBlock(AddressRange):
         self.n_instructions = len(self.instructions)
         self.next_block_numbers = []
         self.hidables = []
-        self.loop_indents = 0
+        # self.loop_indents = 0
+        self.loops = []
+        self.block_type = 'normal'
+        self.backedges = []
 
 @dataclass
 class BlockLink:
@@ -87,8 +101,8 @@ class BlockPage(AddressRange):
     is_last: bool = False
     
     def __post_init__(self):
-        self.start_address = min(block.instructions[0].address for block in self.blocks if len(block.instructions) > 0)
-        self.end_address = max(block.instructions[-1].address for block in self.blocks if len(block.instructions) > 0)
+        self.start_address = min(block.instructions[0].address for block in self.blocks if len(block.instructions) > 0 and block.block_type == 'normal')
+        self.end_address = max(block.instructions[-1].address for block in self.blocks if len(block.instructions) > 0 and block.block_type == 'normal')
         self.n_instructions = sum([len(block) for block in self.blocks])
 
 
@@ -108,7 +122,7 @@ class BlockFlag(Enum):
 @dataclass
 class Loop:
     blocks: list[str]
-    backedges: list[dict[str, int]]
+    backedges: list[dict[str, str]]
     loops: list['Loop'] | None
     name: str
 

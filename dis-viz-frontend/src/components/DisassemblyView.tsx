@@ -123,7 +123,8 @@ function DisassemblyView({ id }:{
                 const scrollRef = disassemblyBlockRefs.current[blockAddress];
                 setTimeout(() => {
                     scrollRef.scrollIntoView({
-                        behavior: 'smooth'
+                        behavior: 'smooth',
+                        block: 'center',
                     })
                 }, 100);
                 break
