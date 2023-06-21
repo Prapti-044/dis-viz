@@ -13,23 +13,22 @@ import { MinimapType } from '../features/minimap/minimapSlice';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
-    [start_address: number]: HTMLDivElement
+    [start_address: number]: { div: HTMLDivElement, idx: number }
 }>) {
-    const [blockIsVisible, setBlockIsVisible] = React.useState<{blockAddress:number, inside:boolean}[]>([])
+    const [blockIsVisible, setBlockIsVisible] = React.useState<{blockIdx:number, blockAddress: number, inside:boolean}[]>([])
 
     const observer = new IntersectionObserver(entries => {
         const changedBlockAddresses = Object.keys(ref.current)
-            .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)]))
+            .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)].div))
 
         const newBlockVisibility = structuredClone(blockIsVisible)
-        newBlockVisibility.forEach(block => {
-            block.inside = false
-        })
+        newBlockVisibility.forEach(block => { block.inside = false })
         changedBlockAddresses.forEach((address, i) => {
             const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
             if (!foundBlock) {
                 newBlockVisibility.push({
                     blockAddress: parseInt(address),
+                    blockIdx: ref.current[parseInt(address)].idx,
                     inside: entries[i].isIntersecting
                 })
             }
@@ -54,8 +53,8 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
 
     React.useEffect(() => {
         for(const start_address in ref.current) {
-            if(ref.current[start_address])
-                observer.observe(ref.current[start_address])
+            if(ref.current[start_address].div)
+                observer.observe(ref.current[start_address].div)
         }
 
         return () => {
@@ -63,10 +62,10 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
         };
     }, [ref.current[parseInt(Object.keys(ref.current)[0])], observer]);
 
-    const visibleBlocks = blockIsVisible.filter(block => block.inside).map(block => block.blockAddress)
+    const visibleBlocks = blockIsVisible.filter(block => block.inside).sort((a, b) => a.blockIdx - b.blockIdx)
     return {
-        start: Math.min(...visibleBlocks),
-        end: Math.max(...visibleBlocks)
+        startAddress: visibleBlocks.length > 0 ? visibleBlocks[0].blockAddress : 0,
+        nBlocks: visibleBlocks.length,
     }
 }
 
@@ -85,11 +84,11 @@ function DisassemblyView({ id }:{
 
     const lineSelection = selections[id]
     const [pages, setPages] = React.useState<BlockPage[]>([]);
-    const disassemblyBlockRefs = React.useRef<{[start_address: number]: HTMLDivElement}>({})
+    const disassemblyBlockRefs = React.useRef<{[start_address: number]: { div: HTMLDivElement, idx: number }}>({})
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
     const [minimap, setMinimap] = React.useState<MinimapType>()
-
+    
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
@@ -120,7 +119,7 @@ function DisassemblyView({ id }:{
             const blockAddress = blockAddresses[i]
             if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
                 if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
-                const scrollRef = disassemblyBlockRefs.current[blockAddress];
+                const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
                 setTimeout(() => {
                     scrollRef.scrollIntoView({
                         behavior: 'smooth',
@@ -157,7 +156,7 @@ function DisassemblyView({ id }:{
                 currBackedges[i+':'+j] = pages.map(page => page.blocks)
                     .flat()
                     .filter(b => block.backedges.includes(b.name) && b.start_address in disassemblyBlockRefs.current)
-                    .map(b => disassemblyBlockRefs.current[b.start_address])
+                    .map(b => disassemblyBlockRefs.current[b.start_address].div)
                     .filter(elem => elem !== undefined)
             })
         })
@@ -174,6 +173,8 @@ function DisassemblyView({ id }:{
     let totalHidables = 0
     
     let finalPages = pages
+    
+    console.log(blockOrder)
 
     return <>
         <label className="toggle" style={{
@@ -228,7 +229,7 @@ function DisassemblyView({ id }:{
                 <DisassemblyBlock
                     block={block}
                     i={j}
-                    key={j}
+                    key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}
                     allBlocks={allBlocks}
                     id={id}
                     pages={finalPages}
@@ -241,7 +242,7 @@ function DisassemblyView({ id }:{
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
-            {minimap && (onScreenFirstBlockAddress.start && isFinite(onScreenFirstBlockAddress.start)) && <Minimap
+            {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
                 width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
                 minimap={minimap}

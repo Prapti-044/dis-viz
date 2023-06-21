@@ -30,14 +30,15 @@ function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: n
 export default function Minimap({ minimap, visibleBlockWindow, width, ...props }: {
     minimap: MinimapType,
     width: number,
-    visibleBlockWindow: {start: number, end: number}
+    visibleBlockWindow: {startAddress: number, nBlocks: number}
 }) {
+    
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const selections = useAppSelector(selectSelections)
 
     const totalBlocks = minimap.blockStartAddress.length // b
-    const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.start)
-    const brushEndBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.end)
+    const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.startAddress)
+    const brushEndBlockI = brushStartBlockI + visibleBlockWindow.nBlocks - 1
 
     let drawingStartBlockI:number = brushStartBlockI, drawingEndBlockI:number = brushStartBlockI+1
     

@@ -22,8 +22,6 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
     
     if(source === undefined) return null
 
-    console.log(source.childNodes[0].childNodes[0], '->', target.childNodes[0].childNodes[0])
-
     const box0 = source.getBoundingClientRect()
     const box1 = target.getBoundingClientRect()
 

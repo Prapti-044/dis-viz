@@ -26,7 +26,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     id: number,
     pages: BlockPage[],
     disassemblyBlockRefs: React.MutableRefObject<{
-        [start_address: number]: HTMLDivElement
+        [start_address: number]: { div: HTMLDivElement, idx: number }
     }>,
     lineSelection: DisIdSelections|null,
     backedgeTargets: HTMLDivElement[],
@@ -38,6 +38,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
+    const pageIdx = pages.findIndex(page => page.start_address <= block.start_address && block.start_address <= page.end_address)
     
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
@@ -123,7 +124,8 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 }))
             }
         }}
-            key={i} style={{
+            // key={i}
+            style={{
                 marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
                 marginRight: marginHorizontal + 'px',
                 marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
@@ -132,7 +134,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 border: block.block_type==='normal'?'1px solid black':'3px dashed lightgray',
             }}
             ref={(thisRef: HTMLDivElement) => {
-                disassemblyBlockRefs.current[block.start_address] = thisRef
+                disassemblyBlockRefs.current[block.start_address] = { div: thisRef, idx: pages.slice(0, pageIdx).reduce((total,p) => total + p.blocks.length, 0)+i }
                 thisBlockRef.current.ref = thisRef
             }}
         >

@@ -294,7 +294,7 @@ def decode_cache_binary(filepath: str):
     pages[-1].is_last = True
 
     dot : dict[str, str] = {"dot": sopt.get_dot()}
-
+    
     return {
         'disassembly': {
             'memory_order': {
@@ -318,7 +318,7 @@ def decode_cache_binary(filepath: str):
             'loop_order': {
                 'block_heights': loop_order_block_heights,
                 'built_in_block': loop_order_built_in_block,
-                'block_start_address': [block.start_address for block in blocks],
+                'block_start_address': [block.start_address for block in loop_order_blocks],
                 'block_loop_indents': loop_order_block_loop_indents
             },
         },

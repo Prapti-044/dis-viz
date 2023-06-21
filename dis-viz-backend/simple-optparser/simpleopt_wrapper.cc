@@ -8,8 +8,6 @@
 #include "simpleopt.h"
 
 
-#include <iostream>
-
 static PyObject *method_decode(PyObject *self, PyObject *args) {
     char *binaryFilePath = NULL;
 

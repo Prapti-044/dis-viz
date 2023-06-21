@@ -1,11 +1,11 @@
-FROM ghcr.io/autamus/dyninst:11.0.1
+FROM ghcr.io/dyninst/amd64/ubuntu-22.04:latest
 ENV LC_ALL=C.UTF-8
 ENV LANG=C.UTF-8
-ENV LD_LIBRARY_PATH /opt/view/lib
+ENV LD_LIBRARY_PATH /dyninst/install/lib
 
-RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:deadsnakes/ppa && DEBIAN_FRONTEND=noninteractive apt-get install -y python3.10 gcc g++ libboost-dev yajl-tools git neovim graphviz libtbb2 libtbb-dev libboost-atomic-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-system-dev libboost-thread-dev libboost-timer-dev curl xz-utils m4 zlib1g zlib1g-dev fish build-essential libssl-dev wget openmpi-bin python3.10-distutils python3.10-dev && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.10
+RUN apt-get update && apt-get install -y software-properties-common && add-apt-repository ppa:deadsnakes/ppa && DEBIAN_FRONTEND=noninteractive apt-get install -y python3.11 gcc gcc-11 g++-11 libboost-dev yajl-tools git neovim graphviz libtbb2 libtbb-dev libboost-atomic-dev libboost-chrono-dev libboost-date-time-dev libboost-filesystem-dev libboost-system-dev libboost-thread-dev libboost-timer-dev curl xz-utils m4 zlib1g zlib1g-dev fish build-essential libssl-dev wget openmpi-bin python3.11-distutils python3.11-dev && curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
 
-RUN pip3.10 install -U jupyterlab numpy pandas plotly ipywidgets matplotlib tqdm
+RUN pip3.11 install -U jupyterlab pandas plotly ipywidgets matplotlib tqdm numpy
 
 # Install CMake
 WORKDIR /root/cmake
@@ -18,18 +18,29 @@ RUN make install
 WORKDIR /root/
 RUN rm -rf /root/cmake
 
-# Clone Rajaperf
+# Clone Rajaperf (RELWITHDEBINFO)
 WORKDIR /root/RAJA-PERFSUITE
 RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
 WORKDIR /root/RAJA-PERFSUITE/RAJAPerf
 
 # Build Rajaperf with debug flags
-RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=Debug/g' scripts/ubuntu-builds/ubuntu_gcc.sh
-RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 7
-WORKDIR /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-7/
+RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=RELWITHDEBINFO/g' scripts/ubuntu-builds/ubuntu_gcc.sh
+RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 11
+WORKDIR /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-11/
 RUN make -j8
-# RUN make test
 # Binary is in /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe
+
+# Clone Rajaperf (Debug)
+WORKDIR /root/RAJA-PERFSUITE-Deb
+RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
+WORKDIR /root/RAJA-PERFSUITE-Deb/RAJAPerf
+
+# Build Rajaperf with debug flags
+RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=Debug/g' scripts/ubuntu-builds/ubuntu_gcc.sh
+RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 11
+WORKDIR /root/RAJA-PERFSUITE-Deb/RAJAPerf/build_ubuntu-gcc-11/
+RUN make -j8
+# Binary is in /root/RAJA-PERFSUITE-Deb/RAJAPerf/build_ubuntu-gcc-7/bin/raja-perf.exe
 
 # Build lulesh
 WORKDIR /root
@@ -44,7 +55,7 @@ RUN make
 WORKDIR /root/
 COPY simple-optparser simple-optparser
 WORKDIR /root/simple-optparser
-RUN python3.10 setup.py install
+RUN python3.11 -m pip install .
 WORKDIR /
 RUN rm -rf /root/simple-optparser
 
@@ -62,14 +73,20 @@ RUN gcc -g -O0 loop_outer_block.c -o loop_outer_block-O0
 RUN gcc -g -O3 loop_outer_block.c -o loop_outer_block-O3
 # loop_outer_block exe is in /samples/loop_outer_block
 
+RUN g++ -g -O0 eg1.cpp -o eg1-O0
+RUN g++ -g -O3 eg1.cpp -o eg1-O3
+# eg1 exe is in /samples/eg1
+
+
 WORKDIR /samples/multisource
 RUN gcc -g -O0 hello.c -o hello-O0
 RUN gcc -g -O3 hello.c -o hello-O3
 # hello exe is in /samples/multisource/hello
 
-# Copy dis-viz
-WORKDIR /jupyter
-
+WORKDIR /samples
+RUN gcc -g -O0 ifelse.c -o ifelse-O0
+RUN gcc -g -O3 ifelse.c -o ifelse-O3
+# hello exe is in /samples/ifelse
 
 
 ENTRYPOINT ["jupyter-lab", "--allow-root", "--ip=0.0.0.0", "--app_dir=/jupyter"]

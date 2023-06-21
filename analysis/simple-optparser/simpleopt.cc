@@ -229,6 +229,13 @@ json printInlineEntries(set<InlinedFunction *> &ifuncs,
 }
 
 json printInlines(ParseAPI::Function *f) {
+    //There can be disjoint views of SymtabAPI functions (what the symbol table
+   // says function boundaries look like) and ParseAPI functions (what code
+   // in the binary forms a functional-style unit).  Optimizations like outlining
+   // or multi-entry functions can cause this.
+   //For each basic block in the ParseAPI function, get the containing SymtabAPI
+   // function and use the set of SymtabAPI functions to get inlining for this parse
+   // function.
   set<FunctionBase *> top_level_functions;
   for (const auto &i : f->blocks()) {
     SymtabAPI::Function *symt_func = nullptr;
