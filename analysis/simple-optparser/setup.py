@@ -14,9 +14,9 @@ def main():
             Extension(
                 name="simpleoptparser",
                 sources=["simpleopt_wrapper.cc", "simpleopt.cc"],
-                include_dirs=["/opt/view/include", "/root/simple-optparser/includes", "/usr/include"],
-                library_dirs=["/opt/view/lib", "/opt/view/lib64"],
-                libraries=["symtabAPI", "parseAPI", "instructionAPI", "symLite", "dynDwarf", "dynElf", "common", "elf"],
+                include_dirs=["/dyninst/install/include", "/root/simple-optparser/includes", "/usr/include"],
+                library_dirs=["/dyninst/install/lib"],
+                libraries=["symtabAPI", "parseAPI", "instructionAPI", "dynDwarf", "dynElf", "common", "elf"],
                 extra_compile_args=["-std=c++0x"],
                 language="c++",
             )

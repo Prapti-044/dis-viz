@@ -23,7 +23,6 @@ typedef enum {
   bb_fp
 } block_flags;
 
-
 // Globals
 map<Block *, string> block_ids;
 map<Block *, set<block_flags> > block_to_flags;
@@ -220,9 +219,8 @@ json printInlineEntries(set<InlinedFunction *> &ifuncs,
   return result;
 }
 
-
 json printInlines(ParseAPI::Function *f) {
-  //There can be disjoint views of SymtabAPI functions (what the symbol table
+   //There can be disjoint views of SymtabAPI functions (what the symbol table
    // says function boundaries look like) and ParseAPI functions (what code
    // in the binary forms a functional-style unit).  Optimizations like outlining
    // or multi-entry functions can cause this.
@@ -452,8 +450,6 @@ json printParse() {
     }
 
     // printInlines
-
-
     json inlines_json = printInlines(f);
 
     json loops_json;

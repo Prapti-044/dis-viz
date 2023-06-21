@@ -75,15 +75,6 @@ void setBlockFlags(const Block *block, const Instruction &instr,
 
 string print_clean_string(const std::string &str) {
   static regex pattern("[^a-zA-Z0-9 /:;,\\.{}\\[\\]<>~|\\-_+()&\\*=$!#]");
-  const size_t len = str.length();
-  std::string str2;
-  if (len > MAX_NAME_LENGTH) {
-    size_t substrlen = (MAX_NAME_LENGTH - 3) / 2;
-    str2 = str.substr(0, substrlen) + "..." + str.substr(len - substrlen);
-  } else {
-    str2 = str;
-  }
-
   return regex_replace(str, pattern, "?");
 }
 
@@ -229,7 +220,7 @@ json printInlineEntries(set<InlinedFunction *> &ifuncs,
 }
 
 json printInlines(ParseAPI::Function *f) {
-    //There can be disjoint views of SymtabAPI functions (what the symbol table
+   //There can be disjoint views of SymtabAPI functions (what the symbol table
    // says function boundaries look like) and ParseAPI functions (what code
    // in the binary forms a functional-style unit).  Optimizations like outlining
    // or multi-entry functions can cause this.
