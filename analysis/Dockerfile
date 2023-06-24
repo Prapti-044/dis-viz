@@ -88,5 +88,5 @@ RUN gcc -g -O0 ifelse.c -o ifelse-O0
 RUN gcc -g -O3 ifelse.c -o ifelse-O3
 # hello exe is in /samples/ifelse
 
-
-ENTRYPOINT ["jupyter-lab", "--allow-root", "--ip=0.0.0.0", "--app_dir=/jupyter"]
+WORKDIR /jupyter
+ENTRYPOINT ["jupyter-lab", "--allow-root", "--ip=0.0.0.0"]
