@@ -101,5 +101,7 @@
         "typeinfo": "cpp",
         "valarray": "cpp",
         "variant": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "${workspaceFolder}/dis-viz-backend",
+    "cmake.buildDirectory": "${workspaceFolder}/dis-viz-backend/build"
 }

@@ -1,0 +1,19 @@
+#!/bin/sh
+
+g++ -g -O0 hello.cpp -o bin/hello-O0
+g++ -g -O3 hello.cpp -o bin/hello-O3
+
+g++ -g -O0 bubble_sort.cpp -o bin/bubble-O0
+g++ -g -O3 bubble_sort.cpp -o bin/bubble-O3
+
+gcc -g -O0 loop_outer_block.c -o bin/loop_outer_block-O0
+gcc -g -O3 loop_outer_block.c -o bin/loop_outer_block-O3
+
+g++ -g -O0 eg1.cpp -o bin/eg1-O0
+g++ -g -O3 eg1.cpp -o bin/eg1-O3
+
+gcc -g -O0 multisource/hello.c -o bin/hello-O0
+gcc -g -O3 multisource/hello.c -o bin/hello-O3
+
+gcc -g -O0 ifelse.c -o bin/ifelse-O0
+gcc -g -O3 ifelse.c -o bin/ifelse-O3

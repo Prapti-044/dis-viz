@@ -5,7 +5,7 @@ import { MinimapType } from './features/minimap/minimapSlice';
 
 
 
-const apiURL = getUrls().backend + '/'
+const apiURL = getUrls().backend + '/api/'
 
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(
@@ -113,25 +113,6 @@ export async function getDisassemblyDot(filepath: string): Promise<string>{
     const result = await response.json();
     return result.dot.dot;
 }
-
-// export async function getDyninstInfo(filepath: string): Promise<DyninstInfo>{
-//     const response = await fetch(
-//         apiURL + "getdyninstinfo", {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//             },
-//             body: JSON.stringify({path:filepath}),
-//         }
-//     );
-//     const result: {'line_correspondence': Object[], 'functions': Object[]} = await response.json();
-    
-
-//     return {
-//         line_correspondence: await plainToInstance(LineCorrespondence, result.line_correspondence, { excludeExtraneousValues: true }),
-//         functions: await plainToInstance(Function, result.functions, { excludeExtraneousValues: true }),
-//     }
-// }
 
 export async function getBinaryList(): Promise<{
     executable_path: string,

@@ -1,0 +1,135 @@
+#pragma once
+
+#include <string>
+#include <vector>
+#include <unordered_map>
+#include <map>
+
+#define MAX_NAME_LENGTH 128
+
+typedef enum {
+  bb_vectorized,
+  bb_memory_read,
+  bb_memory_write,
+  bb_call,
+  bb_syscall,
+  bb_fp
+} block_flags;
+
+struct VarLocation {
+  std::string start;
+  std::string end;
+  std::string location;
+};
+struct VariableInfo {
+  std::string name;
+  std::string file;
+  int line;
+  std::vector<VarLocation> locations;
+  enum {
+    VAR_TYPE_LOCAL,
+    VAR_TYPE_PARAM,
+  } var_type;
+};
+struct InlineEntry {
+  std::string name;
+  std::vector<VariableInfo> vars;
+  std::vector<std::pair<unsigned long, unsigned long> > ranges;
+  std::string callsite_file;
+  unsigned long callsite_line;
+};
+struct InlinesInfo {
+  std::vector<VariableInfo> vars;
+  std::vector<InlineEntry> inlines;
+};
+struct LoopEntry {
+  std::string name;
+  std::vector<std::pair<std::string, std::string> > backedges;
+  std::vector<std::string> blocks;
+  std::vector<LoopEntry> loops;
+};
+struct Hidable {
+  std::string name;
+  unsigned long start;
+  unsigned long end;
+};
+struct InstructionInfo {
+  unsigned long address;
+  std::string instruction;
+  std::unordered_map<std::string, std::vector<int> >
+      correspondence;  // { source_file: [line_number] }
+  std::vector<VariableInfo> variables;
+};
+struct BlockLink {
+  std::string from;
+  std::string to;
+};
+struct BasicBlock {
+  std::string id;
+  unsigned long start;
+  unsigned long end;
+  std::vector<block_flags> flags;
+};
+struct Call {
+  unsigned long address;
+  unsigned long target;
+  std::vector<std::string> targetFuncNames;
+};
+struct FunctionInfo {
+  std::string name;
+  unsigned long entry;
+  std::vector<BasicBlock> basic_blocks;
+  std::vector<VariableInfo> vars;
+  std::vector<Call> calls;
+  std::vector<InlineEntry> inlines;
+  std::vector<LoopEntry> loops;
+  std::vector<Hidable> hidables;
+};
+struct BlockLoopState {
+  std::string name;
+  int loopCount;
+  int loopTotal;
+};
+struct BlockInfo {
+  std::string name;
+  std::vector<InstructionInfo> instructions;
+  std::string functionName;
+  std::vector<std::string> nextBlockNames;
+  std::vector<BlockLoopState> loops;
+  enum {
+    BLOCK_TYPE_NORMAL,
+    BLOCK_TYPE_PSEUDOLOOP,
+  } block_type;
+  std::vector<std::string> backedges;
+  std::vector<Hidable> hidables;
+  int startAddress;
+  int endAddress;
+  int nInstructions;
+};
+struct Assembly {
+  std::vector<BlockInfo> blocks;
+  std::vector<BlockLink> links;
+};
+
+struct MinimapInfo {
+  std::vector<int> block_heights;
+  std::vector<bool> built_in_blocks;
+  std::vector<int> block_start_address;
+  std::vector<int> block_loop_indents;
+};
+
+struct BinaryCacheResult {
+  struct {
+    std::vector<BlockInfo> memory_order_blocks;
+    std::vector<BlockInfo> loop_order_blocks;
+  } disassembly;
+  struct {
+    MinimapInfo memory_order;
+    MinimapInfo loop_order;
+  } minimap;
+  std::vector<std::string> source_files;
+  std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: (start_address, end_address) } }
+};
+
+bool isParsable(const std::string &binaryPath);
+BinaryCacheResult* decodeBinaryCache(std::string binaryPath, const bool saveJson);
