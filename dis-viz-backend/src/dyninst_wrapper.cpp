@@ -774,7 +774,7 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
     path /= jsonName;
     auto o = std::ofstream(path.string());
     auto j = crow::json::wvalue();
-    j["parsed"] = convertBinaryCache(binaryCacheResult[binaryPath]);
+    j["blocks_info"] = convertBinaryCache(binaryCacheResult[binaryPath]);
     
     j["functions"] = convertFunctionInfos(functionInfos);
     

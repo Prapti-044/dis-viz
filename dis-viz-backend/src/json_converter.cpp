@@ -129,14 +129,98 @@ json convertBinaryCache(const BinaryCacheResult *res) {
     return result;
 }
 
+json convertCall(const Call &call) {
+    auto result = json();
+    result["address"] = call.address;
+    result["target"] = call.target;
+    result["target_func_names"] = call.targetFuncNames;
+    return result;
+}
+
+json convertInline(const InlineEntry &inlineEntry) {
+    auto result = json();
+    result["name"] = inlineEntry.name;
+    auto rangesJson = json::list();
+    for(auto &range : inlineEntry.ranges) {
+        rangesJson.push_back({
+            {"start", range.first},
+            {"end", range.second}
+        });
+    }
+    result["ranges"] = std::move(rangesJson);
+    result["callsite_file"] = inlineEntry.callsite_file;
+    result["callsite_line"] = inlineEntry.callsite_line;
+    return result;
+}
+
+json convertLoopEntry(const LoopEntry &loop) {
+    auto result = json();
+    result["name"] = loop.name;
+    auto backedges = json::list();
+    for(auto &backedge : loop.backedges) {
+        backedges.push_back({
+            {"from", backedge.first},
+            {"to", backedge.second}
+        });
+    }
+    result["backedges"] = std::move(backedges);
+    result["blocks"] = loop.blocks;
+
+    auto innerLoopsJson = json::list();
+    for(auto &innerLoop : loop.loops) {
+        innerLoopsJson.push_back(convertLoopEntry(innerLoop));
+    }
+    result["loops"] = std::move(innerLoopsJson);
+    return result;
+}
+
+json convertHidable(const Hidable &hidable) {
+    auto result = json();
+    result["name"] = hidable.name;
+    result["start"] = hidable.start;
+    result["end"] = hidable.end;
+    return result;
+}
+
 json convertFunctionInfos(const std::vector<FunctionInfo> &funcInfos) {
     auto result = json::list();
     for(const auto &funcInfo: funcInfos) {
         auto funcInfoJson = json();
         funcInfoJson["name"] = funcInfo.name;
-        funcInfoJson["entry"] = funcInfo.entry;;
+        funcInfoJson["entry"] = funcInfo.entry;
         
         // TODO: Add all fields
+        funcInfoJson["basic_blocks"] = funcInfo.basic_blocks;
+
+        auto vars = json::list();
+        for(auto &var : funcInfo.vars) {
+            vars.push_back(convertVariableInfo(var));
+        }
+        funcInfoJson["vars"] = std::move(vars);
+
+        auto calls = json::list();
+        for(auto &call : funcInfo.calls) {
+            calls.push_back(convertCall(call));
+        }
+        funcInfoJson["calls"] = std::move(calls);
+
+        auto inlines = json::list();
+        for(auto &inlineEntry : funcInfo.inlines) {
+            inlines.push_back(convertInline(inlineEntry));
+        }
+        funcInfoJson["inlines"] = std::move(inlines);
+
+        auto loops = json::list();
+        for(auto &loop : funcInfo.loops){
+            loops.push_back(convertLoopEntry(loop));
+        }        
+        funcInfoJson["loops"] = std::move(loops);
+
+        auto hidables = json::list();
+        for(auto &hidable : funcInfo.hidables) {
+            hidables.push_back(convertHidable(hidable));
+        }
+        funcInfoJson["hidables"] = std::move(hidables);
         
         result.push_back(funcInfoJson);
     }
