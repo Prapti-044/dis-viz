@@ -17,3 +17,7 @@ gcc -g -O3 multisource/hello.c -o bin/hello-O3
 
 gcc -g -O0 ifelse.c -o bin/ifelse-O0
 gcc -g -O3 ifelse.c -o bin/ifelse-O3
+
+nvcc -g -G -O0 vec_add.cu -o bin/vec_add-O0
+nvcc -g -G -O3 vec_add.cu -o bin/vec_add-O3
+

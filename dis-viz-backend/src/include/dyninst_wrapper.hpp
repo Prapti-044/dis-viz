@@ -4,6 +4,7 @@
 #include <vector>
 #include <unordered_map>
 #include <map>
+#include <unordered_set>
 
 #define MAX_NAME_LENGTH 128
 
@@ -33,14 +34,9 @@ struct VariableInfo {
 };
 struct InlineEntry {
   std::string name;
-  std::vector<VariableInfo> vars;
   std::vector<std::pair<unsigned long, unsigned long> > ranges;
   std::string callsite_file;
   unsigned long callsite_line;
-};
-struct InlinesInfo {
-  std::vector<VariableInfo> vars;
-  std::vector<InlineEntry> inlines;
 };
 struct LoopEntry {
   std::string name;
@@ -60,10 +56,6 @@ struct InstructionInfo {
       correspondence;  // { source_file: [line_number] }
   std::vector<VariableInfo> variables;
 };
-struct BlockLink {
-  std::string from;
-  std::string to;
-};
 struct BasicBlock {
   std::string id;
   unsigned long start;
@@ -78,7 +70,7 @@ struct Call {
 struct FunctionInfo {
   std::string name;
   unsigned long entry;
-  std::vector<BasicBlock> basic_blocks;
+  std::vector<std::string> basic_blocks;
   std::vector<VariableInfo> vars;
   std::vector<Call> calls;
   std::vector<InlineEntry> inlines;
@@ -105,10 +97,7 @@ struct BlockInfo {
   int startAddress;
   int endAddress;
   int nInstructions;
-};
-struct Assembly {
-  std::vector<BlockInfo> blocks;
-  std::vector<BlockLink> links;
+  std::unordered_set<block_flags> flags;
 };
 
 struct MinimapInfo {
@@ -128,7 +117,7 @@ struct BinaryCacheResult {
     MinimapInfo loop_order;
   } minimap;
   std::vector<std::string> source_files;
-  std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: (start_address, end_address) } }
+  std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
 };
 
 bool isParsable(const std::string &binaryPath);

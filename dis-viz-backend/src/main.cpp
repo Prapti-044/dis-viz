@@ -1,5 +1,6 @@
 #include <boost/program_options/option.hpp>
-#include <boost/program_options/value_semantic.hpp>
+#include <boost/program_options.hpp>
+// #include <boost/program_options/value_semantic.hpp>
 #define CROW_STATIC_DIRECTORY "templates/static/"
 
 #include <crow.h>
@@ -11,7 +12,6 @@
 #include <json_converter.hpp>
 #include <numeric>
 #include <string>
-#include <boost/program_options.hpp>
 
 using json = crow::json::wvalue;
 namespace po = boost::program_options;
@@ -21,7 +21,6 @@ namespace po = boost::program_options;
 // TODO: Handle POST body format verification
 
 enum BLOCK_ORDER { MEMORY_ORDER, LOOP_ORDER };
-
 BLOCK_ORDER getBlockOrder(std::string order) {
   if (order == "memory_order")
     return MEMORY_ORDER;
@@ -30,24 +29,24 @@ BLOCK_ORDER getBlockOrder(std::string order) {
 }
 
 int main(int argc, char *argv[]) {
-  bool WRITE_TO_JSON;
-  std::vector<std::string> binary_paths;
-  std::string binary_paths_file;
-  int port;
-
-  po::options_description desc("Allowed options");
+  auto WRITE_TO_JSON = false;
+  auto binary_paths = std::vector<std::string>();
+  auto binary_paths_file = std::string();
+  auto port = int();
+  
+  auto desc = po::options_description("Allowed options");
   desc.add_options()
     ("help", "produce help message")
     ("save-json,j", po::bool_switch(&WRITE_TO_JSON), "Save the json from dyninst")
-    ("binary-paths,b", po::value<std::vector<std::string>>(&binary_paths),"The paths to binary files to visualize")
-    ("binary-paths-file,bf", po::value<std::string>(&binary_paths_file), "A file containing the paths to binary files to visualize")
-    ("port,p", po::value<int>(&port)->default_value(8080), "The port to run the server on")
+    ("binary-paths,b", po::value(&binary_paths),"The paths to binary files to visualize")
+    ("binary-paths-file,c", po::value(&binary_paths_file), "A file containing the paths to binary files to visualize")
+    ("port,p", po::value(&port)->default_value(8080), "The port to run the server on")
   ;
   
   // TODO: Make binary-paths also a positional argument
   // po::positional_options_description p; p.add("binary-paths,b", -1);
 
-  po::variables_map vm;
+  auto vm = po::variables_map();
   po::store(po::command_line_parser(argc, argv)
     .options(desc)
     // .positional(p)
@@ -62,22 +61,21 @@ int main(int argc, char *argv[]) {
   
   // Read all lines from binary_paths_file and append them to binary_paths
   if(!binary_paths_file.empty()){
-    std::ifstream binary_paths_file_stream(binary_paths_file);
-    std::string line;
+    auto binary_paths_file_stream = std::ifstream(binary_paths_file);
+    auto line = std::string();
     while(std::getline(binary_paths_file_stream, line)){
       binary_paths.push_back(line);
     }
   }
 
-
-  crow::App<crow::CORSHandler> app;
+  auto app = crow::App<crow::CORSHandler>();
   app.get_middleware<crow::CORSHandler>().global();
   // crow::mustache::set_global_base("static/static");
 
   CROW_ROUTE(app, "/api/binarylist")
       .methods("GET"_method)([&binary_paths](const crow::request &req) {
         
-        json::list binaryList;
+        auto binaryList = json::list();
         for (const auto &binary_path : binary_paths) {
           // Check if binary_path is a directory or a file
           if (std::filesystem::is_directory(binary_path)) {
@@ -85,7 +83,7 @@ int main(int argc, char *argv[]) {
                  std::filesystem::directory_iterator(binary_path)) {
 
               if (isParsable(entry.path().string())) {
-                json binary({
+                auto binary = json({
                     {"name", entry.path().filename().string()},
                     {"executable_path", entry.path().string()},
                 });
@@ -96,7 +94,7 @@ int main(int argc, char *argv[]) {
             if(!isParsable(binary_path)){
               continue;
             }
-            json binary({
+            auto binary = json({
                 {"name", std::filesystem::path(binary_path).filename().string()},
                 {"executable_path", binary_path},
             });
@@ -107,7 +105,7 @@ int main(int argc, char *argv[]) {
         json payload = json({{"binarylist", binaryList}});
         return payload;
       });
-
+  
   CROW_ROUTE(app, "/api/getdisassemblypage/<string>/<int>")
       .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req,
                                  const std::string order, const int pageNo) {
@@ -122,23 +120,23 @@ int main(int argc, char *argv[]) {
           assembly =
               &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.loop_order_blocks;
 
-        int start = pageNo * BLOCKS_PER_PAGE;
-        int end = start + BLOCKS_PER_PAGE;
-        bool is_last = false;
-        if (end > assembly->size()) {
+        auto start = pageNo * BLOCKS_PER_PAGE;
+        auto end = start + BLOCKS_PER_PAGE;
+        auto is_last = false;
+        if (end >= assembly->size()) {
           end = assembly->size();
           is_last = true;
         }
-        std::vector<BlockInfo> page(assembly->begin() + start,
+        auto page = std::vector<BlockInfo>(assembly->begin() + start,
                                     assembly->begin() + end);
-        json::list pageJson;
+        auto pageJson = json::list();
         for (const auto &i : page) {
           pageJson.push_back(convertBlockInfo(i));
         }
-        int n_instructions = std::accumulate(
+        auto n_instructions = std::accumulate(
             page.begin(), page.end(), 0,
             [](int sum, const BlockInfo &i) { return sum + i.nInstructions; });
-        json result({{"end_address", page.back().endAddress},
+        auto result = json({{"end_address", page.back().endAddress},
                      {"is_last", is_last},
                      {"blocks", pageJson},
                      {"n_instructions", n_instructions},
@@ -161,8 +159,8 @@ int main(int argc, char *argv[]) {
           assembly =
               &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.loop_order_blocks;
 
-        int start = -1;
-        int pageNo = 0;
+        auto start = -1;
+        auto pageNo = 0;
         for (int i = 0; i < assembly->size(); i += BLOCKS_PER_PAGE) {
           for (int j = i; j < i + BLOCKS_PER_PAGE; j++) {
             if (assembly->at(j).startAddress <= address &&
@@ -177,22 +175,22 @@ int main(int argc, char *argv[]) {
         }
         if (start == -1)
           start = 0;
-        int end = start + BLOCKS_PER_PAGE;
-        bool is_last = false;
-        if (end > assembly->size()) {
+        auto end = start + BLOCKS_PER_PAGE;
+        auto is_last = false;
+        if (end >= assembly->size()) {
           is_last = true;
           end = assembly->size();
         }
-        std::vector<BlockInfo> page(assembly->begin() + start,
+        auto page = std::vector<BlockInfo>(assembly->begin() + start,
                                     assembly->begin() + end);
-        json::list pageJson;
+        auto pageJson = json::list();
         for (const auto &i : page) {
           pageJson.push_back(convertBlockInfo(i));
         }
         int n_instructions = std::accumulate(
             page.begin(), page.end(), 0,
             [](int sum, const BlockInfo &i) { return sum + i.nInstructions; });
-        json result({{"end_address", page.back().endAddress},
+        auto result = json({{"end_address", page.back().endAddress},
                      {"is_last", is_last},
                      {"blocks", pageJson},
                      {"n_instructions", n_instructions},
@@ -207,7 +205,7 @@ int main(int argc, char *argv[]) {
         auto binaryPath = reqBody["path"].s();
 
         const auto &sourceFiles = decodeBinaryCache(binaryPath, WRITE_TO_JSON)->source_files;
-        json::list sourceFilesJson;
+        auto sourceFilesJson = json::list();
         for (const auto &i : sourceFiles) {
           sourceFilesJson.push_back({{"file", i}});
         }
@@ -220,7 +218,7 @@ int main(int argc, char *argv[]) {
         auto binaryPath = reqBody["path"].s();
 
         auto minimap = decodeBinaryCache(binaryPath, WRITE_TO_JSON)->minimap;
-        json payload;
+        auto payload = json();
         if (getBlockOrder(order) == MEMORY_ORDER) {
           payload = convertMinimapInfo(minimap.memory_order);
         } else {
@@ -235,13 +233,13 @@ int main(int argc, char *argv[]) {
         const auto &binaryPath = reqBody["binary_file_path"]["path"].s();
         const auto &sourceFile = reqBody["filepath"]["path"].s();
 
-        std::ifstream ifs(sourceFile);
         auto correspondences =
             decodeBinaryCache(binaryPath, WRITE_TO_JSON)->correspondences[sourceFile];
-        json::list lines;
-        for (auto [lineNo, line] = std::tuple{0, std::string()};
-             std::getline(ifs, line); lineNo++) {
-          json::list addresses;
+        auto lines = json::list();
+        auto ifs = std::ifstream(sourceFile);
+        
+        for (auto [lineNo, line] = std::tuple{0, std::string()}; std::getline(ifs, line); lineNo++) {
+          auto addresses = json::list();
           std::copy(correspondences[lineNo].begin(),
                     correspondences[lineNo].end(),
                     std::back_inserter(addresses));
@@ -250,10 +248,10 @@ int main(int argc, char *argv[]) {
               {"addresses", addresses},
           });
         }
-        json result({
+        auto payload = json({
             {"lines", std::move(lines)},
         });
-        return result;
+        return payload;
       });
 
   CROW_ROUTE(app, "/api/getdisassemblyblockbyid/<string>/<string>")
@@ -262,37 +260,33 @@ int main(int argc, char *argv[]) {
         auto reqBody = crow::json::load(req.body);
         auto binaryPath = reqBody["path"].s();
 
-        std::vector<BlockInfo> *result;
+        std::vector<BlockInfo> *assembly;
         if (getBlockOrder(order) == MEMORY_ORDER)
-          result =
+          assembly =
               &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.memory_order_blocks;
         else
-          result =
+          assembly =
               &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.loop_order_blocks;
+        
+        auto block = *std::find_if(assembly->begin(), assembly->end(),
+                     [&id](const BlockInfo &i) { return i.name == id; });
 
-        BlockInfo block;
-        for (const auto &i : *result) {
-          if (i.name == id) {
-            block = i;
-            break;
-          }
-        }
         return convertBlockInfo(block);
       });
 
   // Handle frontend routes
   CROW_ROUTE(app, "/")
   ([]() {
-    auto page = crow::mustache::load_text("index.html");
-    return page;
+    auto r = crow::response();
+    r.set_static_file_info("templates/index.html");
+    return r;
   });
 
   CROW_ROUTE(app, "/<string>")
   ([](std::string path) {
     path = "templates/" + path;
-    bool path_exists = std::filesystem::exists(path);
-    if (path_exists) {
-      crow::response r;
+    if (std::filesystem::exists(path)) {
+      auto r = crow::response();
       r.set_static_file_info(path);
       return r;
     } else {

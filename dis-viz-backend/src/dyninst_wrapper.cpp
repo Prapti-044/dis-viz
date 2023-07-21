@@ -4,6 +4,7 @@
 #include <set>
 #include <algorithm>
 #include <boost/range/adaptor/indexed.hpp>
+#include <filesystem>
 
 #include <CodeObject.h>
 #include <Function.h>
@@ -21,8 +22,8 @@ namespace InstructionAPI = Dyninst::InstructionAPI;
 namespace ParseAPI = Dyninst::ParseAPI;
 namespace SymtabAPI = Dyninst::SymtabAPI;
 
-void setBlockFlags(const ParseAPI::Block *block, const InstructionAPI::Instruction &instr,
-                   set<block_flags> &flags) {
+void setInstructionFlags(const InstructionAPI::Instruction &instr,
+                   std::unordered_set<block_flags> &flags) {
   switch (instr.getCategory()) {
 #if defined(DYNINST_MAJOR_VERSION) && (DYNINST_MAJOR_VERSION >= 10)
     case InstructionAPI::c_VectorInsn:
@@ -49,25 +50,25 @@ string print_clean_string(const string &str) {
 }
 
 string number_to_hex(const unsigned long val) {
-  stringstream stream;
+  auto stream = stringstream();
   stream << std::nouppercase << std::showbase << std::hex << (unsigned int)val;
   return stream.str();
 }
 
 string number_to_hex(const unsigned int val) {
-  stringstream stream;
+  auto stream = stringstream();
   stream << std::nouppercase << std::showbase << std::hex << val;
   return stream.str();
 }
 
 string number_to_hex(const int val) {
-  stringstream stream;
+  auto stream = stringstream();
   stream << std::nouppercase << std::showbase << std::hex << val;
   return stream.str();
 }
 
 string number_to_hex(const long val) {
-  stringstream stream;
+  auto stream = stringstream();
   stream << std::nouppercase << std::showbase << std::hex << (int)val;
   return stream.str();
 }
@@ -77,23 +78,23 @@ inline string getRegFromFullName(const string &fullname) {
 }
 
 VariableInfo printVar(SymtabAPI::localVar *var) {
-  string name = var->getName();
-  int lineNum = var->getLineNum();
-  string fileName = var->getFileName();
+  auto name = var->getName();
+  auto lineNum = var->getLineNum();
+  auto fileName = var->getFileName();
 
-  vector<VarLocation> varLocations;
-  vector<Dyninst::VariableLocation> locations = var->getLocationLists();
+  auto varLocations = vector<VarLocation>();
+  auto locations = var->getLocationLists();
   for (auto &location : locations) {
-    long frameOffset = location.frameOffset;
-    Dyninst::Address lowPC = location.lowPC;
-    Dyninst::Address hiPC = location.hiPC;
-    string hiPC_str = number_to_hex(hiPC);
-    string lowPC_str = number_to_hex(lowPC);
+    auto frameOffset = location.frameOffset;
+    auto lowPC = location.lowPC;
+    auto hiPC = location.hiPC;
+    auto hiPC_str = number_to_hex(hiPC);
+    auto lowPC_str = number_to_hex(lowPC);
 
-    Dyninst::MachRegister mr_reg = location.mr_reg;
-    string full_regName = mr_reg.name();
-    string regName = getRegFromFullName(full_regName);
-    string finalVarString;
+    auto mr_reg = location.mr_reg;
+    auto full_regName = mr_reg.name();
+    auto regName = getRegFromFullName(full_regName);
+    auto finalVarString = string();
 
     // Match the variable format with the output in the disassembly
     if (location.stClass == Dyninst::storageAddr) {
@@ -129,11 +130,11 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
 
 
 LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
-  LoopEntry loop_entry;
+  auto loop_entry = LoopEntry();
 
   if (lt.loop) {
-    vector<ParseAPI::Edge *> backedges;
-    vector<ParseAPI::Block *> blocks;
+    auto backedges = vector<ParseAPI::Edge *>();
+    auto blocks = vector<ParseAPI::Block *>();
     lt.loop->getBackEdges(backedges);
     lt.loop->getLoopBasicBlocks(blocks);
 
@@ -154,11 +155,11 @@ LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::Lo
 bool matchOperands(const vector<signed int> &readSet,
                    const vector<signed int> &writeSet,
                    const vector<InstructionAPI::Operand> &operands) {
-  vector<bool> readSetMatched(readSet.size());
-  vector<bool> writeSetMatched(writeSet.size());
+  auto readSetMatched = vector<bool>(readSet.size());
+  auto writeSetMatched = vector<bool>(writeSet.size());
 
   for (auto &operand : operands) {
-    InstructionAPI::Operation_impl::registerSet regs;
+    auto regs = InstructionAPI::Operation_impl::registerSet();
     if (readSet.size() != 0) {
       operand.getReadSet(regs);
       for (auto &reg : regs) {
@@ -193,7 +194,7 @@ bool matchOperands(const vector<signed int> &readSet,
 
 Hidable getFuncBegin(ParseAPI::Function *f) {
   auto blocks = f->blocks();
-  ParseAPI::Block::Insns insns;
+  auto insns = ParseAPI::Block::Insns();
   (*blocks.begin())->getInsns(insns);
 
   auto itm = insns.begin();
@@ -201,7 +202,7 @@ Hidable getFuncBegin(ParseAPI::Function *f) {
 
   auto operation = instruction.getOperation();
   if (operation.getID() == e_push) {
-    vector<InstructionAPI::Operand> operands;
+    auto operands = vector<InstructionAPI::Operand>();
     instruction.getOperands(operands);
 
     if (!matchOperands({Dyninst::x86_64::rsp, Dyninst::x86_64::rbp}, {},
@@ -218,7 +219,7 @@ Hidable getFuncBegin(ParseAPI::Function *f) {
   operation = instruction.getOperation();
   // mov %rsp %rbp
   if (operation.getID() == e_mov) {
-    vector<InstructionAPI::Operand> operands;
+    auto operands = vector<InstructionAPI::Operand>();
     instruction.getOperands(operands);
     if (!matchOperands(
             {Dyninst::x86_64::rsp},                        // Read Reg
@@ -242,19 +243,19 @@ vector<VariableInfo> getInstructionVariables(
   SymtabAPI::Function *symt_func = nullptr;
   symtab->getContainingFunction(instructionAddress, symt_func);
 
-  vector<SymtabAPI::localVar *> thisLocalVars;
-  vector<SymtabAPI::localVar *> thisParams;
+  auto thisLocalVars = vector<SymtabAPI::localVar *>();
+  auto thisParams = vector<SymtabAPI::localVar *>();
   symt_func->getLocalVariables(thisLocalVars);
   symt_func->getParams(thisParams);
   
-  vector<VariableInfo> allVars;
+  auto allVars = vector<VariableInfo>();
   for (auto var : thisLocalVars) {
-    VariableInfo varInfo = printVar(var);
+    auto varInfo = printVar(var);
     varInfo.var_type = VariableInfo::VAR_TYPE_LOCAL;
     allVars.push_back(std::move(varInfo));
   }
   for (auto var : thisParams) {
-    VariableInfo varInfo = printVar(var);
+    auto varInfo = printVar(var);
     varInfo.var_type = VariableInfo::VAR_TYPE_PARAM;
     allVars.push_back(std::move(varInfo));
   }
@@ -297,9 +298,9 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
                                      const vector<unsigned int> &blocks,
                                      const LoopEntry &loop,
                                      vector<unsigned int> &visitedBlocks) {
-  vector<unsigned int> blocksInLoop;
+  auto blocksInLoop = vector<unsigned int>();
 
-  vector<unsigned int> currLoopBlocks;
+  auto currLoopBlocks = vector<unsigned int>();
   copy_if(blocks.begin(), blocks.end(), back_inserter(currLoopBlocks),
           [&loop ,&funcBlocks](const unsigned int b) {
             return find(loop.blocks.begin(), loop.blocks.end(), funcBlocks[b].name) !=
@@ -335,7 +336,7 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
 }
 
 vector<int> getBlockHeights(const vector<BlockInfo> &blocks) {
-  vector<int> blockHeights; blockHeights.reserve(blocks.size());
+  auto blockHeights = vector<int>(); blockHeights.reserve(blocks.size());
   std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockHeights), [](const BlockInfo &b) {
     return b.block_type == BlockInfo::BLOCK_TYPE_NORMAL ? b.nInstructions : 0;
   });
@@ -343,16 +344,16 @@ vector<int> getBlockHeights(const vector<BlockInfo> &blocks) {
 }
 
 vector<bool> getIsBuiltInBlock(const vector<BlockInfo> &blocks) {
-  vector<string> systemLocations = {
+  auto systemLocations = vector<string>{
       "/usr/",
   };
-  vector<bool> isBuiltInBlock; isBuiltInBlock.reserve(blocks.size());
+  auto isBuiltInBlock = vector<bool>(); isBuiltInBlock.reserve(blocks.size());
   std::transform(
       blocks.begin(), blocks.end(), std::back_inserter(isBuiltInBlock),
       [&systemLocations](const BlockInfo &b) {
         for(const auto &ins: b.instructions) {
           for(const auto &correspondence: ins.correspondence) {
-            string sourceFile = correspondence.first;
+            auto sourceFile = correspondence.first;
             for (const auto &systemLocation : systemLocations) {
               if (sourceFile.size() > systemLocation.size()) {
                 if (equal(sourceFile.begin(),
@@ -370,7 +371,7 @@ vector<bool> getIsBuiltInBlock(const vector<BlockInfo> &blocks) {
 }
 
 vector<int> getBlockStartAddresses(const vector<BlockInfo> &blocks) {
-  vector<int> blockStartAddresses; blockStartAddresses.reserve(blocks.size());
+  auto blockStartAddresses = vector<int>(); blockStartAddresses.reserve(blocks.size());
   std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockStartAddresses), [](const BlockInfo &b) {
     return b.startAddress;
   });
@@ -378,16 +379,45 @@ vector<int> getBlockStartAddresses(const vector<BlockInfo> &blocks) {
 }
 
 vector<int> getBlockIndents(const vector<BlockInfo> &blocks) {
-  vector<int> blockIndents; blockIndents.reserve(blocks.size());
+  auto blockIndents = vector<int>(); blockIndents.reserve(blocks.size());
   std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockIndents), [](const BlockInfo &b) {
     return b.loops.size();
   });
   return blockIndents;
 }
 
-std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, vector<unsigned long>>>, set<string>> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
+void getInlines(const set<SymtabAPI::InlinedFunction*> &inlineFuncs, vector<InlineEntry> &result) {
+  for (auto &inlineFunc : inlineFuncs) {
+    auto demangleStatus = int();
+    const auto name = abi::__cxa_demangle(inlineFunc->getName().c_str(), 0, 0, &demangleStatus);
+    auto name_str = name ? string(name) : inlineFunc->getName();
+    const auto &ranges = inlineFunc->getRanges();
 
-  indicators::ProgressBar bar{
+    auto inlineRanges = vector<std::pair<unsigned long, unsigned long>>();
+    for (auto range : ranges)
+      inlineRanges.push_back({range.low(), range.high()});
+
+    result.push_back({
+        print_clean_string(name_str),
+        inlineRanges,
+        inlineFunc->getCallsite().first,
+        inlineFunc->getCallsite().second,
+    });
+
+    free(const_cast<char *>(name));
+
+    auto ic = SymtabAPI::InlineCollection(inlineFunc->getInlines());
+    set<SymtabAPI::InlinedFunction *> next_funcs;
+    for (auto &j : ic)
+      next_funcs.insert(static_cast<SymtabAPI::InlinedFunction *>(j));
+    if (!next_funcs.empty())
+      getInlines(next_funcs, result);
+  }
+}
+
+std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, vector<unsigned long>>>, set<string>, vector<FunctionInfo>> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
+
+  auto bar = indicators::ProgressBar{
     indicators::option::BarWidth{50},
     indicators::option::MaxProgress{funcs.size()},
     indicators::option::Start{" ["},
@@ -402,67 +432,152 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}
   };
 
-  vector<BlockInfo> addressOrderBlocks;
-  vector<BlockInfo> loopOrderBlocks;
-  unordered_map<ParseAPI::Block*, bool> __visitedBlocks;
-  unordered_map<string, map<int, vector<unsigned long>>> source_correspondences;
-  map<ParseAPI::Block *, string> block_ids;
-  set<string> unique_sourcefiles;
-  int curr_block_id = 0;
+  auto addressOrderBlocks = vector<BlockInfo>();
+  auto loopOrderBlocks = vector<BlockInfo>();
+  auto __visitedBlocks = unordered_map<ParseAPI::Block*, bool>();
+  auto source_correspondences = unordered_map<string, map<int, vector<unsigned long>>>();
+  auto block_ids = map<ParseAPI::Block *, string>();
+  map<ParseAPI::Block *, std::unordered_set<block_flags>> block_flags;
+  auto unique_sourcefiles = set<string>();
+  auto curr_block_id = 0;
+  
+  auto functionInfos = vector<FunctionInfo>();
 
   // create an Instruction decoder which will convert the binary opcodes to strings
-  ParseAPI::Function *anyfunc = *funcs.begin();
-  InstructionAPI::InstructionDecoder decoder(
+  auto anyfunc = *funcs.begin();
+  auto decoder = InstructionAPI::InstructionDecoder(
       anyfunc->isrc()->getPtrToInstruction(anyfunc->addr()),
       InstructionAPI::InstructionDecoder::maxInstructionLength, anyfunc->region()->getArch());
   
+  // Prepare all the addresses. This is needed in a separate for loop over function to get all addresses first
+  auto addresses = set<unsigned long>();
+  for (const auto &f : funcs) {
+    for (const auto &block : f->blocks()) {
+      auto icur = block->start();
+      auto iend = block->last();
+      while (icur <= iend) {
+        addresses.insert(icur);
+        auto raw_insnptr =
+            (const unsigned char *)f->isrc()->getPtrToInstruction(icur);
+#if defined(DYNINST_MAJOR_VERSION) && (DYNINST_MAJOR_VERSION >= 10)
+        auto instr = decoder.decode(raw_insnptr);
+#else
+        auto ip = decoder.decode(raw_insnptr);
+        auto instr = *ip;
+#endif
+        icur += instr.size();
+      }
+    }
+  }
 
+  // Create block names, unique source files and Inlines
   for (const auto &f : funcs) {
     // Assign block names and get unique source files
     for (const auto &block : f->blocks()) {
-      Dyninst::Address icur = block->start();
-      Dyninst::Address iend = block->last();
+      auto icur = block->start();
+      auto iend = block->last();
       while (icur <= iend) {
-        vector<SymtabAPI::Statement::Ptr> cur_lines;
+        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
         symtab->getSourceLines(cur_lines, icur);
         // if (cur_lines.empty()) continue;
         for(auto &fl : cur_lines) unique_sourcefiles.insert(fl->getFile());
 
-        const unsigned char *raw_insnptr =
+        auto raw_insnptr =
             (const unsigned char *)f->isrc()->getPtrToInstruction(icur);
 #if defined(DYNINST_MAJOR_VERSION) && (DYNINST_MAJOR_VERSION >= 10)
-        InstructionAPI::Instruction instr = decoder.decode(raw_insnptr);
+        auto instr = decoder.decode(raw_insnptr);
 #else
-        InstructionAPI::Instruction::Ptr ip = decoder.decode(raw_insnptr);
-        InstructionAPI::Instruction instr = *ip;
+        auto ip = decoder.decode(raw_insnptr);
+        auto instr = *ip;
 #endif
         icur += instr.size();
+        setInstructionFlags(instr, block_flags[block]);
       }
       block_ids[block] = block_to_name(f, block, curr_block_id++);
     }
 
     // Loops
-    vector<LoopEntry> funcLoops;
+    auto funcLoops = vector<LoopEntry>();
     auto lt = unique_ptr<ParseAPI::LoopTreeNode>(f->getLoopTree());
     if (lt) {
       funcLoops = printLoopEntry(block_ids, *lt).loops;
     }
     
     // Hidables
-    vector<Hidable> hidables;
-    Hidable fnBegin = getFuncBegin(f);
+    auto hidables = vector<Hidable>();
+    auto fnBegin = getFuncBegin(f);
     if (!fnBegin.name.empty()) hidables.push_back(std::move(fnBegin));
-    vector<BlockInfo> funcBlocks;
+    auto funcBlocks = vector<BlockInfo>();
+    
+    // Inlines
+    auto topLevelFuncs = set<SymtabAPI::FunctionBase*>();
+    for(const auto &block: f->blocks()) {
+      SymtabAPI::Function *symt_func = nullptr;
+      symtab->getContainingFunction(block->start(), symt_func);
+      if(!symt_func) continue;
+      topLevelFuncs.insert(symt_func);
+    }
+    auto inlineFuncs = set<SymtabAPI::InlinedFunction*>();
+    if(!topLevelFuncs.empty()) {
+      for(auto &topLevelFunc: topLevelFuncs) {
+        auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
+        for (auto &funcBase : ic) {
+          auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
+          if(addresses.find(inlineFunc->getOffset()) != addresses.end()) continue;
+          inlineFuncs.insert(inlineFunc);
+        }
+      }
+    }
+    auto inlines = vector<InlineEntry>();
+    getInlines(inlineFuncs, inlines);
+    
+    // Calls
+    auto calls = vector<Call>();
+    for (auto &edge : f->callEdges()) {
+      if (!edge) continue;
+      auto from = edge->src();
+      auto to = edge->trg();
 
+      auto call = Call{
+        from->lastInsnAddr(),
+      };
+
+      if (to && to->start() != (unsigned long)-1)
+        call.target = to->start();
+      else
+        call.target = 0;
+
+      auto funcs = vector<ParseAPI::Function *>();
+      to->getFuncs(funcs);
+      if (!funcs.empty()) {
+        for (auto j = funcs.begin(); j != funcs.end(); j++)
+          call.targetFuncNames.push_back(print_clean_string((*j)->name()));
+      }
+      calls.push_back(call);
+    }
+    
+    auto funcInfo = FunctionInfo{
+      print_clean_string(f->name()),
+      f->entry()->start(),
+      {},
+      {},
+      calls,
+      inlines,
+      funcLoops,
+      hidables
+    };
+    
     for (const auto &block : f->blocks()) {
-      ParseAPI::Block::Insns insns;
+      auto insns = ParseAPI::Block::Insns();
       block->getInsns(insns);
 
-      BlockInfo blockInfo{
+      auto blockInfo = BlockInfo{
           block_ids[block],
           {},
           print_clean_string(f->name()),
       };
+      funcInfo.basic_blocks.push_back(blockInfo.name);
+      blockInfo.flags = block_flags[block];
 
       for (const auto &hidable : hidables) {
         if (hidable.start >= block->start() && hidable.end <= block->last()) {
@@ -479,9 +594,9 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
 
       for (const auto &instr : insns) {
         // Correspondences
-        vector<SymtabAPI::Statement::Ptr> cur_lines;
+        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
         symtab->getSourceLines(cur_lines, instr.first);
-        unordered_map<string, vector<int> > correspondences;
+        auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
           correspondences[print_clean_string(li->getFile())].push_back(li->getLine());
           source_correspondences[print_clean_string(li->getFile())][li->getLine()].push_back(instr.first);
@@ -491,6 +606,8 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         auto vars = getInstructionVariables(symtab, instr.first);
         blockInfo.instructions.push_back({
             instr.first, instr.second.format(), correspondences, vars});
+        
+        funcInfo.vars = vars;
       }
 
       blockInfo.startAddress = block->start();
@@ -502,7 +619,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     
     int maxLoopCount = -1;
     for (const auto &loop : funcLoops) {
-      unordered_map<string, int> loop_count;
+      auto loop_count = unordered_map<string, int>();
       addLoopsToBlocks(funcBlocks, loop, loop_count);
       for (auto &block : funcBlocks) {
         if (block.loops.size() > maxLoopCount)
@@ -513,14 +630,14 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
             loop.loopTotal = loop_count[loop.name];
       }
     }
-    vector<unsigned int> __visitedBlocks;
+    auto __visitedBlocks = vector<unsigned int>();
     for (const auto &block : funcBlocks| boost::adaptors::indexed(0)) {
       if (find(__visitedBlocks.begin(), __visitedBlocks.end(),
                     block.index()) != __visitedBlocks.end())
         continue;
       if (block.value().loops.size() > 0) {
         
-        vector<string> blockLoopNames; blockLoopNames.reserve(funcLoops.size());
+        auto blockLoopNames = vector<string>(); blockLoopNames.reserve(funcLoops.size());
         std::transform(block.value().loops.begin(), block.value().loops.end(), std::back_inserter(blockLoopNames), [](const BlockLoopState &l) {
           return l.name;
         });
@@ -529,7 +646,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         });
         auto currLoop = (foundLoop != funcLoops.end()) ? *foundLoop : LoopEntry();
 
-        vector<unsigned int> currLoopBlocks;
+        auto currLoopBlocks = vector<unsigned int>();
         for(const auto &b : funcBlocks| boost::adaptors::indexed(0)) {
           if (find(currLoop.blocks.begin(), currLoop.blocks.end(), b.value().name) != currLoop.blocks.end())
             currLoopBlocks.push_back(b.index());
@@ -546,7 +663,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       return a.startAddress < b.startAddress;
     });
     
-    vector<string> processed_loops;
+    auto processed_loops = vector<string>();
     int idx = 0;
     while (idx+1 < funcBlocks.size()) {
       if (funcBlocks[idx].loops.size() > 0 && find(processed_loops.begin(), processed_loops.end(), funcBlocks[idx].loops.back().name) != processed_loops.end()) {
@@ -554,11 +671,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         continue;
       }
       
-      vector<string> blockLoopNames;
+      auto blockLoopNames = vector<string>();
       std::transform(funcBlocks[idx].loops.begin(), funcBlocks[idx].loops.end(), std::back_inserter(blockLoopNames), [](const BlockLoopState &l) {
         return l.name;
       });
-      vector<string> nextBlockLoopNames;
+      auto nextBlockLoopNames = vector<string>();
       std::transform(funcBlocks[idx+1].loops.begin(), funcBlocks[idx+1].loops.end(), std::back_inserter(nextBlockLoopNames), [](const BlockLoopState &l) {
         return l.name;
       });
@@ -568,11 +685,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       }) && blockLoopNames.size() > nextBlockLoopNames.size()) {
         // Check if this is the last block of this loop
         if(funcBlocks[idx].loops.back().loopCount != funcBlocks[idx].loops.back().loopTotal) {
-          vector<BlockInfo> pseudo_blocks;
+          auto pseudo_blocks = vector<BlockInfo>();
           auto it = funcBlocks.begin() + (idx + 1);
           for(; it != funcBlocks.end(); it++) {
             if (it->loops.size() > 0 && it->loops.back().name == funcBlocks[idx].loops.back().name && funcBlocks[idx].functionName == it->functionName) {
-              BlockInfo pseudoBlock = *it;
+              auto pseudoBlock = *it;
               pseudoBlock.block_type = BlockInfo::BLOCK_TYPE_PSEUDOLOOP;
               pseudo_blocks.push_back(std::move(pseudoBlock));
               if(pseudo_blocks.back().loops.back().loopCount == pseudo_blocks.back().loops.back().loopTotal) {
@@ -583,7 +700,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
           
           processed_loops.push_back(funcBlocks[idx].loops.back().name);
           idx++;
-          int skips = pseudo_blocks.size();
+          auto skips = pseudo_blocks.size();
           funcBlocks.insert(funcBlocks.begin() + idx, make_move_iterator(pseudo_blocks.rbegin()), make_move_iterator(pseudo_blocks.rend()));
           idx += skips;
 
@@ -593,12 +710,14 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     }
     addressOrderBlocks.insert(addressOrderBlocks.end(), make_move_iterator(funcBlocks.begin()), make_move_iterator(funcBlocks.end()));
     
+    functionInfos.push_back(std::move(funcInfo));
+    
     bar.tick();
   }
-  return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles};
+  return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos};
 }
 
-map<string, BinaryCacheResult*> binaryCacheResult;
+auto binaryCacheResult = map<string, BinaryCacheResult*>();
 
 bool isParsable(const string &binaryPath) {
   SymtabAPI::Symtab *symtab;
@@ -624,8 +743,8 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
     return nullptr;
   }
 
-  auto [addressOrderBlocks, loopOrderBlocks, correspondence, unique_sourcefiles] = getAssembly(symtab, funcs);
-  vector<string> source_files(unique_sourcefiles.begin(),
+  auto [addressOrderBlocks, loopOrderBlocks, correspondence, unique_sourcefiles, functionInfos] = getAssembly(symtab, funcs);
+  auto source_files = vector<string>(unique_sourcefiles.begin(),
                                         unique_sourcefiles.end());
   
   binaryCacheResult[binaryPath] = new BinaryCacheResult({
@@ -646,10 +765,18 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
   });
   
   if(saveJson) {
-    string jsonName = binaryPath.substr(binaryPath.find_last_of("/\\") + 1) + ".json";
-    std::ofstream o(jsonName);
+    auto jsonName = binaryPath.substr(binaryPath.find_last_of("/\\") + 1) + ".json";
+
+    auto path = std::filesystem::current_path() / "json";
+    if(!std::filesystem::is_directory(path) || !std::filesystem::exists(path)) {
+      std::filesystem::create_directory(path);
+    }
+    path /= jsonName;
+    auto o = std::ofstream(path.string());
+    auto j = crow::json::wvalue();
+    j["parsed"] = convertBinaryCache(binaryCacheResult[binaryPath]);
     
-    crow::json::wvalue j = convertBinaryCache(binaryCacheResult[binaryPath]);
+    j["functions"] = convertFunctionInfos(functionInfos);
     
     o << j.dump() << std::endl;
   }

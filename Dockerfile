@@ -36,8 +36,8 @@ RUN make
 RUN mv /root/LULESH/build/lulesh2.0 /samples/bin/lulesh2.0-Debug
 
 WORKDIR /samples
-COPY sample_inputs ./
-RUN ./compile.sh
+COPY sample_inputs .
+RUN ./compile.sh && rm -f compile.sh
 
 # Install Crow
 WORKDIR /root
@@ -58,8 +58,6 @@ COPY dis-viz-frontend frontend
 WORKDIR /App/frontend
 RUN npm install
 RUN REACT_APP_BACKEND_PORT=8080 BUILD_PATH="/App/build/templates" npm run build
-
-RUN ls /samples/bin
 
 WORKDIR /App/build
 EXPOSE 8080
