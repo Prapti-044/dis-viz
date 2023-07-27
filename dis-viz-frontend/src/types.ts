@@ -25,16 +25,16 @@ export class SourceFile {
 export class Instruction {
     @Expose() instruction: string
     @Expose() address: number
+    @Expose() variables: Variable[]
     @Expose() correspondence: {
         [source_file: string]: number[]
     }
-    @Expose() variables: Variable[]
 
-    constructor(instruction: string, address: number, correspondence: { [source_file: string]: number[] }, variables: Variable[]) {
+    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}) {
         this.instruction = instruction
         this.address = address
-        this.correspondence = correspondence
-        this.variables = variables
+        this.variables = variables === undefined ? [] : variables
+        this.correspondence = correspondence === undefined ? {} : correspondence
     }
 }
 
@@ -88,10 +88,10 @@ export class InstructionBlock extends AddressRange {
         this.instructions = instructions
         this.function_name = function_name
         this.next_block_numbers = next_block_numbers
-        this.hidables = hidables
-        this.loops = loops
+        this.hidables = hidables === undefined ? [] : hidables
+        this.loops = loops === undefined ? [] : loops
         this.block_type = block_type
-        this.backedges = backedges
+        this.backedges = backedges === undefined ? [] : backedges
     }
 
 }
@@ -139,8 +139,6 @@ export class LineCorrespondence extends AddressRange {
         this.source_line = source_line
     }
 }
-
-
 
 enum BlockFlag {
     MEMREAD,

@@ -66,10 +66,11 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
         setOnGoingSelection(finalSelection)
 
         const selectedDisassemblyLines = pages
-            .filter(page => (
-                (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
-                (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
-            ))
+            // Filtering by page will not work for Loop Order, because page WILL have blocks in different order than memory address
+            // .filter(page => (
+            //     (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
+            //     (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
+            // ))
             .map(page => page.blocks)
             .flat()
             .filter(block => (
@@ -114,7 +115,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                     disIdSelections: {
                         addresses: block.instructions.map(instruction => instruction.address),
                         source_selection: block.instructions
-                            .map(instruction => Object.keys(instruction.correspondence)
+                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
                                 .map(source_file => ({
                                     source_file,
                                     lines: instruction.correspondence[source_file]
@@ -190,7 +191,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                     disIdSelections: {
                                         addresses: block.instructions.map(instruction => instruction.address),
                                         source_selection: block.instructions
-                                            .map(instruction => Object.keys(instruction.correspondence)
+                                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
                                                 .map(source_file => ({
                                                     source_file,
                                                     lines: instruction.correspondence[source_file]
@@ -223,39 +224,42 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
             }}>
                 {block.instructions.map((ins, j) => {
                     let isHidable = false
-                    for (let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
-                        const hidable = block.hidables[hidableI]
-                        if (hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
-                            isHidable = true;
-                        }
-                        if (ins.address === hidable.start_address) {
-                            return <>
-                                <HidableDisassembly
-                                    key={i.toString() + j.toString() + 'hidable'}
-                                    name={hidable.name}
-                                    block={block}
-                                    disId={id}
-                                ></HidableDisassembly>
-                                <DisassemblyLine
-                                    block={block}
-                                    isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
-                                    mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
-                                    key={i.toString() + j.toString()}
-                                    instruction={ins}
-                                    isSelecting={isSelecting}
-                                    onGoingSelection={onGoingSelection}
-                                    color={codeColors[id]}
-                                    disId={id}
-                                    isHidable={isHidable}
-                                    blockOrder={blockOrder}
-                                />
-                            </>
+                    if (block.hidables) {
+
+                        for (let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
+                            const hidable = block.hidables[hidableI]
+                            if (hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
+                                isHidable = true;
+                            }
+                            if (ins.address === hidable.start_address) {
+                                return <>
+                                    <HidableDisassembly
+                                        key={i.toString() + j.toString() + 'hidable'}
+                                        name={hidable.name}
+                                        block={block}
+                                        disId={id}
+                                    ></HidableDisassembly>
+                                    <DisassemblyLine
+                                        block={block}
+                                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                                        mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
+                                        key={i.toString() + j.toString()}
+                                        instruction={ins}
+                                        isSelecting={isSelecting}
+                                        onGoingSelection={onGoingSelection}
+                                        color={codeColors[id]}
+                                        disId={id}
+                                        isHidable={isHidable}
+                                        blockOrder={blockOrder}
+                                    />
+                                </>
+                            }
                         }
                     }
 
                     return (<DisassemblyLine
                         block={block}
-                        isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                         key={i.toString() + j.toString()}
                         instruction={ins}

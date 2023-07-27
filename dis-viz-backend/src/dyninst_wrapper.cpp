@@ -238,26 +238,22 @@ string block_to_name(const ParseAPI::Function *fn, const ParseAPI::Block *block,
 }
 
 vector<VariableInfo> getInstructionVariables(
-    SymtabAPI::Symtab *symtab,
-    Dyninst::Offset instructionAddress) {
-  SymtabAPI::Function *symt_func = nullptr;
-  symtab->getContainingFunction(instructionAddress, symt_func);
-
-  auto thisLocalVars = vector<SymtabAPI::localVar *>();
-  auto thisParams = vector<SymtabAPI::localVar *>();
-  symt_func->getLocalVariables(thisLocalVars);
-  symt_func->getParams(thisParams);
-  
+    const vector<VariableInfo> &localVars, const vector<VariableInfo> &params,
+    const string &instructionString) {
   auto allVars = vector<VariableInfo>();
-  for (auto var : thisLocalVars) {
-    auto varInfo = printVar(var);
-    varInfo.var_type = VariableInfo::VAR_TYPE_LOCAL;
-    allVars.push_back(std::move(varInfo));
+  for (auto &varInfo : localVars) {
+    for(const auto &location : varInfo.locations) {
+      if(instructionString.find(location.location) != string::npos) {
+        allVars.push_back(varInfo);
+      }
+    }
   }
-  for (auto var : thisParams) {
-    auto varInfo = printVar(var);
-    varInfo.var_type = VariableInfo::VAR_TYPE_PARAM;
-    allVars.push_back(std::move(varInfo));
+  for (auto &varInfo : params) {
+    for(const auto &location : varInfo.locations) {
+      if(instructionString.find(location.location) != string::npos) {
+        allVars.push_back(varInfo);
+      }
+    }
   }
   
   return allVars;
@@ -407,7 +403,7 @@ void getInlines(const set<SymtabAPI::InlinedFunction*> &inlineFuncs, vector<Inli
     free(const_cast<char *>(name));
 
     auto ic = SymtabAPI::InlineCollection(inlineFunc->getInlines());
-    set<SymtabAPI::InlinedFunction *> next_funcs;
+    auto next_funcs = set<SymtabAPI::InlinedFunction *>();
     for (auto &j : ic)
       next_funcs.insert(static_cast<SymtabAPI::InlinedFunction *>(j));
     if (!next_funcs.empty())
@@ -523,7 +519,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
         for (auto &funcBase : ic) {
           auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
-          if(addresses.find(inlineFunc->getOffset()) != addresses.end()) continue;
+          if(addresses.find(inlineFunc->getOffset()) == addresses.end()) continue;
           inlineFuncs.insert(inlineFunc);
         }
       }
@@ -561,11 +557,38 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       f->entry()->start(),
       {},
       {},
+      {},
       calls,
       inlines,
       funcLoops,
       hidables
     };
+    
+    // Function variables
+    SymtabAPI::Function *symt_func = nullptr;
+    symtab->getContainingFunction(f->addr(), symt_func);
+
+    auto thisLocalVars = vector<SymtabAPI::localVar *>();
+    auto thisParams = vector<SymtabAPI::localVar *>();
+    symt_func->getLocalVariables(thisLocalVars);
+    symt_func->getParams(thisParams);
+
+    auto localVars = vector<VariableInfo>();
+    for (auto var : thisLocalVars) {
+      auto varInfo = printVar(var);
+      varInfo.var_type = VariableInfo::VAR_TYPE_LOCAL;
+      localVars.push_back(std::move(varInfo));
+    }
+    auto params = vector<VariableInfo>();
+    for (auto var : thisParams) {
+      auto varInfo = printVar(var);
+      varInfo.var_type = VariableInfo::VAR_TYPE_PARAM;
+      params.push_back(std::move(varInfo));
+    }
+    
+    funcInfo.localVars = std::move(localVars);
+    funcInfo.params = std::move(params);
+
     
     for (const auto &block : f->blocks()) {
       auto insns = ParseAPI::Block::Insns();
@@ -603,11 +626,13 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         }
 
 
-        auto vars = getInstructionVariables(symtab, instr.first);
         blockInfo.instructions.push_back({
-            instr.first, instr.second.format(), correspondences, vars});
+            instr.first,
+            instr.second.format(),
+            correspondences,
+            getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format())
+        });
         
-        funcInfo.vars = vars;
       }
 
       blockInfo.startAddress = block->start();
@@ -616,7 +641,6 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
 
       funcBlocks.push_back(std::move(blockInfo));
     }
-    
     int maxLoopCount = -1;
     for (const auto &loop : funcLoops) {
       auto loop_count = unordered_map<string, int>();
@@ -708,7 +732,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       }
       idx++; 
     }
-    addressOrderBlocks.insert(addressOrderBlocks.end(), make_move_iterator(funcBlocks.begin()), make_move_iterator(funcBlocks.end()));
+    
+    auto blockI = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&funcBlocks](const BlockInfo &b) {
+      return funcBlocks.front().startAddress < b.startAddress;
+    });
+    addressOrderBlocks.insert(blockI, make_move_iterator(funcBlocks.begin()), make_move_iterator(funcBlocks.end()));
     
     functionInfos.push_back(std::move(funcInfo));
     

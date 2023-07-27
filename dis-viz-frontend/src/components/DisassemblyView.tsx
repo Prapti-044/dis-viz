@@ -174,8 +174,6 @@ function DisassemblyView({ id }:{
     
     let finalPages = pages
     
-    console.log(blockOrder)
-
     return <>
         <label className="toggle" style={{
             position: 'absolute',

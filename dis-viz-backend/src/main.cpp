@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
   auto binary_paths = std::vector<std::string>();
   auto binary_paths_file = std::string();
   auto port = int();
+  auto no_server = false;
   
   auto desc = po::options_description("Allowed options");
   desc.add_options()
@@ -40,6 +41,7 @@ int main(int argc, char *argv[]) {
     ("save-json,j", po::bool_switch(&WRITE_TO_JSON), "Save the json from dyninst")
     ("binary-paths,b", po::value(&binary_paths),"The paths to binary files to visualize")
     ("binary-paths-file,c", po::value(&binary_paths_file), "A file containing the paths to binary files to visualize")
+    ("no-server", po::bool_switch(&no_server), "Don't run the server")
     ("port,p", po::value(&port)->default_value(8080), "The port to run the server on")
   ;
   
@@ -66,6 +68,28 @@ int main(int argc, char *argv[]) {
     while(std::getline(binary_paths_file_stream, line)){
       binary_paths.push_back(line);
     }
+  }
+  
+  if(no_server) {
+    auto binaryList = std::vector<std::pair<std::string, std::string>>();
+    for (const auto &binary_path : binary_paths) {
+      // Check if binary_path is a directory or a file
+      if (std::filesystem::is_directory(binary_path)) {
+        for (const auto &entry : std::filesystem::directory_iterator(binary_path)) {
+          if (isParsable(entry.path().string()))
+            binaryList.push_back({entry.path().filename().string(), entry.path().string()});
+        }
+      } else {
+        if(!isParsable(binary_path)) continue;
+        binaryList.push_back({std::filesystem::path(binary_path).filename().string(), binary_path});
+      }
+    }
+    
+    for(const auto &binary: binaryList) {
+      decodeBinaryCache(binary.second, WRITE_TO_JSON);
+    }
+
+    return 0;
   }
 
   auto app = crow::App<crow::CORSHandler>();
@@ -136,6 +160,7 @@ int main(int argc, char *argv[]) {
         auto n_instructions = std::accumulate(
             page.begin(), page.end(), 0,
             [](int sum, const BlockInfo &i) { return sum + i.nInstructions; });
+        
         auto result = json({{"end_address", page.back().endAddress},
                      {"is_last", is_last},
                      {"blocks", pageJson},

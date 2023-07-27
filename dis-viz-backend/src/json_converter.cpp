@@ -196,12 +196,19 @@ json convertFunctionInfos(const std::vector<FunctionInfo> &funcInfos) {
     // TODO: Add all fields
     funcInfoJson["basic_blocks"] = funcInfo.basic_blocks;
 
-    if (funcInfo.vars.size() > 0) {
+    if (funcInfo.localVars.size() > 0) {
       auto vars = json::list();
-      for (auto &var : funcInfo.vars) {
+      for (auto &var : funcInfo.localVars) {
         vars.push_back(convertVariableInfo(var));
       }
-      funcInfoJson["vars"] = std::move(vars);
+      funcInfoJson["localVars"] = std::move(vars);
+    }
+    if (funcInfo.params.size() > 0) {
+      auto vars = json::list();
+      for (auto &var : funcInfo.params) {
+        vars.push_back(convertVariableInfo(var));
+      }
+      funcInfoJson["params"] = std::move(vars);
     }
 
     if (funcInfo.calls.size() > 0) {

@@ -71,7 +71,8 @@ struct FunctionInfo {
   std::string name;
   unsigned long entry;
   std::vector<std::string> basic_blocks;
-  std::vector<VariableInfo> vars;
+  std::vector<VariableInfo> localVars;
+  std::vector<VariableInfo> params;
   std::vector<Call> calls;
   std::vector<InlineEntry> inlines;
   std::vector<LoopEntry> loops;

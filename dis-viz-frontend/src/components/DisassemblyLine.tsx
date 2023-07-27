@@ -123,7 +123,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
             let variableMarking: React.ReactElement | null = null;
 
-            instruction.variables.forEach(variable => {
+            instruction.variables !== undefined && instruction.variables.forEach(variable => {
                 variable.locations.forEach(location => {
                     if (token === location.location) {
                         const regName = '(' + token.split('(')[1]
@@ -187,14 +187,14 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
     return <div
         id={disLineToId(disId, instruction.address)}
-        className={"assemblycode" + (Object.keys(instruction.correspondence).length !== 0 ? " hoverable" : "")}
+        className={"assemblycode" + ((instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? " hoverable" : "")}
     >
         {isHidable ? <span className="hidablegutter"></span> : <></>}
         <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}
-            onMouseDown={Object.keys(instruction.correspondence).length !== 0 ? () => { mouseEvents.onMouseDown(instruction.address) } : () => { }}
-            onMouseOver={Object.keys(instruction.correspondence).length !== 0 ? () => { mouseEvents.onMouseOver(instruction.address) } : () => { }}
-            onMouseUp={Object.keys(instruction.correspondence).length !== 0 ? () => { mouseEvents.onMouseUp(instruction.address) } : () => { }}
+            onMouseDown={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseDown(instruction.address) } : () => { }}
+            onMouseOver={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseOver(instruction.address) } : () => { }}
+            onMouseUp={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseUp(instruction.address) } : () => { }}
         >
 
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}

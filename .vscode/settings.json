@@ -103,5 +103,11 @@
         "variant": "cpp"
     },
     "cmake.sourceDirectory": "${workspaceFolder}/dis-viz-backend",
-    "cmake.buildDirectory": "${workspaceFolder}/dis-viz-backend/build"
+    "cmake.buildDirectory": "${workspaceFolder}/dis-viz-backend/build",
+    "cmake.debugConfig": {
+        "args": [
+            "-b", "../sample_inputs/bin",
+            "-j"
+        ]
+    }
 }

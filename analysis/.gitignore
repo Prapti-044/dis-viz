@@ -129,3 +129,5 @@ ui-tests/playwright-report
 
 # VSCode
 .vscode
+
+json/*
