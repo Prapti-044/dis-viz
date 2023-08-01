@@ -516,7 +516,9 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     auto inlineFuncs = set<SymtabAPI::InlinedFunction*>();
     if(!topLevelFuncs.empty()) {
       for(auto &topLevelFunc: topLevelFuncs) {
-        auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
+        auto ic = SymtabAPI::InlineCollection();
+        // ic = topLevelFunc->getInlines();
+
         for (auto &funcBase : ic) {
           auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
           if(addresses.find(inlineFunc->getOffset()) == addresses.end()) continue;
@@ -570,8 +572,8 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
 
     auto thisLocalVars = vector<SymtabAPI::localVar *>();
     auto thisParams = vector<SymtabAPI::localVar *>();
-    symt_func->getLocalVariables(thisLocalVars);
-    symt_func->getParams(thisParams);
+    // symt_func->getLocalVariables(thisLocalVars);
+    // symt_func->getParams(thisParams);
 
     auto localVars = vector<VariableInfo>();
     for (auto var : thisLocalVars) {
