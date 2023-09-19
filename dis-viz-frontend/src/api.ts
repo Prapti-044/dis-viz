@@ -41,6 +41,20 @@ export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Pr
     };
 }
 
+export async function getAddressRange(filepath: string) : Promise<{start: number, end: number}> {
+    const response = await fetch(
+        apiURL + "addressrange", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
+    const result = await response.json();
+    return result;
+}
+
 export async function getSourceLines(binaryFile: string, sourceFile: string): Promise<SourceFile> {
     const response = await fetch(
         apiURL + "getsourcefile", {

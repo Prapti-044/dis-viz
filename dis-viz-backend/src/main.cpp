@@ -1,5 +1,6 @@
 #include <boost/program_options/option.hpp>
 #include <boost/program_options.hpp>
+#include <crow/http_request.h>
 // #include <boost/program_options/value_semantic.hpp>
 #define CROW_STATIC_DIRECTORY "templates/static/"
 
@@ -299,6 +300,23 @@ int main(int argc, char *argv[]) {
         return convertBlockInfo(block);
       });
 
+    CROW_ROUTE(app, "/api/addressrange")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
+        auto reqBody = crow::json::load(req.body);
+        auto binaryPath = reqBody["path"].s();
+
+        std::vector<BlockInfo> *assembly =
+              &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.memory_order_blocks;
+
+        auto minAddress = std::ranges::min_element(assembly->begin(), assembly->end(), [](BlockInfo &a, BlockInfo &b) { return a.startAddress < b.startAddress; })->startAddress;
+        auto maxAddress = std::ranges::max_element(assembly->begin(), assembly->end(), [](BlockInfo &a, BlockInfo &b) { return a.startAddress < b.startAddress; })->endAddress;
+
+        return json({
+          {"start", minAddress},
+          {"end", maxAddress}
+        });
+      });
+
   // Handle frontend routes
   CROW_ROUTE(app, "/")
   ([]() {
@@ -318,6 +336,8 @@ int main(int argc, char *argv[]) {
       return crow::response(crow::NOT_FOUND);
     }
   });
+
+
 
   // Preload all binary cache
   // decodeBinaryCache("/api/home/insane/prapti/RAJAPerf/build_ubuntu-gcc-12/bin/raja-perf.exe", WRITE_TO_JSON);

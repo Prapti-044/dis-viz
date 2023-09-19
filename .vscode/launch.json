@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "(gdb) Launch",
+            "name": "Backend Run",
             "type": "cppdbg",
             "request": "launch",
             // Resolved by CMake Tools:
@@ -22,7 +22,6 @@
                     "value": "$PATH:${command:cmake.launchTargetDirectory}"
                 },
             ],
-            "justMyCode": false,
             "externalConsole": true,
             "MIMode": "gdb",
             "setupCommands": [

@@ -72,3 +72,16 @@ export function useForceUpdate(){
 export function disLineToId(disId: number, address: number) {
   return disId.toString() + "-" + "instruction-"+address
 }
+
+export function isHex(value: string) {
+  const hexRegex = /^(0x)?[0-9A-Fa-f]+$/;
+  return hexRegex.test(value);
+}
+
+export function toHex(value: string) {
+  let parsedValue = value.slice()
+  if (parsedValue.startsWith('0x')) 
+  parsedValue = parsedValue.slice(2)
+
+  return parseInt(parsedValue, 16)
+}

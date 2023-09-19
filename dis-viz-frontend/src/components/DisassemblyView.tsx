@@ -8,8 +8,9 @@ import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { Form } from 'react-bootstrap';
+import { Form, Button } from 'react-bootstrap';
 import { MinimapType } from '../features/minimap/minimapSlice';
+import { isHex, toHex } from '../utils';
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -69,8 +70,6 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-
-
 function DisassemblyView({ id }:{
     id: number,
 }) {
@@ -88,6 +87,13 @@ function DisassemblyView({ id }:{
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
     const [minimap, setMinimap] = React.useState<MinimapType>()
+
+    const [jumpAddress, setJumpAddress] = React.useState<string>('0x0')
+    const [jumpValidationError, setJumpValidationError] = React.useState('')
+
+    const [addressRange, setAddressRange] = React.useState({
+        start: 0, end: 0
+    })
     
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
@@ -100,6 +106,10 @@ function DisassemblyView({ id }:{
             api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
         }
     }, [lineSelection, blockOrder])
+
+    React.useEffect(() => {
+        api.getAddressRange(binaryFilePath).then(setAddressRange)
+    }, [])
 
     const addNewPage = (newPageNo: number) => {
         api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
@@ -219,6 +229,34 @@ function DisassemblyView({ id }:{
                         </Form.Select>
                     </Form.Label>
                 </Form.Group>
+
+                <Form.Group style={{}} className='form-inline'>
+                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+                        Jump to: 
+                        <Form.Control type='text' value={jumpAddress} placeholder='0x10E59' aria-label="Address" style={{ width: '200px', }} onChange={(e) => {
+                            setJumpAddress(e.target.value)
+                            if(isHex(e.target.value) && toHex(e.target.value) <= addressRange.end && toHex(e.target.value) >= addressRange.start)
+                                setJumpValidationError('')
+                            else
+                                setJumpValidationError('Input must be of format Hexa decimal and withing range');
+                        }} isInvalid={!!jumpValidationError}>
+                        </Form.Control>
+                        <Form.Control.Feedback type="invalid">
+                            {jumpValidationError}
+                        </Form.Control.Feedback>
+                    </Form.Label>
+                    <Button onClick={e => {
+                        if(jumpValidationError !== '') return
+                        console.log('sdlkfjsdlk')
+                        const address = toHex(jumpAddress)
+                        console.log(address)
+                        api.getDisassemblyPageByAddress(binaryFilePath, address, blockOrder).then(p => setPages([p]))
+                    }}>
+                        Jump
+                    </Button>
+
+                </Form.Group>
+                
             </div>
             {finalPages.length > 0 && finalPages[0].page_no > 1?<button onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
