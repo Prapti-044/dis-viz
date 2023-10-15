@@ -258,7 +258,7 @@ function DisassemblyView({ id }:{
                 </Form.Group>
                 
             </div>
-            {finalPages.length > 0 && finalPages[0].page_no > 1?<button onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
+            {finalPages.length > 0 && finalPages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
             {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) => (

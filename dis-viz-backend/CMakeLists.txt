@@ -31,6 +31,7 @@ if(DEFINED ${DYNINST_LOCATION})
 else()
     ExternalProject_Add(dyninst
         GIT_REPOSITORY https://github.com/dyninst/dyninst
+        GIT_TAG 9696c64a3a1d6f41241d27c3c51820616490efa6
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DCMAKE_BUILD_TYPE=Release
     )
 endif()
