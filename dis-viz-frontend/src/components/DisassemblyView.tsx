@@ -4,7 +4,7 @@ import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage, Instruction } from '../types'
 import * as api from '../api'
-import Minimap from './Minimap';
+// import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
@@ -185,79 +185,12 @@ function DisassemblyView({ id }:{
     let finalPages = pages
     
     return <>
-        <label className="toggle" style={{
-            position: 'absolute',
-            top: '10px',
-            right: '200px',
-            height: '40px',
-            zIndex: 10,
-        }}>
-            <input type="checkbox" ref={activeRef} onChange={(event) => {
-                if(event.target.checked)
-                    dispatch(setActiveDisassemblyView(id))
-                else
-                    dispatch(setActiveDisassemblyView(null))
-            }}/>
-            <span className="labels" data-on="Active" data-off="Inactive"></span>
-        </label>
         {finalPages.length > 0 ?  
         <div style={{
             ...borderStyle,
             overflow: 'scroll',
         }}
         >
-            <div style={{
-                position: 'absolute',
-                top: '0',
-                width: '100%',
-                backgroundColor: '#f1f1f1',
-                padding: '10px',
-                fontWeight: 'bold',
-                zIndex: 1,
-                display: 'flex',
-                flexDirection: 'row',
-            }}>
-                <Form.Group style={{}} className='form-inline'>
-                    <Form.Label style={{whiteSpace: 'nowrap'}}>
-                        Order By: 
-                        <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
-                            // dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
-                            setBlockOrder(e.currentTarget.value as BLOCK_ORDERS)
-                        }}>
-                            <option value="memory_order">Memory Address</option>
-                            <option value="loop_order">Loop Structure</option>
-                        </Form.Select>
-                    </Form.Label>
-                </Form.Group>
-
-                <Form.Group style={{}} className='form-inline'>
-                    <Form.Label style={{whiteSpace: 'nowrap'}}>
-                        Jump to: 
-                        <Form.Control type='text' value={jumpAddress} placeholder='0x10E59' aria-label="Address" style={{ width: '200px', }} onChange={(e) => {
-                            setJumpAddress(e.target.value)
-                            if(isHex(e.target.value) && toHex(e.target.value) <= addressRange.end && toHex(e.target.value) >= addressRange.start)
-                                setJumpValidationError('')
-                            else
-                                setJumpValidationError('Input must be of format Hexa decimal and withing range');
-                        }} isInvalid={!!jumpValidationError}>
-                        </Form.Control>
-                        <Form.Control.Feedback type="invalid">
-                            {jumpValidationError}
-                        </Form.Control.Feedback>
-                    </Form.Label>
-                    <Button onClick={e => {
-                        if(jumpValidationError !== '') return
-                        console.log('sdlkfjsdlk')
-                        const address = toHex(jumpAddress)
-                        console.log(address)
-                        api.getDisassemblyPageByAddress(binaryFilePath, address, blockOrder).then(p => setPages([p]))
-                    }}>
-                        Jump
-                    </Button>
-
-                </Form.Group>
-                
-            </div>
             {finalPages.length > 0 && finalPages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
@@ -278,11 +211,6 @@ function DisassemblyView({ id }:{
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
-            {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
-                width={150}
-                visibleBlockWindow={onScreenFirstBlockAddress}
-                minimap={minimap}
-            ></Minimap>}
             </div> :
             <div>
                 <h1>Please select a binary file to get disassembly code here.</h1>

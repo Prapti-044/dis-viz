@@ -217,7 +217,6 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
                     </span>
                 </span>
-                {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
             </Card.Header>
             <ListGroup variant="flush" style={{
                 paddingLeft: '10px',
@@ -274,12 +273,6 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 )}
             </ListGroup>
             </>}
-            {backedgeTargets.map((backedgeTarget,i) => <BackEdge
-                key={i}
-                source={thisBlockRef.current.ref}
-                target={backedgeTarget}
-                level={block.loops.length}
-            />)}
         </Card>
     </>
 }

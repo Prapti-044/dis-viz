@@ -193,14 +193,7 @@ const App = () => {
             tabs: [],
             panelLock: {
               minWidth: 300,
-              minHeight: 300,
-              panelExtra: (panelData) => (
-                <button onClick={e => {
-                  dispatch(addDisassemblyView(null))
-                }}>
-                  add
-                </button>
-              )
+              minHeight: 300
             }
           }]
         },

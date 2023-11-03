@@ -37,15 +37,6 @@ function SourceView({ file_name }:{
 
 
     return <>
-        <div>
-            <label>
-                <input type="checkbox"
-                    checked={wrapLongLines}
-                    onChange={(event) => {setWrapLongLines(event.target.checked)}}
-                />
-                Wrapping
-            </label>
-        </div>
         <SyntaxHighlighter
             language="c++"
             style={docco}
