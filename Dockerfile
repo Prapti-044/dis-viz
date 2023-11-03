@@ -57,8 +57,8 @@ WORKDIR /App
 COPY dis-viz-frontend frontend
 WORKDIR /App/frontend
 RUN npm install
-RUN REACT_APP_BACKEND_PORT=8080 BUILD_PATH="/App/build/templates" npm run build
+RUN BUILD_PATH="/App/build/templates" npm run build
 
 WORKDIR /App/build
 EXPOSE 8080
-ENTRYPOINT ["./CrowTutorial", "-b", "/samples/bin"]
+ENTRYPOINT ["./DisViz", "-b", "/samples/bin"]

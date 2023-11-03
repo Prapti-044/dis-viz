@@ -14,6 +14,8 @@
 #include <numeric>
 #include <string>
 
+#define SAVE_CACHE
+
 using json = crow::json::wvalue;
 namespace po = boost::program_options;
 
@@ -128,6 +130,13 @@ int main(int argc, char *argv[]) {
         }
 
         json payload = json({{"binarylist", binaryList}});
+
+        #ifdef SAVE_CACHE
+          std::ofstream o("binarylist.json");
+          o << payload.dump() << std::endl;
+          o.close();
+        #endif
+
         return payload;
       });
   
