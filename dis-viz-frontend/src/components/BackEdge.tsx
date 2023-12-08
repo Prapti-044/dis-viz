@@ -4,7 +4,7 @@ const BACKEDGE_MIDDLE_OFFSET = 40
 const ARROW_SIZE = 20
 const BLOCK_ARROW_GAP = 4
 const BLOCK_TOP_OFFSET = 10
-const MAX_SUPPORTED_INDENT = 12
+const MAX_SUPPORTED_INDENT = 7
 
 const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, borderWidth, className }: {
     source: HTMLDivElement|undefined,

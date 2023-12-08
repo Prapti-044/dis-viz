@@ -16,6 +16,7 @@ const marginHorizontal = 10
 const marginSameVertical = 10
 const marginDifferentVertical = 100
 const LOOP_INDENT_SIZE = 26
+const BLOCK_MAX_WIDTH = 420 //400
 
 
 
@@ -130,7 +131,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
                 marginRight: marginHorizontal + 'px',
                 marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
-                maxWidth: '400px',
+                maxWidth: BLOCK_MAX_WIDTH + 'px',
                 textAlign: 'center',
                 border: block.block_type==='normal'?'1px solid black':'3px dashed lightgray',
             }}
@@ -148,7 +149,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 fontSize: '14px'
             }} title={block.name}>
             <span style={{float: 'left'}}>
-                {shortenName(block.name, 24)}
+                {shortenName(block.name, 18)}
                 {/* {block.backedges.length>0?<span style={{color: 'red'}}>|({block.backedges.map(backedge => backedge.split(': ')[1])})</span>:''} */}
             </span>
             <span style= {{ float: 'right', fontStyle: 'italic'}}>

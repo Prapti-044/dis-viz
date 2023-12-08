@@ -97,7 +97,9 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
                 const nextBlock = block.next_block_numbers[0]
                 if (nextBlock)
-                    return <mark key={i} data-type="jump" data-blockname={shortenName(nextBlock, MAX_FN_SIZE)} title={title}>{token}
+                    return <mark key={i} data-type="jump" data-blockname={shortenName(nextBlock, MAX_FN_SIZE)} title={title}>
+                        {/* {token} */}
+                        
                         {/* Set background image of the button with styling */}
                         <button style={{
                             backgroundImage: `url(${openInNewTabImage})`,
