@@ -42,6 +42,8 @@ struct LoopEntry {
   std::string name;
   std::vector<std::pair<std::string, std::string> > backedges;
   std::vector<std::string> blocks;
+  std::string header_block;
+  std::string latch_block;
   std::vector<LoopEntry> loops;
 };
 struct Hidable {
@@ -89,6 +91,7 @@ struct BlockInfo {
   std::string functionName;
   std::vector<std::string> nextBlockNames;
   std::vector<BlockLoopState> loops;
+  bool isLoopHeader;
   enum {
     BLOCK_TYPE_NORMAL,
     BLOCK_TYPE_PSEUDOLOOP,

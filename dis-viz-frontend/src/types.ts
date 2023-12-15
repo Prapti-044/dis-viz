@@ -81,8 +81,9 @@ export class InstructionBlock extends AddressRange {
     }[]
     @Expose() block_type: "pseudoloop" | "normal"
     @Expose() backedges: string[]
+    @Expose() is_loop_header: boolean = false
 
-    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[], loops: { name: string, loop_count: number, loop_total: number }[], block_type: "pseudoloop" | "normal", backedges: string[]) {
+    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[], loops: { name: string, loop_count: number, loop_total: number }[], block_type: "pseudoloop" | "normal", backedges: string[], is_loop_header: boolean = false) {
         super(start_address, end_address, n_instructions)
         this.name = name
         this.instructions = instructions
@@ -92,6 +93,7 @@ export class InstructionBlock extends AddressRange {
         this.loops = loops === undefined ? [] : loops
         this.block_type = block_type
         this.backedges = backedges === undefined ? [] : backedges
+        this.is_loop_header = is_loop_header
     }
 
 }

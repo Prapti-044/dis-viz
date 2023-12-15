@@ -94,6 +94,7 @@ json convertBlockInfo(const BlockInfo &block) {
   result["start_address"] = block.startAddress;
   result["end_address"] = block.endAddress;
   result["n_instructions"] = block.nInstructions;
+  result["is_loop_header"] = block.isLoopHeader;
 
   auto flags = std::vector<std::string>();
   for (const auto &flag : block.flags) {

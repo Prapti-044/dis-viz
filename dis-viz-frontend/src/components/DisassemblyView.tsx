@@ -247,9 +247,7 @@ function DisassemblyView({ id }:{
                     </Form.Label>
                     <Button onClick={e => {
                         if(jumpValidationError !== '') return
-                        console.log('sdlkfjsdlk')
                         const address = toHex(jumpAddress)
-                        console.log(address)
                         api.getDisassemblyPageByAddress(binaryFilePath, address, blockOrder).then(p => setPages([p]))
                     }}>
                         Jump

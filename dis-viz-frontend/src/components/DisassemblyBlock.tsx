@@ -107,7 +107,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
             disassemblyViewId: id,
         }))
     }
-    
+
     return <>
         <Card className={block.block_type==='normal'?'':'pseudoloop'} onClick={() => {
             if (block.block_type==='pseudoloop' && drawPseudo!=='full') {
@@ -149,11 +149,12 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 fontSize: '14px'
             }} title={block.name}>
             <span style={{float: 'left'}}>
-                {shortenName(block.name, 18)}
+                {shortenName(block.name, 22)}
                 {/* {block.backedges.length>0?<span style={{color: 'red'}}>|({block.backedges.map(backedge => backedge.split(': ')[1])})</span>:''} */}
             </span>
             <span style= {{ float: 'right', fontStyle: 'italic'}}>
-                {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
+                {/* {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`} */}
+                {block.loops.length > 0 && `${block.is_loop_header?'(loop_header) ':''}${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
             </span> </span>}
 
             {(block.block_type === 'normal' || (block.block_type === 'pseudoloop' && drawPseudo === 'full')) && <>
@@ -215,7 +216,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         fontStyle: 'italic',
                     }}>
                         
-                        {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
+                        {block.loops.length > 0 && `${block.is_loop_header?'(loop_header) ':''}${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
                     </span>
                 </span>
                 {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
@@ -252,6 +253,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                         disId={id}
                                         isHidable={isHidable}
                                         blockOrder={blockOrder}
+                                        nextBlock={allBlocks[i + 1]}
                                     />
                                 </>
                             }
@@ -270,6 +272,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         disId={id}
                         isHidable={isHidable}
                         blockOrder={blockOrder}
+                        nextBlock={allBlocks[i + 1]}
                     />)
                 }
                 )}

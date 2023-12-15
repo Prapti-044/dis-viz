@@ -8,12 +8,12 @@ import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
-import { disLineToId, MAX_FN_SIZE, shortenName } from '../utils'
+import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import * as api from "../api";
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 
-function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder }: {
+function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder, nextBlock }: {
     block: InstructionBlock,
     instruction: Instruction,
     isHighlighted: boolean,
@@ -28,6 +28,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     disId: number,
     isHidable: boolean,
     blockOrder: BLOCK_ORDERS,
+    nextBlock: InstructionBlock | null
 }) {
 
     const dispatch = useAppDispatch();
@@ -57,7 +58,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
         const parsedTokens = tokens.map((token, i) => {
             // The opcode
             if (i === 0) {
-                const doc = inteldocs.find(doc => doc["Instruction"] == token.toUpperCase())
+                const doc = findIntelDocs(token);
                 return <span key={instruction.address.toString(16) + "id" + i}>
                     {showDoc && doc ? <div className="tooltipitem">
                         {Object.entries(doc).map(([key, value]) => value ? <p><b>{key}</b>: {value}</p> : <></>)}
@@ -79,7 +80,6 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
             // Last token and this is the last instruction of the block
             if (i === tokens.length - 1
-                // && block.next_block_numbers.length !== 0 
                 && block.instructions[block.instructions.length - 1].address === instruction.address
             ) {
                 let nextAddress: number | null = null;
@@ -95,9 +95,9 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                 }
                 addToTitle(nextAddress ? "0x" + nextAddress.toString(16).toUpperCase() : "")
 
-                const nextBlock = block.next_block_numbers[0]
-                if (nextBlock)
-                    return <mark key={i} data-type="jump" data-blockname={shortenName(nextBlock, MAX_FN_SIZE)} title={title}>
+                const thisNextBlocks = block.next_block_numbers.filter(jmpNextBlock => block.next_block_numbers.length === 1 || (nextBlock && jmpNextBlock !== nextBlock.name))
+                if (nextBlock && thisNextBlocks.length > 0 && isJumpInstruction(tokens[0]))
+                    return <mark key={i} data-type="jump" data-blockname={thisNextBlocks.map(jmpNextBlock => shortenName(jmpNextBlock, MAX_FN_SIZE)).join(' | ')} title={title}>
                         {/* {token} */}
                         
                         {/* Set background image of the button with styling */}
@@ -113,7 +113,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                             left: "5px",
                         }} onClick={() => {
 
-                            api.getDisassemblyBlock(binaryFilePath, nextBlock, blockOrder).then(block => {
+                            api.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder).then(block => {
                                 dispatch(addDisassemblyView({
                                     addresses: block.instructions.map(instruction => instruction.address),
                                     source_selection: []
@@ -207,3 +207,10 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 }
 
 export default DisassemblyLine
+
+function isJumpInstruction(instr: string) {
+    const doc = findIntelDocs(instr.toUpperCase());
+    if (doc && doc["jumpable"]) return true;
+    return false;
+}
+

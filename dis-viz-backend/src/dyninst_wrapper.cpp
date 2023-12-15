@@ -139,6 +139,10 @@ LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::Lo
     lt.loop->getLoopBasicBlocks(blocks);
 
     loop_entry.name = lt.name();
+    std::vector<ParseAPI::Block *> loop_entry_blocks;
+    lt.loop->getLoopEntries(loop_entry_blocks);
+    loop_entry.header_block = loop_entry_blocks.size() > 0 ? block_ids[loop_entry_blocks[0]] : "";
+    loop_entry.latch_block = "";
 
     if (!backedges.empty()) {
       for (auto &e : backedges) {
@@ -192,45 +196,45 @@ bool matchOperands(const vector<signed int> &readSet,
   return true;
 }
 
-Hidable getFuncBegin(ParseAPI::Function *f) {
-  auto blocks = f->blocks();
-  auto insns = ParseAPI::Block::Insns();
-  (*blocks.begin())->getInsns(insns);
+// Hidable getFuncBegin(ParseAPI::Function *f) {
+//   auto blocks = f->blocks();
+//   auto insns = ParseAPI::Block::Insns();
+//   (*blocks.begin())->getInsns(insns);
 
-  auto itm = insns.begin();
-  auto instruction = itm->second;
+//   auto itm = insns.begin();
+//   auto instruction = itm->second;
 
-  auto operation = instruction.getOperation();
-  if (operation.getID() == e_push) {
-    auto operands = vector<InstructionAPI::Operand>();
-    instruction.getOperands(operands);
+//   auto operation = instruction.getOperation();
+//   if (operation.getID() == e_push) {
+//     auto operands = vector<InstructionAPI::Operand>();
+//     instruction.getOperands(operands);
 
-    if (!matchOperands({Dyninst::x86_64::rsp, Dyninst::x86_64::rbp}, {},
-                       operands))
-      return {};
-  } else
-    return {};
+//     if (!matchOperands({Dyninst::x86_64::rsp, Dyninst::x86_64::rbp}, {},
+//                        operands))
+//       return {};
+//   } else
+//     return {};
 
-  itm++;
-  itm->first;
-  if (itm == insns.end()) return {};
-  instruction = itm->second;
+//   itm++;
+//   itm->first;
+//   if (itm == insns.end()) return {};
+//   instruction = itm->second;
 
-  operation = instruction.getOperation();
-  // mov %rsp %rbp
-  if (operation.getID() == e_mov) {
-    auto operands = vector<InstructionAPI::Operand>();
-    instruction.getOperands(operands);
-    if (!matchOperands(
-            {Dyninst::x86_64::rsp},                        // Read Reg
-            {Dyninst::x86_64::rbp, Dyninst::x86_64::rsp},  // Write Reg
-            operands))
-      return {};
-  } else
-    return {};
+//   operation = instruction.getOperation();
+//   // mov %rsp %rbp
+//   if (operation.getID() == e_mov) {
+//     auto operands = vector<InstructionAPI::Operand>();
+//     instruction.getOperands(operands);
+//     if (!matchOperands(
+//             {Dyninst::x86_64::rsp},                        // Read Reg
+//             {Dyninst::x86_64::rbp, Dyninst::x86_64::rsp},  // Write Reg
+//             operands))
+//       return {};
+//   } else
+//     return {};
 
-  return {"Function Entry", insns.begin()->first, itm->first};
-}
+//   return {"Function Entry", insns.begin()->first, itm->first};
+// }
 
 string block_to_name(const ParseAPI::Function *fn, const ParseAPI::Block *block,
                      const int cur_id) {
@@ -295,7 +299,6 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
                                      const LoopEntry &loop,
                                      vector<unsigned int> &visitedBlocks) {
   auto blocksInLoop = vector<unsigned int>();
-
   auto currLoopBlocks = vector<unsigned int>();
   copy_if(blocks.begin(), blocks.end(), back_inserter(currLoopBlocks),
           [&loop ,&funcBlocks](const unsigned int b) {
@@ -306,6 +309,7 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
     if (find(visitedBlocks.begin(), visitedBlocks.end(), block) !=
         visitedBlocks.end())
       continue;
+
     if (loop.loops.size() > 0) {
       auto innerLoopIt = loop.loops.begin();
       for (; innerLoopIt != loop.loops.end(); ++innerLoopIt) {
@@ -314,6 +318,8 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
                  funcBlocks[block].name) != innerLoop.blocks.end()) {
           auto innerLoopBlocks =
               getAllBlocksInLoop(funcBlocks, blocks, innerLoop, visitedBlocks);
+
+
           blocksInLoop.insert(blocksInLoop.end(), std::make_move_iterator(innerLoopBlocks.begin()),
                               std::make_move_iterator(innerLoopBlocks.end()));
           break;
@@ -327,6 +333,18 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
       visitedBlocks.push_back(block);
       blocksInLoop.push_back(block);
     }
+  }
+  // find the loop entry block and reorder it to the first place in tmp
+  auto header_block_it = std::find_if(blocksInLoop.begin(), blocksInLoop.end(), [&loop,&funcBlocks](const unsigned int b) {
+    return loop.header_block == funcBlocks[b].name;
+  });
+  if(header_block_it != blocksInLoop.end()) {
+    auto tmp = vector<unsigned int>();
+    tmp.push_back(*header_block_it);
+    for(auto &b : blocksInLoop) {
+      if(b != *header_block_it) tmp.push_back(b);
+    }
+    blocksInLoop = std::move(tmp);
   }
   return blocksInLoop;
 }
@@ -408,6 +426,19 @@ void getInlines(const set<SymtabAPI::InlinedFunction*> &inlineFuncs, vector<Inli
       next_funcs.insert(static_cast<SymtabAPI::InlinedFunction *>(j));
     if (!next_funcs.empty())
       getInlines(next_funcs, result);
+  }
+}
+
+void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
+  for (const auto &loop : loops) {
+    if(loop.header_block == block.name) {
+      block.isLoopHeader = true;
+    }
+  }
+  if(!block.isLoopHeader) {
+    for (const auto &loop : loops) {
+      addLoopHeaderInfo(block, loop.loops);
+    }
   }
 }
 
@@ -500,9 +531,10 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     }
     
     // Hidables
-    auto hidables = vector<Hidable>();
-    auto fnBegin = getFuncBegin(f);
-    if (!fnBegin.name.empty()) hidables.push_back(std::move(fnBegin));
+    // auto hidables = vector<Hidable>();
+    // auto fnBegin = getFuncBegin(f);
+    // if (!fnBegin.name.empty()) hidables.push_back(std::move(fnBegin));
+
     auto funcBlocks = vector<BlockInfo>();
     
     // Inlines
@@ -561,7 +593,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       calls,
       inlines,
       funcLoops,
-      hidables
+      {} // hidables
     };
     
     // Function variables
@@ -602,11 +634,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       funcInfo.basic_blocks.push_back(blockInfo.name);
       blockInfo.flags = block_flags[block];
 
-      for (const auto &hidable : hidables) {
-        if (hidable.start >= block->start() && hidable.end <= block->last()) {
-          blockInfo.hidables.push_back(std::move(hidable)); // maybe gotcha
-        }
-      }
+      // for (const auto &hidable : hidables) {
+      //   if (hidable.start >= block->start() && hidable.end <= block->last()) {
+      //     blockInfo.hidables.push_back(std::move(hidable)); // maybe gotcha
+      //   }
+      // }
 
       for (const auto &edge : block->targets()) {
         auto sourcei = block_ids.find(edge->src());
@@ -638,7 +670,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       blockInfo.startAddress = block->start();
       blockInfo.endAddress = block->last();
       blockInfo.nInstructions = blockInfo.instructions.size();
-
+      addLoopHeaderInfo(blockInfo, funcLoops);
       funcBlocks.push_back(std::move(blockInfo));
     }
     int maxLoopCount = -1;
