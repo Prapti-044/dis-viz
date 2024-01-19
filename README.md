@@ -5,7 +5,7 @@ This project visualizes binary executable files and maps it back to the source c
 __Due to requirement of a high power back-end, I hosted this on Google Cloud Platform (GCP) and shared the demo link below.__
 
 ## [Video Link](https://youtu.be/JzdskO-FHIU)
-## [Website Demo Link](https://binary-viz-project-eq3fvozioa-uc.a.run.app)
+## [Website Demo Link](http://155.98.19.71:9000/)
 
 ## Quick Start
 
