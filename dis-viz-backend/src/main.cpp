@@ -280,12 +280,12 @@ int main(int argc, char *argv[]) {
         return payload;
       });
 
-  CROW_ROUTE(app, "/api/getdisassemblyblockbyid/<string>/<string>")
-      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req, std::string order,
-                                 std::string id) {
+  CROW_ROUTE(app, "/api/getdisassemblyblockbyid/<string>")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req, std::string order) {
         auto reqBody = crow::json::load(req.body);
         auto binaryPath = reqBody["path"].s();
-
+        auto id = reqBody["blockId"].s();
+        
         std::vector<BlockInfo> *assembly;
         if (getBlockOrder(order) == MEMORY_ORDER)
           assembly =
@@ -293,9 +293,10 @@ int main(int argc, char *argv[]) {
         else
           assembly =
               &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.loop_order_blocks;
-        
-        auto block = *std::find_if(assembly->begin(), assembly->end(),
-                     [&id](const BlockInfo &i) { return i.name == id; });
+              
+        auto block =
+            *std::find_if(assembly->begin(), assembly->end(),
+                          [&id](const BlockInfo &i) { return i.name == id; });
 
         return convertBlockInfo(block);
       });

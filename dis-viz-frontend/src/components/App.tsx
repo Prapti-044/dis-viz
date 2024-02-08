@@ -172,12 +172,12 @@ const App = () => {
         },
         {
           mode: 'vertical',
-          size: 4,
+          size: 2,
           children: [{
             id: 'SourceViewPanel',
             tabs: [],
             panelLock: {
-              minWidth: 300,
+              minWidth: 10,
               minHeight: 300,
               // panelExtra: (panelData) => (
               //   <p>Source Files</p>

@@ -86,12 +86,15 @@ export async function getDisassemblyPage(filepath: string, pageNo: number, order
 
 export async function getDisassemblyBlock(filepath: string, blockId: string, order: BLOCK_ORDERS): Promise<InstructionBlock> {
     const response = await fetch(
-        apiURL + "getdisassemblyblockbyid/" + order + "/" + blockId, {
+        apiURL + "getdisassemblyblockbyid/" + order, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({path:filepath}),
+            body: JSON.stringify({
+                path: filepath,
+                blockId: blockId,
+            }),
         }
     );
     const result: Object = await response.json();

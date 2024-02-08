@@ -686,34 +686,6 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
             loop.loopTotal = loop_count[loop.name];
       }
     }
-    auto __visitedBlocks = vector<unsigned int>();
-    for (const auto &block : funcBlocks| boost::adaptors::indexed(0)) {
-      if (find(__visitedBlocks.begin(), __visitedBlocks.end(),
-                    block.index()) != __visitedBlocks.end())
-        continue;
-      if (block.value().loops.size() > 0) {
-        
-        auto blockLoopNames = vector<string>(); blockLoopNames.reserve(funcLoops.size());
-        std::transform(block.value().loops.begin(), block.value().loops.end(), std::back_inserter(blockLoopNames), [](const BlockLoopState &l) {
-          return l.name;
-        });
-        auto foundLoop = std::find_if(funcLoops.begin(), funcLoops.end(), [&blockLoopNames](const LoopEntry &l) {
-          return std::find(blockLoopNames.begin(), blockLoopNames.end(), l.name) != blockLoopNames.end();
-        });
-        auto currLoop = (foundLoop != funcLoops.end()) ? *foundLoop : LoopEntry();
-
-        auto currLoopBlocks = vector<unsigned int>();
-        for(const auto &b : funcBlocks| boost::adaptors::indexed(0)) {
-          if (find(currLoop.blocks.begin(), currLoop.blocks.end(), b.value().name) != currLoop.blocks.end())
-            currLoopBlocks.push_back(b.index());
-        }
-        auto tmp = getAllBlocksInLoop(funcBlocks, currLoopBlocks, currLoop, __visitedBlocks);
-        for(auto &b : tmp) loopOrderBlocks.push_back(funcBlocks[b]);
-      } else {
-        __visitedBlocks.push_back(block.index());
-        loopOrderBlocks.push_back(block.value());
-      }
-    }
     
     std::sort(funcBlocks.begin(), funcBlocks.end(), [](const BlockInfo &a, const BlockInfo &b) {
       return a.startAddress < b.startAddress;
@@ -757,13 +729,66 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
           processed_loops.push_back(funcBlocks[idx].loops.back().name);
           idx++;
           auto skips = pseudo_blocks.size();
-          funcBlocks.insert(funcBlocks.begin() + idx, make_move_iterator(pseudo_blocks.rbegin()), make_move_iterator(pseudo_blocks.rend()));
+          funcBlocks.insert(funcBlocks.begin() + idx, make_move_iterator(pseudo_blocks.begin()), make_move_iterator(pseudo_blocks.end()));
           idx += skips;
 
         }
       }
       idx++; 
     }
+
+    // Loop Order blocks
+    auto __visitedBlocks = vector<unsigned int>();
+    auto funcLoopOrderBlocks = vector<BlockInfo>();
+    for (const auto &block : funcBlocks| boost::adaptors::indexed(0)) {
+      if (find(__visitedBlocks.begin(), __visitedBlocks.end(),
+                    block.index()) != __visitedBlocks.end())
+        continue;
+      if (block.value().loops.size() > 0) {
+        
+        auto blockLoopNames = vector<string>(); blockLoopNames.reserve(funcLoops.size());
+        std::transform(block.value().loops.begin(), block.value().loops.end(), std::back_inserter(blockLoopNames), [](const BlockLoopState &l) {
+          return l.name;
+        });
+        auto foundLoop = std::find_if(funcLoops.begin(), funcLoops.end(), [&blockLoopNames](const LoopEntry &l) {
+          return std::find(blockLoopNames.begin(), blockLoopNames.end(), l.name) != blockLoopNames.end();
+        });
+        auto currLoop = (foundLoop != funcLoops.end()) ? *foundLoop : LoopEntry();
+
+        auto currLoopBlocks = vector<unsigned int>();
+        for(const auto &b : funcBlocks| boost::adaptors::indexed(0)) {
+          if (find(currLoop.blocks.begin(), currLoop.blocks.end(), b.value().name) != currLoop.blocks.end())
+            currLoopBlocks.push_back(b.index());
+        }
+        auto tmp = getAllBlocksInLoop(funcBlocks, currLoopBlocks, currLoop, __visitedBlocks);
+        for(auto &b : tmp) funcLoopOrderBlocks.push_back(funcBlocks[b]);
+      } else {
+        __visitedBlocks.push_back(block.index());
+        funcLoopOrderBlocks.push_back(block.value());
+      }
+    }
+
+    // remove normal blocks if there is a pseudo block
+    auto it = funcLoopOrderBlocks.begin();
+    while(it != funcLoopOrderBlocks.end()) {
+      if(it->block_type == BlockInfo::BLOCK_TYPE_PSEUDOLOOP) {
+        // look for all the blocks with the same name and remove them from the beginning
+        auto blockName = it->name;
+        auto it2 = funcLoopOrderBlocks.begin();
+        while(it2 != funcLoopOrderBlocks.end()) {
+          if(it2->name == blockName && it2->block_type == BlockInfo::BLOCK_TYPE_NORMAL) {
+            it2 = funcLoopOrderBlocks.erase(it2);
+          } else {
+            it2++;
+          }
+        }
+      }
+      it++;
+    }
+    // move all funcLoopOrderBlocks to loopOrderBlocks
+    loopOrderBlocks.insert(loopOrderBlocks.end(), make_move_iterator(funcLoopOrderBlocks.begin()), make_move_iterator(funcLoopOrderBlocks.end()));
+    
+
     
     auto blockI = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&funcBlocks](const BlockInfo &b) {
       return funcBlocks.front().startAddress < b.startAddress;

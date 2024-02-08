@@ -73,13 +73,15 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
 function DisassemblyView({ id }:{
     id: number,
 }) {
-
     const dispatch = useAppDispatch();
     const selections = useAppSelector(selectSelections)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
     const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
     const active = activeDisassemblyView === id
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
+    const [shouldScroll, setShouldScroll] = React.useState({
+        value: true
+    })
 
     const lineSelection = selections[id]
     const [pages, setPages] = React.useState<BlockPage[]>([]);
@@ -95,6 +97,7 @@ function DisassemblyView({ id }:{
         start: 0, end: 0
     })
     
+    // Fetch and get the pages
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
@@ -105,11 +108,14 @@ function DisassemblyView({ id }:{
         else {
             api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
         }
-    }, [lineSelection, blockOrder])
+        setTimeout(() => {
+            setShouldScroll({value: true})
+        }, 1000);
+    }, [lineSelection, blockOrder, binaryFilePath])
 
     React.useEffect(() => {
         api.getAddressRange(binaryFilePath).then(setAddressRange)
-    }, [])
+    }, [binaryFilePath])
 
     const addNewPage = (newPageNo: number) => {
         api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
@@ -120,26 +126,9 @@ function DisassemblyView({ id }:{
         })
     }
 
-    React.useEffect(() => {
-        if (!lineSelection || lineSelection.addresses.length == 0) return;
-        const firstFocusLine = lineSelection.addresses[0]
-
-        const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
-        for(const i in blockAddresses) {
-            const blockAddress = blockAddresses[i]
-            if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
-                if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
-                const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
-                setTimeout(() => {
-                    scrollRef.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center',
-                    })
-                }, 100);
-                break
-            }
-        }
-    }, [lineSelection])
+    // React.useEffect(() => {
+    //     setShouldScroll({value: true})
+    // }, [lineSelection])
     
     React.useEffect(() => {
         api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
@@ -172,6 +161,31 @@ function DisassemblyView({ id }:{
         })
         setBackedges(currBackedges)
     }, [pages])
+    
+    React.useEffect(() => {
+        if(shouldScroll.value) {
+            if(!disassemblyBlockRefs.current) return;
+            if(!lineSelection || lineSelection.addresses.length === 0) return;
+            const firstFocusLine = lineSelection.addresses[0]
+
+            const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
+            for(const i in blockAddresses) {
+                const blockAddress = blockAddresses[i]
+                if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
+                    if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
+                    const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
+                    setTimeout(() => {
+                        scrollRef.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        })
+                    }, 100);
+                    break
+                }
+            }
+            setShouldScroll({value: false})
+        }
+    }, [shouldScroll])
 
     const borderStyle: {[style: string]: string} = {}
     if(active) {
@@ -247,8 +261,15 @@ function DisassemblyView({ id }:{
                     </Form.Label>
                     <Button onClick={e => {
                         if(jumpValidationError !== '') return
-                        const address = toHex(jumpAddress)
-                        api.getDisassemblyPageByAddress(binaryFilePath, address, blockOrder).then(p => setPages([p]))
+                        // using api, get the sourceLines
+                        dispatch(setDisassemblyLineSelection({
+                            disIdSelections: {
+                                addresses: [toHex(jumpAddress)],
+                                source_selection: []
+                            },
+                            disassemblyViewId: id,
+                        }))
+                        setShouldScroll({value: true})
                     }}>
                         Jump
                     </Button>
@@ -269,7 +290,7 @@ function DisassemblyView({ id }:{
                     pages={finalPages}
                     disassemblyBlockRefs={disassemblyBlockRefs}
                     lineSelection={lineSelection}
-                    drawPseudo={'short'}
+                    drawPseudo={blockOrder === 'memory_order'?'short':'full'}
                     blockOrder={blockOrder}
                     backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
             ))).flat()}
