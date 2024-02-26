@@ -11,10 +11,8 @@ import { useAppDispatch, useAppSelector } from '../app/hooks';
 import { Form, Button } from 'react-bootstrap';
 import { MinimapType } from '../features/minimap/minimapSlice';
 import { isHex, toHex } from '../utils';
+import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
 
-const marginHorizontal = 10
-const LOOP_INDENT_SIZE = 26
-const BLOCK_MAX_WIDTH = 420 //400
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -297,7 +295,12 @@ function DisassemblyView({ id }:{
                     drawPseudo={blockOrder === 'memory_order'?'short':'full'}
                     blockOrder={blockOrder}
                     backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
-                {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.next_block_numbers.filter(nextBName => nextBName.includes(allBlocks[j+1].name)).length > 0 && <i className='continuity-arrow' style={{
+                
+                {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.block_type !=='pseudoloop' && block.next_block_numbers.filter(nextBName => nextBName == allBlocks[j+1].name && allBlocks[j+1].block_type !== 'pseudoloop').length > 0 && <div style={{
+                    position: 'relative',
+                    height: '0',
+                    width: '0',
+                }}><i className='continuity-arrow' style={{
                     marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + BLOCK_MAX_WIDTH/2-16 + 'px',
 
                     // position: 'absolute',
@@ -309,7 +312,7 @@ function DisassemblyView({ id }:{
                     // borderLeft: '10px solid transparent',
                     // borderRight: '10px solid transparent',
                     // borderBottom: '10px solid black',
-                }}></i>}
+                }}></i></div>}
                 </>)).flat()}
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more

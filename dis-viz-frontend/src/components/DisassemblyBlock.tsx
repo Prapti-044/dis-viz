@@ -11,12 +11,7 @@ import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 import BackEdge from "./BackEdge";
-
-const marginHorizontal = 10
-const marginSameVertical = 10
-const marginDifferentVertical = 100
-const LOOP_INDENT_SIZE = 26
-const BLOCK_MAX_WIDTH = 420 //400
+import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 
 
 
@@ -108,6 +103,14 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
         }))
     }
 
+
+    let nextBlockI = i + 1
+    let nextBlock = allBlocks[nextBlockI]
+    while (nextBlock?.block_type === 'pseudoloop' && allBlocks.length > nextBlockI + 1) {
+        nextBlockI++
+        nextBlock = allBlocks[nextBlockI]
+    }
+    
     return <>
         <Card className={block.block_type==='normal'?'':'pseudoloop'} onClick={() => {
             if (block.block_type==='pseudoloop' && drawPseudo!=='full') {
@@ -253,7 +256,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                         disId={id}
                                         isHidable={isHidable}
                                         blockOrder={blockOrder}
-                                        nextBlock={allBlocks[i + 1]}
+                                        nextBlock={nextBlock}
                                     />
                                 </>
                             }
@@ -272,7 +275,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         disId={id}
                         isHidable={isHidable}
                         blockOrder={blockOrder}
-                        nextBlock={allBlocks[i + 1]}
+                        nextBlock={nextBlock}
                     />)
                 }
                 )}

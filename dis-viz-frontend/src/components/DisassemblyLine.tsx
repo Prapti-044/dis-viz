@@ -94,10 +94,17 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                     nextAddress = instruction.address + finalValue
                 }
                 addToTitle(nextAddress ? "0x" + nextAddress.toString(16).toUpperCase() : "")
+                
+                // const nextBlock = block.next_block_numbers[0]
+              
+                // if (block.next_block_numbers.length > 0 && block.next_block_numbers[0] === nextBlock?.name)
+                //     if(block.next_block_numbers[1])
+                //         return <mark key={i} data-type="jump" data-blockname={shortenName(block.next_block_numbers[1], MAX_FN_SIZE)} title={title}>
 
+                 
                 const thisNextBlocks = block.next_block_numbers.filter(jmpNextBlock => block.next_block_numbers.length === 1 || (nextBlock && jmpNextBlock !== nextBlock.name))
                 if (nextBlock && thisNextBlocks.length > 0 && isJumpInstruction(tokens[0]))
-                    return <mark key={i} data-type="jump" data-blockname={thisNextBlocks.map(jmpNextBlock => shortenName(jmpNextBlock, MAX_FN_SIZE)).join(' | ')} title={title}>
+                    return <mark key={i} data-type="jump" data-blockname={thisNextBlocks.map(jmpNextBlock => shortenName(jmpNextBlock, MAX_FN_SIZE)).join(' | ')} title={title}> 
                         {/* {token} */}
                         
                         {/* Set background image of the button with styling */}

@@ -195,10 +195,13 @@ svg.backedge {
 }
 
 .continuity-arrow {
-    border: solid black;
+    position: absolute;
+    top: 5px;
+    z-index: 20;
+    border: solid gray;
     border-width: 0 3px 3px 0;
     display: inline-block;
-    padding: 3px;
+    padding: 2px;
     transform: rotate(45deg);
     -webkit-transform: rotate(45deg);
   
