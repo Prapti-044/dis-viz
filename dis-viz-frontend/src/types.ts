@@ -7,10 +7,12 @@ export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: number[];
+    @Expose() tags: string[];
 
-    constructor(line: string, addresses: number[]) {
+    constructor(line: string, addresses: number[], tags: string[]) {
         this.line = line
         this.addresses = addresses
+        this.tags = tags
     }
 }
 
@@ -22,6 +24,15 @@ export class SourceFile {
     }
 }
 
+enum InstructionFlag {
+  INST_VECTORIZED,
+  INST_MEMORY_READ,
+  INST_MEMORY_WRITE,
+  INST_CALL,
+  INST_SYSCALL,
+  INST_FP
+}
+
 export class Instruction {
     @Expose() instruction: string
     @Expose() address: number
@@ -29,12 +40,14 @@ export class Instruction {
     @Expose() correspondence: {
         [source_file: string]: number[]
     }
+    @Expose() flags: InstructionFlag[] = []
 
-    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}) {
+    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}, flags: InstructionFlag[] = []) {
         this.instruction = instruction
         this.address = address
         this.variables = variables === undefined ? [] : variables
         this.correspondence = correspondence === undefined ? {} : correspondence
+        this.flags = flags === undefined ? [] : flags
     }
 }
 
@@ -140,12 +153,6 @@ export class LineCorrespondence extends AddressRange {
         this.source_file = source_file
         this.source_line = source_line
     }
-}
-
-enum BlockFlag {
-    MEMREAD,
-    MEMWRITE,
-    CALL,
 }
 
 export class VariableLocation extends AddressRange{

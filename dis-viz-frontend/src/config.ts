@@ -15,8 +15,8 @@ export function getUrls() {
 }
 
 
-export const marginHorizontal = 10
-export const marginSameVertical = 20 // 10
-export const marginDifferentVertical = 80 //100
-export const LOOP_INDENT_SIZE = 26
-export const BLOCK_MAX_WIDTH = 420 //400
+export const marginHorizontal = 10 //10
+export const marginSameVertical = 10 // 10
+export const marginDifferentVertical = 100 //100
+export const LOOP_INDENT_SIZE = 20 //25
+export const BLOCK_MAX_WIDTH = 420 //420

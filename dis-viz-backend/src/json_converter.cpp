@@ -1,3 +1,4 @@
+#include "dyninst_wrapper.hpp"
 #include <json_converter.hpp>
 
 using json = crow::json::wvalue;
@@ -50,6 +51,31 @@ json convertInstructionInfo(const InstructionInfo &instruction) {
 
     result["variables"] = std::move(variables);
   }
+  auto flags = std::vector<std::string>();
+  for (const auto &flag : instruction.flags) {
+    switch (flag) {
+    case INST_VECTORIZED:
+      flags.push_back("INST_VECTORIZED");
+      break;
+    case INST_MEMORY_READ:
+      flags.push_back("INST_MEMORY_READ");
+      break;
+    case INST_MEMORY_WRITE:
+      flags.push_back("INST_MEMORY_WRITE");
+      break;
+    case INST_CALL:
+      flags.push_back("INST_CALL");
+      break;
+    case INST_SYSCALL:
+      flags.push_back("INST_SYSCALL");
+      break;
+    case INST_FP:
+      flags.push_back("INST_FP");
+      break;
+    }
+  }
+  result["flags"] = flags;
+
 
   return result;
 }
@@ -95,31 +121,6 @@ json convertBlockInfo(const BlockInfo &block) {
   result["end_address"] = block.endAddress;
   result["n_instructions"] = block.nInstructions;
   result["is_loop_header"] = block.isLoopHeader;
-
-  auto flags = std::vector<std::string>();
-  for (const auto &flag : block.flags) {
-    switch (flag) {
-    case bb_vectorized:
-      flags.push_back("vector");
-      break;
-    case bb_memory_read:
-      flags.push_back("memread");
-      break;
-    case bb_memory_write:
-      flags.push_back("memwrite");
-      break;
-    case bb_call:
-      flags.push_back("call");
-      break;
-    case bb_syscall:
-      flags.push_back("syscall");
-      break;
-    case bb_fp:
-      flags.push_back("fp");
-      break;
-    }
-  }
-  result["flags"] = flags;
 
   return result;
 }

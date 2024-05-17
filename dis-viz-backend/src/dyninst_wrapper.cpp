@@ -1,6 +1,7 @@
 #include <dyninst_wrapper.hpp>
 #include <regex>
 #include <unordered_map>
+#include <map>
 #include <set>
 #include <algorithm>
 #include <boost/range/adaptor/indexed.hpp>
@@ -15,6 +16,7 @@
 #include <fstream>
 
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
+#include <vector>
 
 using std::set, std::vector, std::string, std::map, std::unordered_map, std::ifstream, std::stringstream, std::unique_ptr;
 
@@ -23,25 +25,25 @@ namespace ParseAPI = Dyninst::ParseAPI;
 namespace SymtabAPI = Dyninst::SymtabAPI;
 
 void setInstructionFlags(const InstructionAPI::Instruction &instr,
-                   std::unordered_set<block_flags> &flags) {
+                   std::unordered_set<INSTRUCTION_FLAGS> &flags) {
   switch (instr.getCategory()) {
 #if defined(DYNINST_MAJOR_VERSION) && (DYNINST_MAJOR_VERSION >= 10)
     case InstructionAPI::c_VectorInsn:
-      flags.insert(bb_vectorized);
+      flags.insert(INST_VECTORIZED);
       break;
 #endif
     case InstructionAPI::c_CallInsn:
-      flags.insert(bb_call);
+      flags.insert(INST_CALL);
       break;
     case InstructionAPI::c_SysEnterInsn:
     case InstructionAPI::c_SyscallInsn:
-      flags.insert(bb_syscall);
+      flags.insert(INST_SYSCALL);
       break;
     default:
       break;
   }
-  if (instr.readsMemory()) flags.insert(bb_memory_read);
-  if (instr.writesMemory()) flags.insert(bb_memory_write);
+  if (instr.readsMemory()) flags.insert(INST_MEMORY_READ);
+  if (instr.writesMemory()) flags.insert(INST_MEMORY_WRITE);
 }
 
 string print_clean_string(const string &str) {
@@ -128,6 +130,7 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
   return {print_clean_string(name), fileName, lineNum, varLocations};
 }
 
+long totalLoops = 0;
 
 LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
   auto loop_entry = LoopEntry();
@@ -143,6 +146,8 @@ LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::Lo
     lt.loop->getLoopEntries(loop_entry_blocks);
     loop_entry.header_block = loop_entry_blocks.size() > 0 ? block_ids[loop_entry_blocks[0]] : "";
     loop_entry.latch_block = "";
+
+    totalLoops++;
 
     if (!backedges.empty()) {
       for (auto &e : backedges) {
@@ -442,7 +447,7 @@ void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
   }
 }
 
-std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, vector<unsigned long>>>, set<string>, vector<FunctionInfo>> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
+std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, vector<unsigned long>>>, set<string>, vector<FunctionInfo>, unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>>> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
   auto bar = indicators::ProgressBar{
     indicators::option::BarWidth{50},
@@ -464,10 +469,10 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
   auto __visitedBlocks = unordered_map<ParseAPI::Block*, bool>();
   auto source_correspondences = unordered_map<string, map<int, vector<unsigned long>>>();
   auto block_ids = map<ParseAPI::Block *, string>();
-  map<ParseAPI::Block *, std::unordered_set<block_flags>> block_flags;
+  auto instruction_flags = map<Dyninst::Address, std::unordered_set<INSTRUCTION_FLAGS>>();
   auto unique_sourcefiles = set<string>();
   auto curr_block_id = 0;
-  
+  auto sourceCodeInfo = unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>>(); 
   auto functionInfos = vector<FunctionInfo>();
 
   // create an Instruction decoder which will convert the binary opcodes to strings
@@ -518,7 +523,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         auto instr = *ip;
 #endif
         icur += instr.size();
-        setInstructionFlags(instr, block_flags[block]);
+        setInstructionFlags(instr, instruction_flags[icur]);
       }
       block_ids[block] = block_to_name(f, block, curr_block_id++);
     }
@@ -558,6 +563,15 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     }
     auto inlines = vector<InlineEntry>();
     getInlines(inlineFuncs, inlines);
+
+    for(const auto &inlineEntry: inlines) {
+      if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
+        sourceCodeInfo[inlineEntry.callsite_file] = std::map<int, std::unordered_set<SourceCodeTags>>();
+      }
+      sourceCodeInfo[inlineEntry.callsite_file][inlineEntry.callsite_line].insert(
+        SourceCodeTags::INLINE_TAG
+      );
+    }
     
     // Calls
     auto calls = vector<Call>();
@@ -621,7 +635,6 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     funcInfo.localVars = std::move(localVars);
     funcInfo.params = std::move(params);
 
-    
     for (const auto &block : f->blocks()) {
       auto insns = ParseAPI::Block::Insns();
       block->getInsns(insns);
@@ -632,7 +645,6 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
           print_clean_string(f->name()),
       };
       funcInfo.basic_blocks.push_back(blockInfo.name);
-      blockInfo.flags = block_flags[block];
 
       // for (const auto &hidable : hidables) {
       //   if (hidable.start >= block->start() && hidable.end <= block->last()) {
@@ -647,6 +659,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         blockInfo.nextBlockNames.push_back(targeti->second);
       }
 
+      // TODO: check if correspondence have multiple instruction lines per source line
       for (const auto &instr : insns) {
         // Correspondences
         auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
@@ -662,7 +675,8 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
             instr.first,
             instr.second.format(),
             correspondences,
-            getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format())
+            getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format()),
+            instruction_flags[instr.first],
         });
         
       }
@@ -671,7 +685,34 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       blockInfo.endAddress = block->last();
       blockInfo.nInstructions = blockInfo.instructions.size();
       addLoopHeaderInfo(blockInfo, funcLoops);
+
+      for (const auto &inst: blockInfo.instructions) {
+        if (inst.flags.find(INST_VECTORIZED) != inst.flags.end()) {
+          for (const auto &correspondence: inst.correspondence) {
+            auto sourceFile = correspondence.first;
+            for (const auto &line: correspondence.second) {
+              if (sourceCodeInfo.find(sourceFile) == sourceCodeInfo.end())
+                sourceCodeInfo[sourceFile] = std::map<int, std::unordered_set<SourceCodeTags>>();
+              sourceCodeInfo[sourceFile][line].insert(SourceCodeTags::VECTORIZED_TAG);
+            }
+          }
+        }
+      }
+
+      // if (blockInfo.flags.find(bb_vectorized) != blockInfo.flags.end()) {
+      //   for (const auto &instr : blockInfo.instructions) {
+      //     for (const auto &correspondence : instr.correspondence) {
+      //       for (const auto &line : correspondence.second) {
+      //         if (sourceCodeInfo.find(correspondence.first) == sourceCodeInfo.end())
+      //           sourceCodeInfo[correspondence.first] = std::map<int, std::unordered_set<SourceCodeTags>>();
+      //         sourceCodeInfo[correspondence.first][line].insert(SourceCodeTags::VECTORIZED_TAG);
+      //       }
+      //     }
+      //   }
+      // }
+
       funcBlocks.push_back(std::move(blockInfo));
+
     }
     int maxLoopCount = -1;
     for (const auto &loop : funcLoops) {
@@ -788,18 +829,19 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
     // move all funcLoopOrderBlocks to loopOrderBlocks
     loopOrderBlocks.insert(loopOrderBlocks.end(), make_move_iterator(funcLoopOrderBlocks.begin()), make_move_iterator(funcLoopOrderBlocks.end()));
     
-
-    
     auto blockI = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&funcBlocks](const BlockInfo &b) {
       return funcBlocks.front().startAddress < b.startAddress;
     });
     addressOrderBlocks.insert(blockI, make_move_iterator(funcBlocks.begin()), make_move_iterator(funcBlocks.end()));
     
     functionInfos.push_back(std::move(funcInfo));
+
+    
     
     bar.tick();
+
   }
-  return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos};
+  return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos, sourceCodeInfo};
 }
 
 auto binaryCacheResult = map<string, BinaryCacheResult*>();
@@ -828,7 +870,9 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
     return nullptr;
   }
 
-  auto [addressOrderBlocks, loopOrderBlocks, correspondence, unique_sourcefiles, functionInfos] = getAssembly(symtab, funcs);
+  auto [addressOrderBlocks, loopOrderBlocks, correspondence, unique_sourcefiles, functionInfos, sourceCodeInfo] = getAssembly(symtab, funcs);
+
+  // std::cout << "Total Loops: " << totalLoops << std::endl;
   auto source_files = vector<string>(unique_sourcefiles.begin(),
                                         unique_sourcefiles.end());
   
@@ -847,6 +891,7 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
       }},
       source_files,
       correspondence,
+      sourceCodeInfo
   });
   
   if(saveJson) {

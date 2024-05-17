@@ -1,6 +1,7 @@
 #include <boost/program_options/option.hpp>
 #include <boost/program_options.hpp>
 #include <crow/http_request.h>
+#include <unordered_map>
 // #include <boost/program_options/value_semantic.hpp>
 #define CROW_STATIC_DIRECTORY "templates/static/"
 
@@ -259,8 +260,21 @@ int main(int argc, char *argv[]) {
         const auto &binaryPath = reqBody["binary_file_path"]["path"].s();
         const auto &sourceFile = reqBody["filepath"]["path"].s();
 
-        auto correspondences =
-            decodeBinaryCache(binaryPath, WRITE_TO_JSON)->correspondences[sourceFile];
+        const auto &decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
+        auto &correspondences = decodedBinary->correspondences[sourceFile];
+        auto sourceCodeInfo = std::map<int, std::unordered_set<SourceCodeTags>>();
+        if(decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end()){
+          sourceCodeInfo = decodedBinary->sourceCodeInfo[sourceFile];          
+        }
+        // print sourceCodeInfo
+        for (const auto &i : sourceCodeInfo) {
+          std::cout << i.first << " : ";
+          for (const auto &j : i.second) {
+            std::cout << j << " ";
+          }
+          std::cout << std::endl;
+        }
+
         auto lines = json::list();
         auto ifs = std::ifstream(sourceFile);
         
@@ -269,9 +283,20 @@ int main(int argc, char *argv[]) {
           std::copy(correspondences[lineNo].begin(),
                     correspondences[lineNo].end(),
                     std::back_inserter(addresses));
+          auto tags = json::list();
+          auto tagsToStr = std::unordered_map<SourceCodeTags, std::string>({
+            {SourceCodeTags::INLINE_TAG, "INLINE"},
+            {SourceCodeTags::VECTORIZED_TAG, "VECTORIZED"}
+          });
+          if(sourceCodeInfo.find(lineNo) != sourceCodeInfo.end()){
+            for(const auto &tag: sourceCodeInfo[lineNo]){
+              tags.push_back(tagsToStr[tag]);
+            }
+          }
           lines.push_back({
               {"line", line + "\n"},
               {"addresses", addresses},
+              {"tags", tags}
           });
         }
         auto payload = json({

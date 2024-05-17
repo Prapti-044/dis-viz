@@ -9,13 +9,13 @@
 #define MAX_NAME_LENGTH 128
 
 typedef enum {
-  bb_vectorized,
-  bb_memory_read,
-  bb_memory_write,
-  bb_call,
-  bb_syscall,
-  bb_fp
-} block_flags;
+  INST_VECTORIZED,
+  INST_MEMORY_READ,
+  INST_MEMORY_WRITE,
+  INST_CALL,
+  INST_SYSCALL,
+  INST_FP
+} INSTRUCTION_FLAGS;
 
 struct VarLocation {
   std::string start;
@@ -57,12 +57,12 @@ struct InstructionInfo {
   std::unordered_map<std::string, std::vector<int> >
       correspondence;  // { source_file: [line_number] }
   std::vector<VariableInfo> variables;
+  std::unordered_set<INSTRUCTION_FLAGS> flags;
 };
 struct BasicBlock {
   std::string id;
   unsigned long start;
   unsigned long end;
-  std::vector<block_flags> flags;
 };
 struct Call {
   unsigned long address;
@@ -101,7 +101,6 @@ struct BlockInfo {
   int startAddress;
   int endAddress;
   int nInstructions;
-  std::unordered_set<block_flags> flags;
 };
 
 struct MinimapInfo {
@@ -111,6 +110,10 @@ struct MinimapInfo {
   std::vector<int> block_loop_indents;
 };
 
+enum SourceCodeTags {
+  INLINE_TAG,
+  VECTORIZED_TAG
+};
 struct BinaryCacheResult {
   struct {
     std::vector<BlockInfo> memory_order_blocks;
@@ -122,7 +125,10 @@ struct BinaryCacheResult {
   } minimap;
   std::vector<std::string> source_files;
   std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
+  std::unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>> sourceCodeInfo;
 };
+
+
 
 bool isParsable(const std::string &binaryPath);
 BinaryCacheResult* decodeBinaryCache(std::string binaryPath, const bool saveJson);

@@ -49,9 +49,9 @@ void printBackedges(unordered_map<const ParseAPI::Block *, string> &block_ids,
     // for (auto &b : loop_entry_blocks) {
     //   cout << "  Entry: " << block_ids[b] << endl;
     // }
-    if(loop_entry_blocks.size() > 1) {
-      cout << "  Entry: " << block_ids[loop_entry_blocks[0]] << endl;
-    }
+    // if(loop_entry_blocks.size() > 1) {
+    //   cout << "  Entry: " << block_ids[loop_entry_blocks[0]] << endl;
+    // }
 
     // // print backedges
     // for (auto &e : backedges) {

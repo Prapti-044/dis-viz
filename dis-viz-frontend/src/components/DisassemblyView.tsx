@@ -299,6 +299,7 @@ function DisassemblyView({ id }:{
                 {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.block_type !=='pseudoloop' && block.next_block_numbers.filter(nextBName => nextBName == allBlocks[j+1].name && allBlocks[j+1].block_type !== 'pseudoloop').length > 0 && <div style={{
                     position: 'relative',
                     height: '0',
+                    top: '-5px',
                     width: '0',
                 }}><i className='continuity-arrow' style={{
                     marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + BLOCK_MAX_WIDTH/2-16 + 'px',
