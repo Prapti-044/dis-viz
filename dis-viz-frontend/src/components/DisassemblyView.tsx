@@ -8,8 +8,11 @@ import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { Form } from 'react-bootstrap';
+import { Form, Button } from 'react-bootstrap';
 import { MinimapType } from '../features/minimap/minimapSlice';
+import { isHex, toHex } from '../utils';
+import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
+
 
 
 function useVisibleBlockWindow(ref: React.MutableRefObject<{
@@ -69,18 +72,18 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-
-
 function DisassemblyView({ id }:{
     id: number,
 }) {
-
     const dispatch = useAppDispatch();
     const selections = useAppSelector(selectSelections)
     const binaryFilePath = useAppSelector(selectBinaryFilePath)!
     const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
     const active = activeDisassemblyView === id
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
+    const [shouldScroll, setShouldScroll] = React.useState({
+        value: true
+    })
 
     const lineSelection = selections[id]
     const [pages, setPages] = React.useState<BlockPage[]>([]);
@@ -88,7 +91,15 @@ function DisassemblyView({ id }:{
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
     const [minimap, setMinimap] = React.useState<MinimapType>()
+
+    const [jumpAddress, setJumpAddress] = React.useState<string>('0x0')
+    const [jumpValidationError, setJumpValidationError] = React.useState('')
+
+    const [addressRange, setAddressRange] = React.useState({
+        start: 0, end: 0
+    })
     
+    // Fetch and get the pages
     React.useEffect(() => {
         const setAfterFetch = ((page: BlockPage) => {
             setPages([page])
@@ -99,7 +110,14 @@ function DisassemblyView({ id }:{
         else {
             api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
         }
-    }, [lineSelection, blockOrder])
+        setTimeout(() => {
+            setShouldScroll({value: true})
+        }, 1000);
+    }, [lineSelection, blockOrder, binaryFilePath])
+
+    React.useEffect(() => {
+        api.getAddressRange(binaryFilePath).then(setAddressRange)
+    }, [binaryFilePath])
 
     const addNewPage = (newPageNo: number) => {
         api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
@@ -110,26 +128,9 @@ function DisassemblyView({ id }:{
         })
     }
 
-    React.useEffect(() => {
-        if (!lineSelection || lineSelection.addresses.length == 0) return;
-        const firstFocusLine = lineSelection.addresses[0]
-
-        const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
-        for(const i in blockAddresses) {
-            const blockAddress = blockAddresses[i]
-            if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
-                if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
-                const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
-                setTimeout(() => {
-                    scrollRef.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center',
-                    })
-                }, 100);
-                break
-            }
-        }
-    }, [lineSelection])
+    // React.useEffect(() => {
+    //     setShouldScroll({value: true})
+    // }, [lineSelection])
     
     React.useEffect(() => {
         api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
@@ -162,6 +163,31 @@ function DisassemblyView({ id }:{
         })
         setBackedges(currBackedges)
     }, [pages])
+    
+    React.useEffect(() => {
+        if(shouldScroll.value) {
+            if(!disassemblyBlockRefs.current) return;
+            if(!lineSelection || lineSelection.addresses.length === 0) return;
+            const firstFocusLine = lineSelection.addresses[0]
+
+            const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
+            for(const i in blockAddresses) {
+                const blockAddress = blockAddresses[i]
+                if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
+                    if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
+                    const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
+                    setTimeout(() => {
+                        scrollRef.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center',
+                        })
+                    }, 100);
+                    break
+                }
+            }
+            setShouldScroll({value: false})
+        }
+    }, [shouldScroll])
 
     const borderStyle: {[style: string]: string} = {}
     if(active) {
@@ -174,8 +200,6 @@ function DisassemblyView({ id }:{
     
     let finalPages = pages
     
-    console.log(blockOrder)
-
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -221,11 +245,44 @@ function DisassemblyView({ id }:{
                         </Form.Select>
                     </Form.Label>
                 </Form.Group>
+
+                <Form.Group style={{}} className='form-inline'>
+                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+                        Jump to: 
+                        <Form.Control type='text' value={jumpAddress} placeholder='0x10E59' aria-label="Address" style={{ width: '200px', }} onChange={(e) => {
+                            setJumpAddress(e.target.value)
+                            if(isHex(e.target.value) && toHex(e.target.value) <= addressRange.end && toHex(e.target.value) >= addressRange.start)
+                                setJumpValidationError('')
+                            else
+                                setJumpValidationError('Input must be of format Hexa decimal and withing range');
+                        }} isInvalid={!!jumpValidationError}>
+                        </Form.Control>
+                        <Form.Control.Feedback type="invalid">
+                            {jumpValidationError}
+                        </Form.Control.Feedback>
+                    </Form.Label>
+                    <Button onClick={e => {
+                        if(jumpValidationError !== '') return
+                        // using api, get the sourceLines
+                        dispatch(setDisassemblyLineSelection({
+                            disIdSelections: {
+                                addresses: [toHex(jumpAddress)],
+                                source_selection: []
+                            },
+                            disassemblyViewId: id,
+                        }))
+                        setShouldScroll({value: true})
+                    }}>
+                        Jump
+                    </Button>
+
+                </Form.Group>
+                
             </div>
-            {finalPages.length > 0 && finalPages[0].page_no > 1?<button onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
+            {finalPages.length > 0 && finalPages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
-            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) => (
+            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) => <>
                 <DisassemblyBlock
                     block={block}
                     i={j}
@@ -235,10 +292,29 @@ function DisassemblyView({ id }:{
                     pages={finalPages}
                     disassemblyBlockRefs={disassemblyBlockRefs}
                     lineSelection={lineSelection}
-                    drawPseudo={'short'}
+                    drawPseudo={blockOrder === 'memory_order'?'short':'full'}
                     blockOrder={blockOrder}
                     backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
-            ))).flat()}
+                
+                {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.block_type !=='pseudoloop' && block.next_block_numbers.filter(nextBName => nextBName == allBlocks[j+1].name && allBlocks[j+1].block_type !== 'pseudoloop').length > 0 && <div style={{
+                    position: 'relative',
+                    height: '0',
+                    top: '-5px',
+                    width: '0',
+                }}><i className='continuity-arrow' style={{
+                    marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + BLOCK_MAX_WIDTH/2-16 + 'px',
+
+                    // position: 'absolute',
+                    // left: '50%',
+                    // marginLeft: '-10px',
+                    // top: '100%',
+                    // width: '0',
+                    // height: '0',
+                    // borderLeft: '10px solid transparent',
+                    // borderRight: '10px solid transparent',
+                    // borderBottom: '10px solid black',
+                }}></i></div>}
+                </>)).flat()}
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}

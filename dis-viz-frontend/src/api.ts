@@ -5,7 +5,7 @@ import { MinimapType } from './features/minimap/minimapSlice';
 
 
 
-const apiURL = getUrls().backend + '/'
+const apiURL = getUrls().backend + '/api/'
 
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(
@@ -41,6 +41,20 @@ export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Pr
     };
 }
 
+export async function getAddressRange(filepath: string) : Promise<{start: number, end: number}> {
+    const response = await fetch(
+        apiURL + "addressrange", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({path:filepath}),
+        }
+    );
+    const result = await response.json();
+    return result;
+}
+
 export async function getSourceLines(binaryFile: string, sourceFile: string): Promise<SourceFile> {
     const response = await fetch(
         apiURL + "getsourcefile", {
@@ -72,12 +86,15 @@ export async function getDisassemblyPage(filepath: string, pageNo: number, order
 
 export async function getDisassemblyBlock(filepath: string, blockId: string, order: BLOCK_ORDERS): Promise<InstructionBlock> {
     const response = await fetch(
-        apiURL + "getdisassemblyblockbyid/" + order + "/" + blockId, {
+        apiURL + "getdisassemblyblockbyid/" + order, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({path:filepath}),
+            body: JSON.stringify({
+                path: filepath,
+                blockId: blockId,
+            }),
         }
     );
     const result: Object = await response.json();
@@ -113,25 +130,6 @@ export async function getDisassemblyDot(filepath: string): Promise<string>{
     const result = await response.json();
     return result.dot.dot;
 }
-
-// export async function getDyninstInfo(filepath: string): Promise<DyninstInfo>{
-//     const response = await fetch(
-//         apiURL + "getdyninstinfo", {
-//             method: 'POST',
-//             headers: {
-//                 'Content-Type': 'application/json',
-//             },
-//             body: JSON.stringify({path:filepath}),
-//         }
-//     );
-//     const result: {'line_correspondence': Object[], 'functions': Object[]} = await response.json();
-    
-
-//     return {
-//         line_correspondence: await plainToInstance(LineCorrespondence, result.line_correspondence, { excludeExtraneousValues: true }),
-//         functions: await plainToInstance(Function, result.functions, { excludeExtraneousValues: true }),
-//     }
-// }
 
 export async function getBinaryList(): Promise<{
     executable_path: string,

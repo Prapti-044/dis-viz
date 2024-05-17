@@ -7,10 +7,12 @@ export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: number[];
+    @Expose() tags: string[];
 
-    constructor(line: string, addresses: number[]) {
+    constructor(line: string, addresses: number[], tags: string[]) {
         this.line = line
         this.addresses = addresses
+        this.tags = tags
     }
 }
 
@@ -22,19 +24,30 @@ export class SourceFile {
     }
 }
 
+enum InstructionFlag {
+  INST_VECTORIZED,
+  INST_MEMORY_READ,
+  INST_MEMORY_WRITE,
+  INST_CALL,
+  INST_SYSCALL,
+  INST_FP
+}
+
 export class Instruction {
     @Expose() instruction: string
     @Expose() address: number
+    @Expose() variables: Variable[]
     @Expose() correspondence: {
         [source_file: string]: number[]
     }
-    @Expose() variables: Variable[]
+    @Expose() flags: InstructionFlag[] = []
 
-    constructor(instruction: string, address: number, correspondence: { [source_file: string]: number[] }, variables: Variable[]) {
+    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}, flags: InstructionFlag[] = []) {
         this.instruction = instruction
         this.address = address
-        this.correspondence = correspondence
-        this.variables = variables
+        this.variables = variables === undefined ? [] : variables
+        this.correspondence = correspondence === undefined ? {} : correspondence
+        this.flags = flags === undefined ? [] : flags
     }
 }
 
@@ -81,17 +94,19 @@ export class InstructionBlock extends AddressRange {
     }[]
     @Expose() block_type: "pseudoloop" | "normal"
     @Expose() backedges: string[]
+    @Expose() is_loop_header: boolean = false
 
-    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[], loops: { name: string, loop_count: number, loop_total: number }[], block_type: "pseudoloop" | "normal", backedges: string[]) {
+    constructor(name: string, instructions: Instruction[], function_name: string, start_address: number, end_address: number, n_instructions: number, next_block_numbers: string[], hidables: Hidable[], loops: { name: string, loop_count: number, loop_total: number }[], block_type: "pseudoloop" | "normal", backedges: string[], is_loop_header: boolean = false) {
         super(start_address, end_address, n_instructions)
         this.name = name
         this.instructions = instructions
         this.function_name = function_name
         this.next_block_numbers = next_block_numbers
-        this.hidables = hidables
-        this.loops = loops
+        this.hidables = hidables === undefined ? [] : hidables
+        this.loops = loops === undefined ? [] : loops
         this.block_type = block_type
-        this.backedges = backedges
+        this.backedges = backedges === undefined ? [] : backedges
+        this.is_loop_header = is_loop_header
     }
 
 }
@@ -138,14 +153,6 @@ export class LineCorrespondence extends AddressRange {
         this.source_file = source_file
         this.source_line = source_line
     }
-}
-
-
-
-enum BlockFlag {
-    MEMREAD,
-    MEMWRITE,
-    CALL,
 }
 
 export class VariableLocation extends AddressRange{

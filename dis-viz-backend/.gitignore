@@ -1,24 +1,13 @@
-.idea
-.ipynb_checkpoints
-.mypy_cache
-__pycache__
-.pytest_cache
-htmlcov
-dist
-site
-.coverage
-coverage.xml
-.netlify
-test.db
-log.txt
-Pipfile.lock
-env3.*
-env
-docs_build
-venv
-docs.zip
-archive.zip
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
 
-# vim temporary files
-*~
-.*.sw?
+.cache

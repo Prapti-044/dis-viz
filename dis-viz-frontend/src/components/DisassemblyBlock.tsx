@@ -11,11 +11,7 @@ import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 import BackEdge from "./BackEdge";
-
-const marginHorizontal = 10
-const marginSameVertical = 10
-const marginDifferentVertical = 100
-const LOOP_INDENT_SIZE = 26
+import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 
 
 
@@ -66,10 +62,11 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
         setOnGoingSelection(finalSelection)
 
         const selectedDisassemblyLines = pages
-            .filter(page => (
-                (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
-                (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
-            ))
+            // Filtering by page will not work for Loop Order, because page WILL have blocks in different order than memory address
+            // .filter(page => (
+            //     (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
+            //     (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
+            // ))
             .map(page => page.blocks)
             .flat()
             .filter(block => (
@@ -105,6 +102,14 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
             disassemblyViewId: id,
         }))
     }
+
+
+    let nextBlockI = i + 1
+    let nextBlock = allBlocks[nextBlockI]
+    while (nextBlock?.block_type === 'pseudoloop' && allBlocks.length > nextBlockI + 1) {
+        nextBlockI++
+        nextBlock = allBlocks[nextBlockI]
+    }
     
     return <>
         <Card className={block.block_type==='normal'?'':'pseudoloop'} onClick={() => {
@@ -114,7 +119,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                     disIdSelections: {
                         addresses: block.instructions.map(instruction => instruction.address),
                         source_selection: block.instructions
-                            .map(instruction => Object.keys(instruction.correspondence)
+                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
                                 .map(source_file => ({
                                     source_file,
                                     lines: instruction.correspondence[source_file]
@@ -129,7 +134,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + 'px',
                 marginRight: marginHorizontal + 'px',
                 marginTop: (i > 0 && allBlocks[i - 1].function_name === block.function_name) ? marginSameVertical : marginDifferentVertical + 'px',
-                maxWidth: '400px',
+                maxWidth: BLOCK_MAX_WIDTH + 'px',
                 textAlign: 'center',
                 border: block.block_type==='normal'?'1px solid black':'3px dashed lightgray',
             }}
@@ -147,11 +152,12 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 fontSize: '14px'
             }} title={block.name}>
             <span style={{float: 'left'}}>
-                {shortenName(block.name, 24)}
+                {shortenName(block.name, 22)}
                 {/* {block.backedges.length>0?<span style={{color: 'red'}}>|({block.backedges.map(backedge => backedge.split(': ')[1])})</span>:''} */}
             </span>
             <span style= {{ float: 'right', fontStyle: 'italic'}}>
-                {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
+                {/* {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`} */}
+                {block.loops.length > 0 && `${block.is_loop_header?'(loop_header) ':''}${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
             </span> </span>}
 
             {(block.block_type === 'normal' || (block.block_type === 'pseudoloop' && drawPseudo === 'full')) && <>
@@ -190,7 +196,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                     disIdSelections: {
                                         addresses: block.instructions.map(instruction => instruction.address),
                                         source_selection: block.instructions
-                                            .map(instruction => Object.keys(instruction.correspondence)
+                                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
                                                 .map(source_file => ({
                                                     source_file,
                                                     lines: instruction.correspondence[source_file]
@@ -213,7 +219,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         fontStyle: 'italic',
                     }}>
                         
-                        {block.loops.length > 0 && `${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
+                        {block.loops.length > 0 && `${block.is_loop_header?'(loop_header) ':''}${block.loops[block.loops.length-1].name}: ${block.loops[block.loops.length-1].loop_count}/${block.loops[block.loops.length-1].loop_total}`}
                     </span>
                 </span>
                 {/* (page:  <span style={{border: "3px solid red"}}>{pages.find(page => page.blocks[0].start_address === block.start_address)?.page_no}</span>) */}
@@ -223,39 +229,43 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
             }}>
                 {block.instructions.map((ins, j) => {
                     let isHidable = false
-                    for (let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
-                        const hidable = block.hidables[hidableI]
-                        if (hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
-                            isHidable = true;
-                        }
-                        if (ins.address === hidable.start_address) {
-                            return <>
-                                <HidableDisassembly
-                                    key={i.toString() + j.toString() + 'hidable'}
-                                    name={hidable.name}
-                                    block={block}
-                                    disId={id}
-                                ></HidableDisassembly>
-                                <DisassemblyLine
-                                    block={block}
-                                    isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
-                                    mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
-                                    key={i.toString() + j.toString()}
-                                    instruction={ins}
-                                    isSelecting={isSelecting}
-                                    onGoingSelection={onGoingSelection}
-                                    color={codeColors[id]}
-                                    disId={id}
-                                    isHidable={isHidable}
-                                    blockOrder={blockOrder}
-                                />
-                            </>
+                    if (block.hidables) {
+
+                        for (let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
+                            const hidable = block.hidables[hidableI]
+                            if (hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
+                                isHidable = true;
+                            }
+                            if (ins.address === hidable.start_address) {
+                                return <>
+                                    <HidableDisassembly
+                                        key={i.toString() + j.toString() + 'hidable'}
+                                        name={hidable.name}
+                                        block={block}
+                                        disId={id}
+                                    ></HidableDisassembly>
+                                    <DisassemblyLine
+                                        block={block}
+                                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                                        mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
+                                        key={i.toString() + j.toString()}
+                                        instruction={ins}
+                                        isSelecting={isSelecting}
+                                        onGoingSelection={onGoingSelection}
+                                        color={codeColors[id]}
+                                        disId={id}
+                                        isHidable={isHidable}
+                                        blockOrder={blockOrder}
+                                        nextBlock={nextBlock}
+                                    />
+                                </>
+                            }
                         }
                     }
 
                     return (<DisassemblyLine
                         block={block}
-                        isHighlighted={Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                         key={i.toString() + j.toString()}
                         instruction={ins}
@@ -265,6 +275,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                         disId={id}
                         isHidable={isHidable}
                         blockOrder={blockOrder}
+                        nextBlock={nextBlock}
                     />)
                 }
                 )}

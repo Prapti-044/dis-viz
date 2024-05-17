@@ -1,0 +1,26 @@
+**/Dockerfile
+**/.dockerignore
+**/README.md
+**/.git*
+
+# Cmake
+CMakeLists.txt.user
+CMakeCache.txt
+CMakeFiles
+CMakeScripts
+Testing
+Makefile
+cmake_install.cmake
+install_manifest.txt
+compile_commands.json
+CTestTestfile.cmake
+_deps
+
+dis-viz-backend/build
+dis-viz-backend/.vscode
+dis-viz-backend/.cache
+sample_inputs/bin
+
+dis-viz-frontend/build
+dis-viz-frontend/node_modules
+dis-viz-frontend/package-lock.json

@@ -128,11 +128,11 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
             }
 
 
-            ctx.lineWidth = blockHeight * BLOCK_LINE_HEIGHT_FACTOR
+            ctx.lineWidth = (blockHeight === 0 ? 1 : blockHeight) * BLOCK_LINE_HEIGHT_FACTOR
             ctx.lineTo(x + BLOCK_LINE_WIDTH, y)
             ctx.stroke()
 
-            cumulativeHeight += blockHeight * BLOCK_LINE_HEIGHT_FACTOR
+            cumulativeHeight += (blockHeight === 0 ? 1 : blockHeight) * BLOCK_LINE_HEIGHT_FACTOR
         })
         // Draw the brush
         ctx.fillStyle = 'rgba(0,0,0,0.1)'; //'rgba(0,0,0,0.4)

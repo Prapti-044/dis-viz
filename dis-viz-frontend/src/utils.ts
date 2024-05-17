@@ -1,5 +1,7 @@
 import React  from 'react';
 
+import inteldocs from './inteldocs.json'
+
 export const codeColors = [
   '#C1DBE3',
   '#C7DFC5',
@@ -71,4 +73,27 @@ export function useForceUpdate(){
 
 export function disLineToId(disId: number, address: number) {
   return disId.toString() + "-" + "instruction-"+address
+}
+
+export function isHex(value: string) {
+  const hexRegex = /^(0x)?[0-9A-Fa-f]+$/;
+  return hexRegex.test(value);
+}
+
+export function toHex(value: string) {
+  let parsedValue = value.slice()
+  if (parsedValue.startsWith('0x')) 
+  parsedValue = parsedValue.slice(2)
+
+  return parseInt(parsedValue, 16)
+}
+
+export function findIntelDocs(opcode: string) {
+  // find regex match from inteldocs where "Instruction" matches
+  // the opcode
+  const result = inteldocs.find((instruction) => {
+    const regex = new RegExp(instruction.Instruction, 'i');
+    return regex.test(opcode.toUpperCase());
+  });
+  return result;
 }

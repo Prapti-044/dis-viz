@@ -23,15 +23,17 @@ function SourceView({ file_name }:{
     })
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<number[][]>([])
+    const [lineTags, setLineTags] = React.useState<string[][]>([])
 
     React.useEffect(() => {
-        api.getSourceLines(binaryFilePath, file_name).then((sourceFile) => {
+        api.getSourceLines(binaryFilePath, file_name).then(sourceFile => {
             let tmpSourceCode = "";
             sourceFile.lines.map(line => line.line).forEach((line) => {
                 tmpSourceCode += line;
             })
             setCorrespondences(sourceFile.lines.map(line => line.addresses))
-            setSourceCode(tmpSourceCode);
+            setSourceCode(tmpSourceCode)
+            setLineTags(sourceFile.lines.map(line => line.tags))
         })
     }, [file_name])
 
@@ -50,7 +52,7 @@ function SourceView({ file_name }:{
             language="c++"
             style={docco}
             showLineNumbers
-            showInlineLineNumbers
+            // showInlineLineNumbers
             wrapLines
             wrapLongLines={wrapLongLines}
             codeTagProps={{
@@ -127,12 +129,23 @@ function SourceView({ file_name }:{
                     }))
                 }
 
+                const classNames = []
+                if(correspondences[lineNum]?.length > 0) {
+                    classNames.push("hoverable")
+                }
+                if(lineTags[lineNum]?.length > 0) {
+                    classNames.push(lineTags[lineNum].flat())
+                }
+                // if(isInline[lineNum]) {
+                //     classNames.push("inline")
+                // }
+
                 return {
                     style,
                     onMouseUp:correspondences[lineNum]?.length>0?onMouseUp:()=>{},
                     onMouseDown:correspondences[lineNum]?.length>0?onMouseDown:()=>{},
                     onMouseOver:correspondences[lineNum]?.length>0?onMouseOver:()=>{},
-                    'class': correspondences[lineNum]?.length>0?"hoverable":""
+                    'class': classNames.join(" ")
                 }
             }}
         >
