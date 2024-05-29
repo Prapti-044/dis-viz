@@ -14,12 +14,13 @@
 .codesegment>span.INLINE::before {
     content: "inline";
     color: black;
-    background-color: lightcyan;
+    background-color: lightblue;
     padding: 2px;
     padding-top: 0px;
     padding-bottom: 0px;
     border: 1px solid black;
     border-radius: 5px;
+    font-size: 12px;
 
     float: right;
     text-align: right;
@@ -28,13 +29,13 @@
 .codesegment>span.VECTORIZED::before {
     content: "vectorized";
     color:black;
-    background-color: lightpink;
+    background-color: lightcyan;
     padding: 2px;
     padding-top: 0px;
     padding-bottom: 0px;
     border: 1px solid black;
     border-radius: 5px;
-
+    font-size: 12px;
     float: right;
     text-align: right;
 }

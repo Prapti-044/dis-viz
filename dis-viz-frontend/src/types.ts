@@ -24,14 +24,13 @@ export class SourceFile {
     }
 }
 
-enum InstructionFlag {
-  INST_VECTORIZED,
-  INST_MEMORY_READ,
-  INST_MEMORY_WRITE,
-  INST_CALL,
-  INST_SYSCALL,
-  INST_FP
-}
+export type InstructionFlag = 
+    "INST_VECTORIZED" |
+    "INST_MEMORY_READ" |
+    "INST_MEMORY_WRITE" |
+    "INST_CALL" |
+    "INST_SYSCALL" |
+    "INST_FP"
 
 export class Instruction {
     @Expose() instruction: string

@@ -7,7 +7,7 @@ import inteldocs from '../inteldocs.json'
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
-import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
+import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS, InstructionFlag } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { addDisassemblyView } from '../features/selections/selectionsSlice';
 import * as api from "../api";
@@ -207,7 +207,20 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
         >
 
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
-
+            
+            {instruction.flags.includes("INST_VECTORIZED")?
+                <span style={{
+                    color: 'black',
+                    backgroundColor: 'lightcyan',
+                    paddingLeft: '5px',
+                    paddingRight: '5px',
+                    borderRadius: '5px',
+                    height: '18px',
+                    marginRight: '5px',
+                    float: 'right',
+                    border: '1px solid black',
+                }}>vec</span>
+            : <></>}
             {parsedTokens}
         </code>
     </div>

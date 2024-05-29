@@ -168,7 +168,7 @@ bool matchOperands(const vector<signed int> &readSet,
   auto writeSetMatched = vector<bool>(writeSet.size());
 
   for (auto &operand : operands) {
-    auto regs = InstructionAPI::Operation_impl::registerSet();
+    auto regs = InstructionAPI::Operation::registerSet();
     if (readSet.size() != 0) {
       operand.getReadSet(regs);
       for (auto &reg : regs) {
@@ -660,10 +660,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       }
 
       // TODO: check if correspondence have multiple instruction lines per source line
+      //TODO: CHeck SymtabAPI::Statement::Ptr::getLine() for multiple line number
       for (const auto &instr : insns) {
         // Correspondences
         auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
-        symtab->getSourceLines(cur_lines, instr.first);
+        symtab->getSourceLines(cur_lines, instr.first); // getSourceLines should give multiple source lines per instruction.
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
           correspondences[print_clean_string(li->getFile())].push_back(li->getLine());

@@ -20,6 +20,7 @@ find_package(Crow)
 # External Projects
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
+
 ExternalProject_Add(indicators
     GIT_REPOSITORY https://github.com/p-ranav/indicators
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
@@ -31,7 +32,7 @@ if(DEFINED ${DYNINST_LOCATION})
 else()
     ExternalProject_Add(dyninst
         GIT_REPOSITORY https://github.com/dyninst/dyninst
-        GIT_TAG aa7b692c2087a105d652954e33642330cd49d048
+        GIT_TAG aa8eb5abcadf2f456bc4a8fecfdd7c897fca42cd
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DCMAKE_BUILD_TYPE=Release
     )
 endif()
