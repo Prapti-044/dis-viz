@@ -38,6 +38,7 @@ export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Pr
         builtInBlock: result.built_in_block,
         blockStartAddress: result.block_start_address,
         blockLoopIndents: result.block_loop_indents,
+        blockTypes: result.block_types,
     };
 }
 

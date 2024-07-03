@@ -27,9 +27,9 @@
 }
 
 .codesegment>span.VECTORIZED::before {
-    content: "vectorized";
+    content: "vec";
     color:black;
-    background-color: lightcyan;
+    background-color: cyan;
     padding: 2px;
     padding-top: 0px;
     padding-bottom: 0px;

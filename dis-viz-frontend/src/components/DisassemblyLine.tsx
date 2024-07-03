@@ -211,7 +211,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
             {instruction.flags.includes("INST_VECTORIZED")?
                 <span style={{
                     color: 'black',
-                    backgroundColor: 'lightcyan',
+                    backgroundColor: 'cyan',
                     paddingLeft: '5px',
                     paddingRight: '5px',
                     borderRadius: '5px',

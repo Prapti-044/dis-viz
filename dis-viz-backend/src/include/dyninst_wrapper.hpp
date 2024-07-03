@@ -108,6 +108,7 @@ struct MinimapInfo {
   std::vector<bool> built_in_blocks;
   std::vector<int> block_start_address;
   std::vector<int> block_loop_indents;
+  std::vector<std::vector<std::string>> block_types;
 };
 
 enum SourceCodeTags {

@@ -30,6 +30,14 @@ json convertMinimapInfo(const MinimapInfo &minimap) {
   result["built_in_block"] = std::move(built_in_block);
   result["block_start_address"] = minimap.block_start_address;
   result["block_loop_indents"] = minimap.block_loop_indents;
+  auto block_types = json::list();
+  for (const auto &i : minimap.block_types) {
+    auto block_type = json::list();
+    for (const auto &j : i)
+      block_type.push_back(j);
+    block_types.push_back(std::move(block_type));
+  }
+  result["block_types"] = std::move(block_types);
   return result;
 }
 

@@ -40,6 +40,8 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
     const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.startAddress)
     const brushEndBlockI = brushStartBlockI + visibleBlockWindow.nBlocks - 1
 
+    const [highlightOption, setHighlightOption] = React.useState("none")
+
     let drawingStartBlockI:number = brushStartBlockI, drawingEndBlockI:number = brushStartBlockI+1
     
     const height = canvasRef.current?canvasRef.current.height:window.innerHeight
@@ -127,6 +129,14 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
                 }
             }
 
+            if(highlightOption === "VEC" && minimap.blockTypes[i].includes("vectorized"))
+                ctx.strokeStyle = "cyan"
+            else if(highlightOption === "Mem_Read" && minimap.blockTypes[i].includes("memory_read"))
+                ctx.strokeStyle = "purple"
+            else if(highlightOption === "Mem_Write" && minimap.blockTypes[i].includes("memory_write"))
+                ctx.strokeStyle = "orange"
+            else if(highlightOption === "Syscall" && minimap.blockTypes[i].includes("syscall"))
+                ctx.strokeStyle = "red"
 
             ctx.lineWidth = (blockHeight === 0 ? 1 : blockHeight) * BLOCK_LINE_HEIGHT_FACTOR
             ctx.lineTo(x + BLOCK_LINE_WIDTH, y)
@@ -144,14 +154,6 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
             brushEndY! - brushStartY!
         );
 
-        // ctx.font = '32px serif';
-        // ctx.fillText(
-        //     Math.ceil(brushStartBlockI/totalBlocks * 100).toString(),
-        //     BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH / 2,
-        //     (brushStartY! + brushEndY!)/2
-        // )
-
-        // Draw the hidden marked blocks
         topHidden.forEach((disViewId, i) => {
             ctx.beginPath()
             ctx.strokeStyle = codeColors[disViewId]
@@ -179,7 +181,6 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         if (canvas === null) return
         canvas.width = width
         canvas.style.height = "100%"
-        // canvas.height = minimap.blockHeights.reduce((total, height) => total + height, BLOCKS_START_TOP) * BLOCK_LINE_HEIGHT_FACTOR + minimap.blockHeights.length * BLOCK_SEP
         canvas.height = canvas.offsetHeight
         const context = canvas.getContext('2d')!
         let frameCount = 0
@@ -196,22 +197,30 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         return () => {
             window.cancelAnimationFrame(animationFrameId)
         }
-    }, [draw])
+    }, [draw, highlightOption])
 
     return <>
-    <h5 style={{
+    <select style={{
         position: "absolute",
         fontSize: "17px",
         top: "5px", //5px
         right: "60px",
         color: "#4b89e7",
-    }}>Overview</h5>
+        zIndex: "5"
+    }} value={highlightOption} onChange={e => setHighlightOption(e.target.value)}>
+        <option value="none">Default</option>
+        <option value="VEC">Vectorized</option>
+        <option value="Mem_Read">Memory Read</option>
+        <option value="Mem_Write">Memory Write</option>
+        <option value="Syscall">System Call</option>
+
+    </select>
     <div style={{
         position: "absolute",
-        top: "0px", //30
+        bottom: "0px", //30
         right: "20px",
         width: width+"px",
-        height: "100%",
+        height: "96%",
         background: "#ffffff",
         border: "5px solid lightgrey",
         zIndex: "5"

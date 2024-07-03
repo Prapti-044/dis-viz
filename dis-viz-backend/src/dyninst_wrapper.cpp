@@ -362,6 +362,37 @@ vector<int> getBlockHeights(const vector<BlockInfo> &blocks) {
   return blockHeights;
 }
 
+vector<vector<string>> getBlockTypes(const vector<BlockInfo> &blocks) {
+  auto blockTypes = vector<vector<string>>(); blockTypes.reserve(blocks.size());
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockTypes), [](const BlockInfo &b) {
+    auto thisBlockType = std::unordered_set<string>();
+    for(const auto &ins: b.instructions) {
+      for(const auto &flag: ins.flags) {
+        if(flag == INST_VECTORIZED) {
+          thisBlockType.insert("vectorized");
+        }
+        else if(flag == INST_MEMORY_READ) {
+          thisBlockType.insert("call");
+        }
+        else if(flag == INST_MEMORY_WRITE) {
+          thisBlockType.insert("syscall");
+        }
+        else if(flag == INST_CALL) {
+          thisBlockType.insert("memory_read");
+        }
+        else if(flag == INST_SYSCALL) {
+          thisBlockType.insert("memory_write");
+        }
+        else if(flag == INST_FP) {
+          thisBlockType.insert("fp");
+        }
+      }
+    }
+    return vector<string>(thisBlockType.begin(), thisBlockType.end());
+  });
+  return blockTypes;
+}
+
 vector<bool> getIsBuiltInBlock(const vector<BlockInfo> &blocks) {
   auto systemLocations = vector<string>{
       "/usr/",
@@ -522,8 +553,8 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         auto ip = decoder.decode(raw_insnptr);
         auto instr = *ip;
 #endif
-        icur += instr.size();
         setInstructionFlags(instr, instruction_flags[icur]);
+        icur += instr.size();
       }
       block_ids[block] = block_to_name(f, block, curr_block_id++);
     }
@@ -852,6 +883,8 @@ bool isParsable(const string &binaryPath) {
   return SymtabAPI::Symtab::openFile(symtab, binaryPath);
 }
 
+
+
 BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJson) {
   if (binaryCacheResult.find(binaryPath) != binaryCacheResult.end()) return binaryCacheResult.at(binaryPath);
 
@@ -884,11 +917,13 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
         getIsBuiltInBlock(addressOrderBlocks),
         getBlockStartAddresses(addressOrderBlocks),
         getBlockIndents(addressOrderBlocks),
+        getBlockTypes(addressOrderBlocks),
       }, {
         getBlockHeights(loopOrderBlocks),
         getIsBuiltInBlock(loopOrderBlocks),
         getBlockStartAddresses(loopOrderBlocks),
         getBlockIndents(loopOrderBlocks),
+        getBlockTypes(addressOrderBlocks),
       }},
       source_files,
       correspondence,

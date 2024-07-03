@@ -127,10 +127,6 @@ function DisassemblyView({ id }:{
             setPages(pagesCopy)
         })
     }
-
-    // React.useEffect(() => {
-    //     setShouldScroll({value: true})
-    // }, [lineSelection])
     
     React.useEffect(() => {
         api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
