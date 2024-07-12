@@ -18,7 +18,7 @@
 using json = crow::json::wvalue;
 namespace po = boost::program_options;
 
-#define BLOCKS_PER_PAGE 50
+#define BLOCKS_PER_PAGE 100
 
 enum BLOCK_ORDER { MEMORY_ORDER, LOOP_ORDER };
 BLOCK_ORDER getBlockOrder(std::string order) {

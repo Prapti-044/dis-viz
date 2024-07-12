@@ -32,7 +32,7 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
     width: number,
     visibleBlockWindow: {startAddress: number, nBlocks: number}
 }) {
-    
+    const currentDisViewId = useAppSelector(selectActiveDisassemblyView)
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const selections = useAppSelector(selectSelections)
 
@@ -41,6 +41,9 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
     const brushEndBlockI = brushStartBlockI + visibleBlockWindow.nBlocks - 1
 
     const [highlightOption, setHighlightOption] = React.useState("none")
+
+    const brushDiv = React.useRef<HTMLDivElement>(null)
+    const [brushDragging, setBrushDragging] = React.useState(false)
 
     let drawingStartBlockI:number = brushStartBlockI, drawingEndBlockI:number = brushStartBlockI+1
     
@@ -80,10 +83,9 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         }
     }
 
-
-
     const draw = (ctx: CanvasRenderingContext2D, frameCount: number) => {
-        let brushStartY: number|null = null, brushEndY: number|null = null
+        let brushStartY: number|null = null
+        let brushEndY: number|null = null
         ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height)
         ctx.fillStyle = "#FFFFFF"
 
@@ -99,9 +101,11 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
             // Detect if the brush should start here
             if(i === brushStartBlockI) {
                 brushStartY = y
+                // setBrushTop(y)
             }
             if(i <= brushEndBlockI) {
                 brushEndY = y
+                // setBrushHeight(y - brushTop)
             }
 
             ctx.beginPath()
@@ -144,16 +148,16 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
 
             cumulativeHeight += (blockHeight === 0 ? 1 : blockHeight) * BLOCK_LINE_HEIGHT_FACTOR
         })
-        // Draw the brush
-        ctx.fillStyle = 'rgba(0,0,0,0.1)'; //'rgba(0,0,0,0.4)
 
-        ctx.fillRect(
-            BLOCK_LINE_LEFT-BRUSH_OFFSET,
-            brushStartY!,
-            BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
-            brushEndY! - brushStartY!
-        );
+        // move the brush div
+        if(!brushDragging && brushStartY !== null && brushEndY !== null) {
+            if(brushDiv.current) {
+                brushDiv.current.style.top = brushStartY + "px"
+                brushDiv.current.style.height = (brushEndY - brushStartY) + "px"
+            }
+        }
 
+        // Draw arrows for hidden blocks at top and bottom
         topHidden.forEach((disViewId, i) => {
             ctx.beginPath()
             ctx.strokeStyle = codeColors[disViewId]
@@ -175,6 +179,8 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
             ctx.stroke()
         })
     }
+
+
 
     React.useEffect(() => {
         const canvas = canvasRef.current
@@ -199,6 +205,16 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         }
     }, [draw, highlightOption])
 
+    // Draw the brush: this is being converted to a div
+    // ctx.fillStyle = 'rgba(0,0,0,0.1)'; //'rgba(0,0,0,0.4)
+
+    // ctx.fillRect(
+    //     BLOCK_LINE_LEFT-BRUSH_OFFSET,
+    //     brushStartY!,
+    //     BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
+    //     brushEndY! - brushStartY!
+    // );
+
     return <>
     <select style={{
         position: "absolute",
@@ -213,7 +229,6 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         <option value="Mem_Read">Memory Read</option>
         <option value="Mem_Write">Memory Write</option>
         <option value="Syscall">System Call</option>
-
     </select>
     <div style={{
         position: "absolute",
@@ -226,6 +241,43 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         zIndex: "5"
     }}>
         <canvas ref={canvasRef} {...props} />
+        <div style={{
+            position: "absolute",
+            // top: brushTop,
+            left: BLOCK_LINE_LEFT - BRUSH_OFFSET,
+            width: BLOCK_LINE_LEFT+BLOCK_LINE_WIDTH+BRUSH_OFFSET,
+            // height: brushHeight,
+            // border: "2px solid #4b89e7",
+            zIndex: "10",
+            opacity: "0.3",
+            backgroundColor: "#4b89e7",
+            borderRadius: "2px",
+            // boxShadow: "0px 0px 10px 5px rgba(75,137,231)",
+            transition: "top 0.1s, height 0.1s",
+        }}
+        ref={brushDiv}
+        onMouseDown={(e) => {
+            if(brushDiv.current === null) return
+            const startY = e.clientY
+            const startTop = brushDiv.current.offsetTop
+            const startHeight = brushDiv.current.offsetHeight
+            const mouseMoveHandler = (e: MouseEvent) => {
+                setBrushDragging(true)
+                console.log("mouse move")
+                if(brushDiv.current === null) return
+                    let top = startTop + e.clientY - startY
+                    brushDiv.current.style.top = Math.max(BLOCKS_START_TOP, Math.min(height - startHeight, top)) + "px"
+                    // brushDiv.style.height = startHeight + "px"
+            }
+            const mouseUpHandler = () => {
+                window.removeEventListener('mousemove', mouseMoveHandler)
+                window.removeEventListener('mouseup', mouseUpHandler)
+                setBrushDragging(false)
+            }
+            window.addEventListener('mousemove', mouseMoveHandler)
+            window.addEventListener('mouseup', mouseUpHandler)
+        }}
+        ></div>
     </div>
     </>
     
