@@ -264,14 +264,6 @@ int main(int argc, char *argv[]) {
         if(decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end()){
           sourceCodeInfo = decodedBinary->sourceCodeInfo[sourceFile];          
         }
-        // print sourceCodeInfo
-        for (const auto &i : sourceCodeInfo) {
-          std::cout << i.first << " : ";
-          for (const auto &j : i.second) {
-            std::cout << j << " ";
-          }
-          std::cout << std::endl;
-        }
 
         auto lines = json::list();
         auto ifs = std::ifstream(sourceFile);
