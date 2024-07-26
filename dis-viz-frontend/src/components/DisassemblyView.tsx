@@ -318,6 +318,7 @@ function DisassemblyView({ id }:{
                 width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
                 minimap={minimap}
+                order={blockOrder}
             ></Minimap>}
             </div> :
             <div>

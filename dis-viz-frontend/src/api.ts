@@ -118,6 +118,25 @@ export async function getDisassemblyPageByAddress(filepath: string, startAddress
     return blockPage;
 }
 
+export async function getDisassemblyBlockByAddress(filepath: string, order: BLOCK_ORDERS, blockStartAddress: number): Promise<InstructionBlock> {
+    const response = await fetch(
+        apiURL + "getdisassemblyblockbyaddress/" + order, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                path: filepath,
+                blockStartAddress: blockStartAddress,
+            }),
+        }
+    );
+    const result: Object = await response.json();
+    const block = await plainToInstance(InstructionBlock, result, { excludeExtraneousValues: true })
+    return block;
+}
+                
+
 export async function getDisassemblyDot(filepath: string): Promise<string>{
     const response = await fetch(
         apiURL + "getdisassemblydot", {

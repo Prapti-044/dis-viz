@@ -4,6 +4,9 @@ import { selectSelections, selectActiveDisassemblyView } from '../features/selec
 import { codeColors, hexToHSL } from '../utils'
 import { setDisassemblyLineSelection } from '../features/selections/selectionsSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
+import * as api from '../api';
+import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
+import { BLOCK_ORDERS } from '../types';
 
 const BLOCK_LINE_HEIGHT_FACTOR = 1.2
 const BLOCK_LINE_WIDTH = 90
@@ -28,13 +31,15 @@ function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: n
 }
 
 
-export default function Minimap({ minimap, visibleBlockWindow, width, ...props }: {
+export default function Minimap({ minimap, visibleBlockWindow, width, order, ...props }: {
     minimap: MinimapType,
     width: number,
+    order: BLOCK_ORDERS,
     visibleBlockWindow: { startAddress: number, nBlocks: number }
 }) {
     const dispatch = useAppDispatch();
     const currentDisViewId = useAppSelector(selectActiveDisassemblyView)
+    const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const selections = useAppSelector(selectSelections)
 
@@ -234,14 +239,27 @@ export default function Minimap({ minimap, visibleBlockWindow, width, ...props }
         
         // get instruction addresses from blockI
         const addresses = [minimap.blockStartAddress[blockI]]
+        api.getDisassemblyBlockByAddress(binaryFilePath, order, addresses[0])
+            .then(block => {
+                const sourceLines: { [source_file: string] : number[] } = {}
+                for (let instr of block.instructions) {
+                    for (let sourceFile in instr.correspondence) {
+                        if (sourceLines[sourceFile] === undefined) {
+                            sourceLines[sourceFile] = []
+                        }
+                        sourceLines[sourceFile].push(...instr.correspondence[sourceFile])
+                    }
+                }
+                const sourceSelection = Object.entries(sourceLines).map(([source_file, lines]) => ({ source_file, lines }))
 
-        dispatch(setDisassemblyLineSelection({
-            disassemblyViewId: currentDisViewId!,
-            disIdSelections: {
-                addresses: addresses,
-                source_selection: []
-            }
-        }))
+                dispatch(setDisassemblyLineSelection({
+                    disassemblyViewId: currentDisViewId!,
+                    disIdSelections: {
+                        addresses: block.instructions.map(inst => inst.address),
+                        source_selection: sourceSelection
+                    }
+                }))
+            })
     }
 
     return <>

@@ -7,6 +7,7 @@ import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSelections, setSourceLineSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { } from './SourceMinimap'
 
 function SourceView({ file_name }:{
     file_name: string,

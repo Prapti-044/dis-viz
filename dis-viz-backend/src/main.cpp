@@ -315,6 +315,29 @@ int main(int argc, char *argv[]) {
 
         return convertBlockInfo(block);
       });
+  
+
+  CROW_ROUTE(app, "/api/getdisassemblyblockbyaddress/<string>")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req, std::string order) {
+        auto reqBody = crow::json::load(req.body);
+        auto binaryPath = reqBody["path"].s();
+        auto blockStartAddress = reqBody["blockStartAddress"].i();
+        
+        std::vector<BlockInfo> *assembly;
+        if (getBlockOrder(order) == MEMORY_ORDER)
+          assembly =
+              &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.memory_order_blocks;
+        else
+          assembly =
+              &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.loop_order_blocks;
+
+        auto block = *std::find_if(assembly->begin(), assembly->end(),
+                                   [&blockStartAddress](const BlockInfo &i) {
+                                     return i.startAddress == blockStartAddress;
+                                   });
+
+        return convertBlockInfo(block);
+      });
 
     CROW_ROUTE(app, "/api/addressrange")
       .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
