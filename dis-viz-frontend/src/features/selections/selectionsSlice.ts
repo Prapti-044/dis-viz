@@ -10,16 +10,29 @@ export type DisIdSelections = {
     }[],
 }
 
+export type HoverHighlight = {
+    addresses: number[],
+    source_selection: {
+        source_file: string,
+        lines: number[]
+    }[],
+}
+
 export interface Selections {
     value: {
         [disassemblyViewId: number]: DisIdSelections|null
     },
     activeDisassemblyView: number|null
+    hoverHighlight: HoverHighlight
 }
 
 const initialState: Selections = {
     value: {},
     activeDisassemblyView: null,
+    hoverHighlight: {
+        addresses: [],
+        source_selection: []
+    }
 }
 
 export const selectionsSlice = createSlice({
@@ -61,6 +74,9 @@ export const selectionsSlice = createSlice({
             disassemblyViewId: number,
         }>) => {
             state.value[action.payload.disassemblyViewId] = action.payload.disIdSelections
+        },
+        setMouseHighlight: (state: Selections, action: PayloadAction<HoverHighlight>) => {
+            state.hoverHighlight = action.payload
         }
     },
 });
@@ -70,9 +86,11 @@ export const {
     addDisassemblyView,
     removeDisassemblyView,
     setSourceLineSelection,
-    setDisassemblyLineSelection
+    setDisassemblyLineSelection,
+    setMouseHighlight,
 } = selectionsSlice.actions;
 export const selectSelections = (state: RootState) => state.selections.value;
 export const selectActiveDisassemblyView = (state: RootState) => state.selections.activeDisassemblyView;
+export const selectHoverHighlight = (state: RootState) => state.selections.hoverHighlight;
 
 export default selectionsSlice.reducer;

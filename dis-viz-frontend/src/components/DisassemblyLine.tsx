@@ -1,17 +1,21 @@
 import React from 'react'
 import '../styles/disassemblyview.css'
 
-// JSON: https://www.wikitable2json.com/#/API/GetByPage
-import inteldocs from '../inteldocs.json'
-
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS, InstructionFlag } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
-import { addDisassemblyView } from '../features/selections/selectionsSlice';
+import { addDisassemblyView, selectHoverHighlight, setMouseHighlight } from '../features/selections/selectionsSlice';
 import * as api from "../api";
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
+
+
+function isJumpInstruction(instr: string) {
+    const doc = findIntelDocs(instr.toUpperCase());
+    if (doc && doc["jumpable"]) return true;
+    return false;
+}
 
 function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder, nextBlock }: {
     block: InstructionBlock,
@@ -33,6 +37,10 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
     const dispatch = useAppDispatch();
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
+    const mouseHoverHighlight = useAppSelector(selectHoverHighlight)
+    const isMouseHovered = mouseHoverHighlight.addresses.includes(instruction.address)
+    // print in hex
+    if (instruction.address.toString(16).toUpperCase() === '1184') console.log(instruction.address.toString(16).toUpperCase(), mouseHoverHighlight.addresses.map(a => a.toString(16).toUpperCase()), instruction.address, isMouseHovered)
 
     const [showDoc, setShowDoc] = React.useState(false)
 
@@ -193,16 +201,32 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     }
 
     const parsedTokens = parseInstruction(instruction, block)
+    
+    function handleMouseOver(instruction: Instruction) {
+        console.log("hovered over instruction", instruction.address)
+        const source_files = []
+        for (const [source_file, lines] of Object.entries(instruction.correspondence)) {
+            source_files.push({
+                source_file: source_file,
+                lines: lines
+            })
+        }
+        dispatch(setMouseHighlight({
+            addresses: [instruction.address],
+            source_selection: source_files
+        }))
+    }
 
     return <div
+        key={disLineToId(disId, instruction.address)}
         id={disLineToId(disId, instruction.address)}
-        className={"assemblycode" + ((instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? " hoverable" : "")}
+        className={"assemblycode" + (isMouseHovered ? " hover":"")}
     >
         {isHidable ? <span className="hidablegutter"></span> : <></>}
         <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}
             onMouseDown={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseDown(instruction.address) } : () => { }}
-            onMouseOver={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseOver(instruction.address) } : () => { }}
+            onMouseOver={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseOver(instruction.address); handleMouseOver(instruction) } : () => { }}
             onMouseUp={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseUp(instruction.address) } : () => { }}
         >
 
@@ -227,10 +251,3 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 }
 
 export default DisassemblyLine
-
-function isJumpInstruction(instr: string) {
-    const doc = findIntelDocs(instr.toUpperCase());
-    if (doc && doc["jumpable"]) return true;
-    return false;
-}
-

@@ -84,7 +84,7 @@ function DisassemblyView({ id }:{
     const [shouldScroll, setShouldScroll] = React.useState({
         value: true
     })
-
+    
     const lineSelection = selections[id]
     const [pages, setPages] = React.useState<BlockPage[]>([]);
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: { div: HTMLDivElement, idx: number }}>({})
@@ -257,7 +257,7 @@ function DisassemblyView({ id }:{
                             {jumpValidationError}
                         </Form.Control.Feedback>
                     </Form.Label>
-                    <Button onClick={e => {
+                    <Button onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
                         if(jumpValidationError !== '') return
                         // using api, get the sourceLines
                         dispatch(setDisassemblyLineSelection({

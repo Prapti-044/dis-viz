@@ -81,7 +81,7 @@ inline string getRegFromFullName(const string &fullname) {
 
 VariableInfo printVar(SymtabAPI::localVar *var) {
   auto name = var->getName();
-  auto lineNum = var->getLineNum();
+  auto lineNum = var->getLineNum()-1; // converted to 0 based index
   auto fileName = var->getFileName();
 
   auto varLocations = vector<VarLocation>();
@@ -478,7 +478,14 @@ void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
   }
 }
 
-std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, vector<unsigned long>>>, set<string>, vector<FunctionInfo>, unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>>> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
+std::tuple<
+  vector<BlockInfo>, // Memory Order Blocks
+  vector<BlockInfo>, // Loop Order Blocks
+  unordered_map<string, map<int, vector<unsigned long>>>, // Source Correspondences
+  set<string>, // Unique Source Files
+  vector<FunctionInfo>, // Function Infos
+  unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>> // Source Code Info { file: { line: { tags } } }
+> getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
   auto bar = indicators::ProgressBar{
     indicators::option::BarWidth{50},
@@ -599,7 +606,7 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
         sourceCodeInfo[inlineEntry.callsite_file] = std::map<int, std::unordered_set<SourceCodeTags>>();
       }
-      sourceCodeInfo[inlineEntry.callsite_file][inlineEntry.callsite_line].insert(
+      sourceCodeInfo[inlineEntry.callsite_file][inlineEntry.callsite_line - 1].insert( // convert to 0 based index
         SourceCodeTags::INLINE_TAG
       );
     }
@@ -690,18 +697,16 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
         blockInfo.nextBlockNames.push_back(targeti->second);
       }
 
-      // TODO: check if correspondence have multiple instruction lines per source line
-      //TODO: CHeck SymtabAPI::Statement::Ptr::getLine() for multiple line number
       for (const auto &instr : insns) {
         // Correspondences
         auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
         symtab->getSourceLines(cur_lines, instr.first); // getSourceLines should give multiple source lines per instruction.
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
-          correspondences[print_clean_string(li->getFile())].push_back(li->getLine());
-          source_correspondences[print_clean_string(li->getFile())][li->getLine()].push_back(instr.first);
+          const auto lineNumber = li->getLine() - 1; // converted to 0 based index
+          correspondences[print_clean_string(li->getFile())].push_back(lineNumber);
+          source_correspondences[print_clean_string(li->getFile())][lineNumber].push_back(instr.first);
         }
-
 
         blockInfo.instructions.push_back({
             instr.first,
@@ -730,18 +735,6 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
           }
         }
       }
-
-      // if (blockInfo.flags.find(bb_vectorized) != blockInfo.flags.end()) {
-      //   for (const auto &instr : blockInfo.instructions) {
-      //     for (const auto &correspondence : instr.correspondence) {
-      //       for (const auto &line : correspondence.second) {
-      //         if (sourceCodeInfo.find(correspondence.first) == sourceCodeInfo.end())
-      //           sourceCodeInfo[correspondence.first] = std::map<int, std::unordered_set<SourceCodeTags>>();
-      //         sourceCodeInfo[correspondence.first][line].insert(SourceCodeTags::VECTORIZED_TAG);
-      //       }
-      //     }
-      //   }
-      // }
 
       funcBlocks.push_back(std::move(blockInfo));
 

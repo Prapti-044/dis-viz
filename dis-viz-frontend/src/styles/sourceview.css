@@ -1,4 +1,4 @@
-.codesegment>span.hoverable::before {
+/* .codesegment>span.hoverable::before {
     content: " -> ";
     color: green;
     text-align: right;
@@ -71,4 +71,45 @@
 
 .pagination a:hover:not(.active) {
     background-color: #ddd;
+} */
+
+.monaco-editor .cursor {
+    display: none !important;
+}
+
+.mouseHoverHighlight {
+    background-color: #ddd;
+    border: 1px solid gray;
+}
+
+.hasCorrespondence {
+    background-color: lightgreen;
+}
+
+.no-text-selection {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+.selectedLines-0 {
+    background-color: #C1DBE3;
+    border: 1px solid gray;
+    cursor: pointer;
+}
+.selectedLines-1 {
+    background-color: #C7DFC5;
+    border: 1px solid gray;
+    cursor: pointer;
+}
+.selectedLines-2 {
+    background-color: #F6FEAA;
+    border: 1px solid gray;
+    cursor: pointer;
+}
+.selectedLines-3 {
+    background-color: #FCE694;
+    border: 1px solid gray;
+    cursor: pointer;
 }
