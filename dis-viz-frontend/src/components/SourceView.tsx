@@ -119,10 +119,10 @@ function SourceView({ file_name }:{
             options: {
                 isWholeLine: true,
                 lineNumberClassName: 'hasCorrespondence',
-                overviewRuler: {
-                    color: 'lightgreen',
-                    position: monaco.editor.OverviewRulerLane.Full,
-                },
+                // overviewRuler: {
+                //     color: 'lightgreen',
+                //     position: monaco.editor.OverviewRulerLane.Full,
+                // },
                 minimap: {
                     color: '#90EE9088',
                     position: monaco.editor.MinimapPosition.Inline,
@@ -130,6 +130,25 @@ function SourceView({ file_name }:{
                 zIndex: 1,
             },
         }))
+
+        // add git blame decorations for each lineTags
+        lineTags.forEach((tags, line) => {
+            if(tags.length === 0) return
+            const lineNum = line + 1
+            const text = tags.map(t => `${t}`).join(' ')
+            decorations.push({
+                range: new monaco.Range(lineNum, 1, lineNum, 1),
+                options: {
+                    isWholeLine: true,
+                    afterContentClassName: `${text}`,
+                    overviewRuler: {
+                        color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
+                        position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
+                    },
+                    zIndex: 2,
+                },
+            })
+        })
         
         correspondenceDecorationCollection.set(decorations)
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection])
@@ -149,7 +168,7 @@ function SourceView({ file_name }:{
                 range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: true,
-                    className: `selectedLines-${disassemblyViewId}`, // Add a custom class for highlighting
+                    className: `selectedLines-${disassemblyViewId}`,
                     overviewRuler: {
                         color: codeColors[disassemblyViewId],
                         position: monaco.editor.OverviewRulerLane.Full,
@@ -171,7 +190,7 @@ function SourceView({ file_name }:{
                 range: new monaco.Range(lineNumber, 1, lineNumber, 1),
                 options: {
                     isWholeLine: true,
-                    className: 'mouseHoverHighlight', // Add a custom class for highlighting
+                    className: `mouseHoverHighlight`,
                     overviewRuler: {
                         color: '#000000ff',
                         position: monaco.editor.OverviewRulerLane.Full,
@@ -198,7 +217,6 @@ function SourceView({ file_name }:{
             const lineNumber = e.target.position.lineNumber - 1
             const addresses = correspondences[lineNumber]
             if (addresses.length === 0) return
-            console.log("addresses", addresses)
             dispatch(setMouseHighlight({
                 addresses: addresses,
                 source_selection: [{
