@@ -130,7 +130,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
         if (rootFile.type === "file") {
             const style: CSS.Properties = {
                 background: finalSourceCSSBackground[rootFile.fullPath],
-                border: finalSourceCSSBackground[rootFile.fullPath]=='white'?'0':'1px solid black',
+                border: finalSourceCSSBackground[rootFile.fullPath] === 'white' ? '0':'1px solid black',
                 whiteSpace: 'nowrap',
             }
             if (rootFile.status === 'opened') {
@@ -147,16 +147,32 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
                     {rootFile.name}
             </li>
         }
-        return <li key={'l'+rootFile.name} className="folder">
-                <a key={'a'+rootFile.name} onClick={e => {
-                    e.currentTarget.classList.toggle("collapsed")
-                }}>
+        return <div className="folder-wrapper">
+            <li key={'l'+rootFile.name} className="folder">
+                <button
+                    key={'a'+rootFile.name}
+                    onClick={e => {
+                        e.currentTarget.classList.toggle("collapsed")
+                    }}
+                    style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'black',
+                        cursor: 'pointer',
+                        display: 'inline',
+                        textAlign: 'left',
+                        padding: '0',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                    }}
+                >
                     {rootFile.name}
-                </a>
+                </button>
                 <ul key={'u'+rootFile.name}>
                     {rootFile.subdir!.map(getJSXfromFiles)}
                 </ul>
-            </li>
+            </li></div>
     }
 
     return <div className="box">

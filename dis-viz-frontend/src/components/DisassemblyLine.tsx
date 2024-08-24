@@ -110,7 +110,12 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                  
                 const thisNextBlocks = block.next_block_numbers.filter(jmpNextBlock => block.next_block_numbers.length === 1 || (nextBlock && jmpNextBlock !== nextBlock.name))
                 if (nextBlock && thisNextBlocks.length > 0 && isJumpInstruction(tokens[0]))
-                    return <mark key={i} data-type="jump" data-blockname={thisNextBlocks.map(jmpNextBlock => shortenName(jmpNextBlock, MAX_FN_SIZE)).join(' | ')} title={title}> 
+                    return <mark
+                        key={"jump" + i}
+                        data-type="jump"
+                        data-blockname={thisNextBlocks.map(jmpNextBlock => shortenName(jmpNextBlock, MAX_FN_SIZE)).join(' | ')}
+                        title={title}
+                    > 
                         {/* {token} */}
                         
                         {/* Set background image of the button with styling */}
@@ -132,7 +137,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                                     source_selection: []
                                 }))
                             })
-                        }} className="opennewbutton"></button>
+                        }} className="opennewbutton"> </button>
                     </mark>
             }
 
@@ -152,7 +157,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                         else {
                             addToTitle(parseInt(token.slice(3), 16).toString() + regName)
                         }
-                        variableMarking = <mark key={i} data-type="variable" data-varname={variable.name} title={title}>{token}</mark>
+                        variableMarking = <mark key={"variable" + i} data-type="variable" data-varname={variable.name} title={title}>{token}</mark>
                         return
                     }
                 })
@@ -161,7 +166,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
             if (variableMarking) return variableMarking
 
             if ((token.startsWith('%') && token.length === 4) || (token.startsWith('(') && token.endsWith(')') && token[1] === '%' && token.length === 6)) {
-                return <mark key={i} data-type="register">{token}</mark>
+                return <mark key={"register" + i} data-type="register">{token}</mark>
             }
 
             if (token.startsWith('$0x')) {
@@ -176,7 +181,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                 else {
                     addToTitle(parseInt(token.slice(3), 16).toString())
                 }
-                return <span key={i} className="hex-number" title={title}>{token}</span>
+                return <span key={"hex-number" + i} className="hex-number" title={title}>{token}</span>
             }
 
             if (token.startsWith('0x') && token.endsWith(')') && token.length > 6 && token[token.length - 5] === '%' && token[token.length - 6] === '(') {
@@ -190,7 +195,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                 else {
                     addToTitle(parseInt(token.slice(2, token.length - 6), 16).toString() + token.slice(token.length - 6))
                 }
-                return <span key={i} className="hex-number" title={title}>{token}</span>
+                return <span key={"hex-number" + i} className="hex-number" title={title}>{token}</span>
             }
 
             return token

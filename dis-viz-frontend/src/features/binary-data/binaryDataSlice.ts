@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
-import { BLOCK_ORDERS } from '../../types';
 
 export interface BinaryFilePath {
     path: string,

@@ -1,6 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
-import * as api from '../../api'
 
 export type MinimapType = {
     blockHeights: number[],

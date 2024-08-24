@@ -149,7 +149,7 @@ function SourceView({ file_name }:{
         })
         
         correspondenceDecorationCollection.set(decorations)
-    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection])
+    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags])
     
     // add decoration for selected lines
     React.useEffect(() => {
@@ -251,7 +251,7 @@ function SourceView({ file_name }:{
             }))
         })
 
-    }, [correspondences, file_name, editorRefUpdated, dispatch])
+    }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection])
     
 
     return <Suspense fallback={<div>Loading source code...</div>}>
