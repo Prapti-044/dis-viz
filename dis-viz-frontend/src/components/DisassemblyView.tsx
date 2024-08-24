@@ -2,7 +2,7 @@ import React  from 'react';
 
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
-import { BLOCK_ORDERS, BlockPage, Instruction } from '../types'
+import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
 
@@ -20,7 +20,7 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
 }>) {
     const [blockIsVisible, setBlockIsVisible] = React.useState<{blockIdx:number, blockAddress: number, inside:boolean}[]>([])
 
-    const observer = new IntersectionObserver(entries => {
+    const observer = React.useMemo(() => new IntersectionObserver(entries => {
         const changedBlockAddresses = Object.keys(ref.current)
             .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)].div))
 
@@ -52,7 +52,9 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
                 break
             }
         }
-    })
+    }), [blockIsVisible, ref])
+    
+    const currentRef = ref.current[parseInt(Object.keys(ref.current)[0])]
 
     React.useEffect(() => {
         for(const start_address in ref.current) {
@@ -63,7 +65,7 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
         return () => {
             observer.disconnect()
         };
-    }, [ref.current[parseInt(Object.keys(ref.current)[0])], observer]);
+    }, [currentRef, observer, ref]);
 
     const visibleBlocks = blockIsVisible.filter(block => block.inside).sort((a, b) => a.blockIdx - b.blockIdx)
     return {
@@ -183,17 +185,13 @@ function DisassemblyView({ id }:{
             }
             setShouldScroll({value: false})
         }
-    }, [shouldScroll])
+    }, [lineSelection, shouldScroll])
 
     const borderStyle: {[style: string]: string} = {}
     if(active) {
         borderStyle.border = '1px solid red'
     }
 
-    let currentHidableName = ""
-    const currentHidableInstructions: Instruction[] = []
-    let totalHidables = 0
-    
     let finalPages = pages
     
     return <>
@@ -278,39 +276,33 @@ function DisassemblyView({ id }:{
             {finalPages.length > 0 && finalPages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
-            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) => <>
-                <DisassemblyBlock
-                    block={block}
-                    i={j}
-                    key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}
-                    allBlocks={allBlocks}
-                    id={id}
-                    pages={finalPages}
-                    disassemblyBlockRefs={disassemblyBlockRefs}
-                    lineSelection={lineSelection}
-                    drawPseudo={blockOrder === 'memory_order'?'short':'full'}
-                    blockOrder={blockOrder}
-                    backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
-                
-                {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.block_type !=='pseudoloop' && block.next_block_numbers.filter(nextBName => nextBName == allBlocks[j+1].name && allBlocks[j+1].block_type !== 'pseudoloop').length > 0 && <div style={{
-                    position: 'relative',
-                    height: '0',
-                    top: '-5px',
-                    width: '0',
-                }}><i className='continuity-arrow' style={{
-                    marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + BLOCK_MAX_WIDTH/2-16 + 'px',
-
-                    // position: 'absolute',
-                    // left: '50%',
-                    // marginLeft: '-10px',
-                    // top: '100%',
-                    // width: '0',
-                    // height: '0',
-                    // borderLeft: '10px solid transparent',
-                    // borderRight: '10px solid transparent',
-                    // borderBottom: '10px solid black',
-                }}></i></div>}
-                </>)).flat()}
+            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) =>
+                <div key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}>
+                    <DisassemblyBlock
+                        block={block}
+                        i={j}
+                        key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}
+                        allBlocks={allBlocks}
+                        id={id}
+                        pages={finalPages}
+                        disassemblyBlockRefs={disassemblyBlockRefs}
+                        lineSelection={lineSelection}
+                        drawPseudo={blockOrder === 'memory_order'?'short':'full'}
+                        blockOrder={blockOrder}
+                        backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
+                    
+                    {blockOrder === 'loop_order' && j < allBlocks.length-1 && block.block_type !=='pseudoloop' && block.next_block_numbers.filter(nextBName => nextBName === allBlocks[j+1].name && allBlocks[j+1].block_type !== 'pseudoloop').length > 0 && <div style={{
+                        position: 'relative',
+                        height: '0',
+                        top: '-5px',
+                        width: '0',
+                    }}>
+                        <i className='continuity-arrow' style={{
+                            marginLeft: marginHorizontal + block.loops.length * LOOP_INDENT_SIZE + BLOCK_MAX_WIDTH/2-16 + 'px',
+                        }}></i>
+                    </div>}
+                </div>
+            )).flat()}
             {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}

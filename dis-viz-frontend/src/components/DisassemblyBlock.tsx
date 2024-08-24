@@ -2,14 +2,12 @@ import React from "react";
 import { Card, ListGroup } from "react-bootstrap";
 import { DisIdSelections, setDisassemblyLineSelection } from "../features/selections/selectionsSlice";
 import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
-import { MAX_FN_SIZE, codeColors, shortenName } from "../utils";
+import { codeColors, shortenName } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import * as api from "../api";
 import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
-import { addDisassemblyView } from '../features/selections/selectionsSlice';
-import {ReactComponent as BackedgeLogo} from '../assets/backedge.svg';
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 

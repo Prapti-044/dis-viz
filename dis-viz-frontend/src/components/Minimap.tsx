@@ -310,7 +310,6 @@ export default function Minimap({ minimap, visibleBlockWindow, width, order, ...
                     const startHeight = brushDiv.current.offsetHeight
                     const mouseMoveHandler = (e: MouseEvent) => {
                         setBrushDragging(true)
-                        console.log("mouse move")
                         if (brushDiv.current === null) return
                         let top = startTop + e.clientY - startY
                         brushDiv.current.style.top = Math.max(BLOCKS_START_TOP, Math.min(height - startHeight, top)) + "px"

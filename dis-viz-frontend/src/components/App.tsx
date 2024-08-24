@@ -45,7 +45,7 @@ const App = () => {
 
     if (Object.keys(selections).length !== 0) return
     dispatch(addDisassemblyView(null))
-  }, [binaryFilePath])
+  }, [binaryFilePath, dispatch, selections])
 
   React.useEffect(() => {
     dockRef!.updateTab("InputFilePath:1", {
@@ -76,10 +76,11 @@ const App = () => {
       .map<TabData>(disId => ({
         id: "DisassemblyView:" + disId,
         title: "Disassembly View: " + disId,
-        content: <TabContent><DisassemblyView
-          key={"DisassemblyView:" + disId}
-          id={parseInt(disId)}
-        /></TabContent>,
+        content: <TabContent key={`tab-DisassemblyView-${disId}`}>
+          <DisassemblyView
+            key={`DisassemblyView-${disId}`}
+            id={parseInt(disId)}
+          /></TabContent>,
         closable: true,
       }))
       .forEach(disassemblyViewComponent => {
@@ -99,7 +100,7 @@ const App = () => {
     if (Object.keys(selections).length === 1) {
       dispatch(setActiveDisassemblyView(parseInt(Object.keys(selections)[0])))
     }
-  }, [selections])
+  }, [dispatch, selections])
 
   // Reconcile sourceViewStates and source-views
   React.useEffect(() => {

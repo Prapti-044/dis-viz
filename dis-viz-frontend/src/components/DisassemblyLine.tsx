@@ -4,7 +4,7 @@ import '../styles/disassemblyview.css'
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 
-import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS, InstructionFlag } from '../types'
+import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { addDisassemblyView, selectHoverHighlight, setMouseHighlight } from '../features/selections/selectionsSlice';
 import * as api from "../api";
@@ -39,8 +39,6 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const mouseHoverHighlight = useAppSelector(selectHoverHighlight)
     const isMouseHovered = mouseHoverHighlight.addresses.includes(instruction.address)
-    // print in hex
-    if (instruction.address.toString(16).toUpperCase() === '1184') console.log(instruction.address.toString(16).toUpperCase(), mouseHoverHighlight.addresses.map(a => a.toString(16).toUpperCase()), instruction.address, isMouseHovered)
 
     const [showDoc, setShowDoc] = React.useState(false)
 
@@ -81,7 +79,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
             let title = "";
             function addToTitle(val: string) {
                 if (val === "") return title
-                if (title == "") title = val
+                if (title === "") title = val
                 else title += " || " + val
                 return title
             }
@@ -94,7 +92,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
                 if (token.startsWith("0x") && token.endsWith("(%rip)")) {
                     const value = token.slice(2).split('(')[0]
                     let finalValue = parseInt(value, 16);
-                    if (value.length == 8 && Array.from('89abcdefABCDEF').some(startVal => value.startsWith(startVal))) {
+                    if (value.length === 8 && Array.from('89abcdefABCDEF').some(startVal => value.startsWith(startVal))) {
                         let bigNumber = '1'
                         for (let i = 0; i < value.length; i++) bigNumber += '0';
                         finalValue = -parseInt(bigNumber, 16) + parseInt(value, 16)
@@ -203,7 +201,6 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
     const parsedTokens = parseInstruction(instruction, block)
     
     function handleMouseOver(instruction: Instruction) {
-        console.log("hovered over instruction", instruction.address)
         const source_files = []
         for (const [source_file, lines] of Object.entries(instruction.correspondence)) {
             source_files.push({
