@@ -1,14 +1,15 @@
 import React  from 'react';
 
 import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as api from '../api'
 import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
-import { Form, Button } from 'react-bootstrap';
+import Form from 'react-bootstrap/Form';
+import Button from 'react-bootstrap/Button';
 import { MinimapType } from '../features/minimap/minimapSlice';
 import { isHex, toHex } from '../utils';
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
@@ -74,12 +75,15 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-function DisassemblyView({ id }:{
+function DisassemblyView({ id, defaultBinaryFilePath }:{
     id: number,
+    defaultBinaryFilePath: string | null
 }) {
     const dispatch = useAppDispatch();
     const selections = useAppSelector(selectSelections)
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+    const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
+    const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ? defaultBinaryFilePath : binaryFilePaths[0])
     const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
     const active = activeDisassemblyView === id
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
@@ -229,6 +233,14 @@ function DisassemblyView({ id }:{
             }}>
                 <Form.Group style={{}} className='form-inline'>
                     <Form.Label style={{whiteSpace: 'nowrap'}}>
+                        Binary File:
+                        <Form.Select aria-label="Binary File" style={{ width: '200px', }} value={binaryFilePath} onChange={(e) => {
+                            setBinaryFilePath(e.currentTarget.value)
+                        }}>
+                            {validBinaryFilePaths.map((binaryFilePath) => <option key={binaryFilePath} value={binaryFilePath}>{binaryFilePath.split('/').pop()}</option>)}
+                        </Form.Select>
+                    </Form.Label>
+                    <Form.Label style={{whiteSpace: 'nowrap'}}>
                         Order By: 
                         <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
                             // dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
@@ -260,6 +272,7 @@ function DisassemblyView({ id }:{
                         // using api, get the sourceLines
                         dispatch(setDisassemblyLineSelection({
                             disIdSelections: {
+                                binaryFilePath,
                                 addresses: [toHex(jumpAddress)],
                                 source_selection: []
                             },
@@ -279,6 +292,7 @@ function DisassemblyView({ id }:{
             {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) =>
                 <div key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}>
                     <DisassemblyBlock
+                        binaryFilePath={binaryFilePath}
                         block={block}
                         i={j}
                         key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}
@@ -307,6 +321,7 @@ function DisassemblyView({ id }:{
                 Load more
             </button>:<></>}
             {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
+                binaryFilePath={binaryFilePath}
                 width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
                 minimap={minimap}

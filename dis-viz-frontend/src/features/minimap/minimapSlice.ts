@@ -10,32 +10,29 @@ export type MinimapType = {
 }
 
 export interface Minimap {
-    value: MinimapType
+    minimaps: MinimapType[]
 }
 
 const initialState: Minimap = {
-    value: {
-        blockHeights: [],
-        builtInBlock: [],
-        blockStartAddress: [],
-        blockLoopIndents: [],
-        blockTypes: []
-    }
+    minimaps: []
 }
 
 export const minimapSlice = createSlice({
     name: 'minimap',
     initialState,
     reducers: {
-        initBlocks: (state: Minimap, action: PayloadAction<MinimapType>) => {
-            state.value = action.payload;
+        addMinimap: (state: Minimap, action: PayloadAction<MinimapType>) => {
+            state.minimaps = [...state.minimaps, action.payload];
         },
+        removeMinimap: (state: Minimap, action: PayloadAction<number>) => {
+            state.minimaps = state.minimaps.filter((minimap, index) => index !== action.payload);
+        }
     },
 });
 
 export const {
-    initBlocks
+    addMinimap, removeMinimap
 } = minimapSlice.actions;
-export const selectMinimap = (state: RootState) => state.minimap.value;
+export const selectMinimap = (state: RootState) => state.minimap.minimaps;
 
 export default minimapSlice.reducer;

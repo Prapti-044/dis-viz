@@ -1,19 +1,20 @@
 import React from "react";
-import { Card, ListGroup } from "react-bootstrap";
+import Card from "react-bootstrap/Card";
+import ListGroup from "react-bootstrap/ListGroup";
 import { DisIdSelections, setDisassemblyLineSelection } from "../features/selections/selectionsSlice";
 import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
 import { codeColors, shortenName } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppDispatch } from '../app/hooks';
 import * as api from "../api";
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 
 
 
-function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo, blockOrder }: { 
+function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo, blockOrder }: { 
+    binaryFilePath: string,
     block: InstructionBlock, 
     i: number,
     allBlocks: InstructionBlock[],
@@ -29,7 +30,6 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
 }) {
     const [isSelecting, setIsSelecting] = React.useState(false);
     const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
     const pageIdx = pages.findIndex(page => page.start_address <= block.start_address && block.start_address <= page.end_address)
@@ -91,6 +91,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
 
         dispatch(setDisassemblyLineSelection({
             disIdSelections: {
+                binaryFilePath,
                 addresses: selectedDisassemblyLines.map(instruction => instruction.address),
                 source_selection: Object.entries(selectedSourceLines).map(([source_file, lines]) => ({
                     source_file,
@@ -115,6 +116,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                 dispatch(setDisassemblyLineSelection({
                     disassemblyViewId: id,
                     disIdSelections: {
+                        binaryFilePath,
                         addresses: block.instructions.map(instruction => instruction.address),
                         source_selection: block.instructions
                             .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
@@ -192,6 +194,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                 dispatch(setDisassemblyLineSelection({
                                     disassemblyViewId: id,
                                     disIdSelections: {
+                                        binaryFilePath,
                                         addresses: block.instructions.map(instruction => instruction.address),
                                         source_selection: block.instructions
                                             .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
@@ -243,6 +246,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                                         disId={id}
                                     ></HidableDisassembly>
                                     <DisassemblyLine
+                                        binaryFilePath={binaryFilePath}
                                         block={block}
                                         isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
                                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
@@ -262,6 +266,7 @@ function DisassemblyBlock({ block, i, allBlocks, id, pages, disassemblyBlockRefs
                     }
 
                     return (<DisassemblyLine
+                        binaryFilePath={binaryFilePath}
                         block={block}
                         isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}

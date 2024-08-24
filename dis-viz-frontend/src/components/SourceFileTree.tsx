@@ -6,7 +6,6 @@ import '../styles/sourcefiletree.css'
 import CSS from 'csstype';
 
 
-
 const DEFAULT_FILE_COLOR = "white"
 
 type FileType = {
@@ -22,7 +21,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
     sourceViewData: { file_name: string, status: "opened" | "closed" }[],
     setSourceViewData: (_: { file_name: string, status: "opened" | "closed" }[]) => void,
 }) {
-    const selections = useAppSelector(selectSelections)!
+    const selections = useAppSelector(selectSelections)
     
     const sourceColors: {[source_file: string]: string[]} = {}
     Object.entries(selections)
@@ -147,10 +146,9 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
                     {rootFile.name}
             </li>
         }
-        return <div className="folder-wrapper">
-            <li key={'l'+rootFile.name} className="folder">
+        return <div className="folder-wrapper" key={'d'+rootFile.name}>
+            <li className="folder">
                 <button
-                    key={'a'+rootFile.name}
                     onClick={e => {
                         e.currentTarget.classList.toggle("collapsed")
                     }}
@@ -169,17 +167,15 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
                 >
                     {rootFile.name}
                 </button>
-                <ul key={'u'+rootFile.name}>
+                <ul>
                     {rootFile.subdir!.map(getJSXfromFiles)}
                 </ul>
             </li></div>
     }
 
-    return <div className="box">
-        <ul className="directory-list">
+    return <ul className="directory-list">
             {getJSXfromFiles(rootFile)}
         </ul>
-    </div>
 }
 
 

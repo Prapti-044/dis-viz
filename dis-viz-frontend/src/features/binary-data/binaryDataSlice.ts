@@ -1,33 +1,31 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
 
-export interface BinaryFilePath {
-    path: string,
-    // order: BLOCK_ORDERS,
+export interface BinaryFilePaths {
+    paths: string[],
 }
 
-const initialState: BinaryFilePath = {
-    path: '',
-    // order: 'memory_order',
+const initialState: BinaryFilePaths = {
+    paths: [],
 }
 
 export const binaryFilePathSlice = createSlice({
     name: 'binaryfilepath',
     initialState,
     reducers: {
-        setBinaryFilePath: (state: BinaryFilePath, action: PayloadAction<string>) => {
-            state.path = action.payload
+        addBinaryFilePath: (state: BinaryFilePaths, action: PayloadAction<string>) => {
+            state.paths = [...state.paths, action.payload];
         },
-        // changeOrder: (state: BinaryFilePath, action: PayloadAction<BLOCK_ORDERS>) => {
-        //     state.order = action.payload
-        // }
+        removeBinaryFilePath: (state: BinaryFilePaths, action: PayloadAction<number>) => {
+            state.paths = state.paths.filter((path, index) => index !== action.payload);
+        },
+        replaceBinaryFilePath: (state: BinaryFilePaths, action: PayloadAction<{ index: number, binaryFilePath: string }>) => {
+            state.paths = state.paths.map((path, index) => index === action.payload.index ? action.payload.binaryFilePath : path);
+        },
     },
 });
 
-export const { setBinaryFilePath, 
-    // changeOrder
-} = binaryFilePathSlice.actions;
-export const selectBinaryFilePath = (state: RootState) => state.binaryFilePath.path
-// export const selectOrder = (state: RootState) => state.binaryFilePath.order
+export const { addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath } = binaryFilePathSlice.actions;
+export const selectBinaryFilePaths = (state: RootState) => state.binaryFilePath.paths;
 
 export default binaryFilePathSlice.reducer;

@@ -28,6 +28,11 @@ BLOCK_ORDER getBlockOrder(std::string order) {
     return LOOP_ORDER;
 }
 
+auto TAGS_TO_STR = std::unordered_map<SourceCodeTags, std::string>({
+  {SourceCodeTags::INLINE_TAG, "INLINE"},
+  {SourceCodeTags::VECTORIZED_TAG, "VECTORIZED"}
+});
+
 int main(int argc, char *argv[]) {
   auto WRITE_TO_JSON = false;
   auto binary_paths = std::vector<std::string>();
@@ -255,34 +260,62 @@ int main(int argc, char *argv[]) {
   CROW_ROUTE(app, "/api/getsourcefile")
       .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
         const auto &reqBody = crow::json::load(req.body);
-        const auto &binaryPath = reqBody["binary_file_path"]["path"].s();
+        auto binaryPaths = std::vector<std::string>();
+        for (const auto &binaryPath : reqBody["binary_file_paths"]["paths"]) {
+          binaryPaths.push_back(binaryPath.s());
+        }
         const auto &sourceFile = reqBody["filepath"]["path"].s();
-
-        const auto &decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
-        auto &correspondences = decodedBinary->correspondences[sourceFile];
-        auto sourceCodeInfo = std::map<int, std::unordered_set<SourceCodeTags>>();
-        if(decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end()){
-          sourceCodeInfo = decodedBinary->sourceCodeInfo[sourceFile];          
+        
+        auto allBinaryCorrespondences = std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>>();
+        auto allBinarySourceCodeInfo = std::unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>>();
+        for (const auto &binaryPath : binaryPaths) {
+          const auto &decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
+          
+          if (decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end()) {
+            auto &correspondences = decodedBinary->correspondences[sourceFile];
+            auto &sourceCodeInfo = decodedBinary->sourceCodeInfo[sourceFile];          
+            allBinaryCorrespondences[binaryPath] = correspondences;            
+            allBinarySourceCodeInfo[binaryPath] = sourceCodeInfo;
+          }
+        }
+        
+        // cout allBinaryCorrespondences and allBinarySourceCodeInfo
+        std::cout << "All Binary Correspondences" << std::endl;
+        for (const auto &[binaryPath, correspondences] : allBinaryCorrespondences) {
+          std::cout << "Binary Path: " << binaryPath << std::endl;
+          for (const auto &[lineNo, addresses] : correspondences) {
+            std::cout << "Line No: " << lineNo << std::endl;
+            for (const auto &address : addresses) {
+              std::cout << "Address: " << address << std::endl;
+            }
+          }
         }
 
         auto lines = json::list();
         auto ifs = std::ifstream(sourceFile);
-        
+
         for (auto [lineNo, line] = std::tuple{0, std::string()}; std::getline(ifs, line); lineNo++) {
-          auto addresses = json::list();
-          std::copy(correspondences[lineNo].begin(),
-                    correspondences[lineNo].end(),
-                    std::back_inserter(addresses));
-          auto tags = json::list();
-          auto tagsToStr = std::unordered_map<SourceCodeTags, std::string>({
-            {SourceCodeTags::INLINE_TAG, "INLINE"},
-            {SourceCodeTags::VECTORIZED_TAG, "VECTORIZED"}
-          });
-          if(sourceCodeInfo.find(lineNo) != sourceCodeInfo.end()){
-            for(const auto &tag: sourceCodeInfo[lineNo]){
-              tags.push_back(tagsToStr[tag]);
+          auto addresses = json();
+          auto tags = json();
+          
+          for (const auto &[binaryPath, correspondences] : allBinaryCorrespondences) {
+            auto addressesForBinary = json::list();
+            if (correspondences.find(lineNo) != correspondences.end()) {
+              std::copy(correspondences.at(lineNo).begin(),
+                        correspondences.at(lineNo).end(),
+                        std::back_inserter(addressesForBinary));
             }
+            addresses[binaryPath] = std::move(addressesForBinary);
+            
+            auto tagsForBinary = json::list();
+            if (allBinarySourceCodeInfo[binaryPath].find(lineNo) != allBinarySourceCodeInfo[binaryPath].end()) {
+              for(const auto &tag: allBinarySourceCodeInfo[binaryPath][lineNo]){
+                tagsForBinary.push_back(TAGS_TO_STR[tag]);
+              }
+            }
+            tags[binaryPath] = std::move(tagsForBinary);
           }
+
           lines.push_back({
               {"line", line + "\n"},
               {"addresses", addresses},

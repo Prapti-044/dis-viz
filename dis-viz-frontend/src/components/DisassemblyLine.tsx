@@ -8,7 +8,6 @@ import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS }
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { addDisassemblyView, selectHoverHighlight, setMouseHighlight } from '../features/selections/selectionsSlice';
 import * as api from "../api";
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 
 
 function isJumpInstruction(instr: string) {
@@ -17,7 +16,8 @@ function isJumpInstruction(instr: string) {
     return false;
 }
 
-function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder, nextBlock }: {
+function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder, nextBlock }: {
+    binaryFilePath: string,
     block: InstructionBlock,
     instruction: Instruction,
     isHighlighted: boolean,
@@ -36,9 +36,8 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 }) {
 
     const dispatch = useAppDispatch();
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const mouseHoverHighlight = useAppSelector(selectHoverHighlight)
-    const isMouseHovered = mouseHoverHighlight.addresses.includes(instruction.address)
+    const isMouseHovered = mouseHoverHighlight.addresses[binaryFilePath]?.includes(instruction.address) || false
 
     const [showDoc, setShowDoc] = React.useState(false)
 
@@ -133,6 +132,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
 
                             api.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder).then(block => {
                                 dispatch(addDisassemblyView({
+                                    binaryFilePath: binaryFilePath,
                                     addresses: block.instructions.map(instruction => instruction.address),
                                     source_selection: []
                                 }))
@@ -214,7 +214,7 @@ function DisassemblyLine({ block, instruction, isHighlighted, mouseEvents, isSel
             })
         }
         dispatch(setMouseHighlight({
-            addresses: [instruction.address],
+            addresses: { [binaryFilePath]: [instruction.address] }, 
             source_selection: source_files
         }))
     }

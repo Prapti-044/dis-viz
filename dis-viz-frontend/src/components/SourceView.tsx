@@ -3,8 +3,8 @@ import '../styles/sourceview.css'
 import { codeColors } from '../utils'
 import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
-import { selectSelections, setSourceLineSelection, setMouseHighlight, selectHoverHighlight } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { selectSelections, setSourceLineSelection, setMouseHighlight, selectHoverHighlight, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 
@@ -15,12 +15,15 @@ function SourceView({ file_name }:{
 }) {
     const dispatch = useAppDispatch()
     const selections = useAppSelector(selectSelections)
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+    const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
+    const activeBinaryFilePath = selections[activeDisassemblyView?activeDisassemblyView:-1]?.binaryFilePath || ""
+    const validBinaryFilePaths = binaryFilePaths.filter(f => f !== '')
     const mouseHighlight = useAppSelector(selectHoverHighlight)
 
     const [sourceCode, setSourceCode] = React.useState("")
-    const [correspondences, setCorrespondences] = React.useState<number[][]>([])
-    const [lineTags, setLineTags] = React.useState<string[][]>([])
+    const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][]}>({})
+    const [lineTags, setLineTags] = React.useState<{ [binaryFilePath: string]: string[][]}>({})
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
@@ -89,30 +92,40 @@ function SourceView({ file_name }:{
     }
 
     React.useEffect(() => {
-        api.getSourceLines(binaryFilePath, file_name).then(sourceFile => {
+        if (validBinaryFilePaths.length === 0) return
+        api.getSourceLines(validBinaryFilePaths, file_name).then(sourceFile => {
             let tmpSourceCode = ""
             sourceFile.lines.map(line => line.line).forEach((line) => {
                 tmpSourceCode += line
             })
-            setCorrespondences(sourceFile.lines.map(line => line.addresses))
+            const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
+            const tmpLineTags: { [binaryFilePath: string]: string[][] } = {}
+            validBinaryFilePaths.forEach((binaryFilePath) => {
+                tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
+                tmpLineTags[binaryFilePath] = sourceFile.lines.map(line => line.tags[binaryFilePath])
+            })
             setSourceCode(tmpSourceCode)
-            setLineTags(sourceFile.lines.map(line => line.tags))
+            setCorrespondences(tmpCorrespondences)
+            setLineTags(tmpLineTags)
         })
-    }, [binaryFilePath, file_name])
+    }, [binaryFilePaths, file_name])
     
     // add decorations for lines with correspondences
     React.useEffect(() => {
         if(editorRef.current === null || correspondenceDecorationCollection === null) return
+        if(Object.keys(correspondences).length === 0) return
             
         // pick the lines that have a correspondence
-        const linesWithCorrespondences: number[] = []
-        correspondences.forEach((addresses, line) => {
-            if(addresses.length > 0) {
-                linesWithCorrespondences.push(line + 1) // make it 1-based
-            }
+        const linesWithCorrespondences = new Set<number>()
+        validBinaryFilePaths.forEach((binaryFilePath) => {
+            correspondences[binaryFilePath].forEach((addresses, line) => {
+                if (addresses.length > 0) {
+                    linesWithCorrespondences.add(line + 1) // make it 1-based
+                }
+            })
         })
         // add the decorations
-        const decorations: monaco.editor.IModelDeltaDecoration[] = linesWithCorrespondences.map((line) => ({
+        const decorations: monaco.editor.IModelDeltaDecoration[] = [...linesWithCorrespondences].map((line) => ({
             range: new monaco.Range(line, 1, line, 1),
             options: {
                 isWholeLine: true,
@@ -130,23 +143,23 @@ function SourceView({ file_name }:{
         }))
 
         // add git blame decorations for each lineTags
-        lineTags.forEach((tags, line) => {
-            if(tags.length === 0) return
-            const lineNum = line + 1
-            const text = tags.map(t => `${t}`).join(' ')
-            decorations.push({
-                range: new monaco.Range(lineNum, 1, lineNum, 1),
-                options: {
-                    isWholeLine: true,
-                    afterContentClassName: `${text}`,
-                    overviewRuler: {
-                        color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
-                        position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
-                    },
-                    zIndex: 2,
-                },
-            })
-        })
+        // lineTags.forEach((tags, line) => {
+        //     if(tags.length === 0) return
+        //     const lineNum = line + 1
+        //     const text = tags.map(t => `${t}`).join(' ')
+        //     decorations.push({
+        //         range: new monaco.Range(lineNum, 1, lineNum, 1),
+        //         options: {
+        //             isWholeLine: true,
+        //             afterContentClassName: `${text}`,
+        //             overviewRuler: {
+        //                 color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
+        //                 position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
+        //             },
+        //             zIndex: 2,
+        //         },
+        //     })
+        // })
         
         correspondenceDecorationCollection.set(decorations)
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags])
@@ -203,18 +216,20 @@ function SourceView({ file_name }:{
         }
 
         selectionDecorationCollection.set(decorations)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selections, file_name, editorRefUpdated, selectionDecorationCollection, mouseHighlight])
     
     // add decorations for hovered lines
     React.useEffect(() => {
-        if(editorRef.current === null || correspondenceDecorationCollection === null || correspondences.length === 0) return
+        if(editorRef.current === null || correspondenceDecorationCollection === null || Object.keys(correspondences).length === 0) return
             
         editorRef.current.onMouseMove((e) => {
             if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) return
             const lineNumber = e.target.position.lineNumber - 1
-            const addresses = correspondences[lineNumber]
-            if (addresses.length === 0) return
+            const addresses: { [binaryFilePath: string]: number[] } = {}
+            validBinaryFilePaths.forEach((binaryFilePath) => {
+                addresses[binaryFilePath] = correspondences[binaryFilePath][lineNumber]
+            })
+            if (Object.keys(addresses).length === 0) return
             dispatch(setMouseHighlight({
                 addresses: addresses,
                 source_selection: [{
@@ -227,7 +242,7 @@ function SourceView({ file_name }:{
         editorRef.current.onDidChangeCursorSelection((e) => {
             const selection = editorRef.current!.getSelection()
             if (selection === null) return
-            if (correspondences.length === 0) return
+            if (Object.keys(correspondences).length === 0) return
             const startLine = selection.selectionStartLineNumber - 1
             const endLine = selection.endLineNumber - 1
             const finalSelection = {
@@ -237,12 +252,13 @@ function SourceView({ file_name }:{
 
             const addresses = new Set<number>()
             for(let i = finalSelection.start; i <= finalSelection.end; i++) {
-                correspondences[i].forEach(address => {
+                correspondences[activeBinaryFilePath][i].forEach(address => {
                     addresses.add(address)
                 })
             }
             if (addresses.size === 0) return
             dispatch(setSourceLineSelection({
+                binaryFilePath: activeBinaryFilePath,
                 addresses: Array.from(addresses),
                 source_selection: [{
                     source_file: file_name,

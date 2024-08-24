@@ -4,7 +4,7 @@ import Button from 'react-bootstrap/Button'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import * as api from "../api"
 import '../styles/inputsourcefilepath.css'
-import { selectBinaryFilePath, setBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { selectBinaryFilePaths, addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 
 function InputFilePath() {
@@ -14,7 +14,7 @@ function InputFilePath() {
     }[]>([]);
 
     const dispatch = useAppDispatch();
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)!
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)!
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
@@ -26,24 +26,41 @@ function InputFilePath() {
     }, [binaryList]);
 
     return <div style={{ margin: "25px" }}>
-        <Form.Group className="mb-3">
-            <Form.Label>Binary File Path</Form.Label>
-            <Form.Select
-                style={{
-                    width: "90%"
-                }}
-                aria-label="Binary File Selection"
-                onChange={(event: React.FormEvent<HTMLSelectElement>) => {
-                    dispatch(setBinaryFilePath((event.target as HTMLSelectElement).value))
-                }}
-                value={binaryFilePath}
-            >
-                {binaryFilePath===""?<option key={-1} value="">Select Binary file to open</option>:<></>}
-                { binaryList.map((d, i) => 
-                    <option key={i} value={d.executable_path}>{d.name}</option>
-                )}
-            </Form.Select>
-        </Form.Group>
+        {binaryFilePaths.length === 0 && <Form.Select
+            onChange={(e) => {
+                dispatch(addBinaryFilePath(e.target.value));
+            }}
+        >
+            <option key={-1} value="">Select a Binary</option>
+            {binaryList.map((binary, index) => {
+                return <option key={index} value={binary.executable_path}>{binary.name}</option>
+            })}
+        </Form.Select>}
+        {binaryFilePaths.map((binaryFilePath, index) => {
+            return <div key={index} className="input-source-file-path" style={{
+                display: "flex",
+                alignItems: "center",
+                marginTop: "10px"
+            }}>
+                <div style={{ marginRight: "10px" }}>{index + 1}</div>
+                <Form.Select value={binaryFilePath} 
+                onChange={(e) => {
+                    dispatch(replaceBinaryFilePath({ index, binaryFilePath: e.target.value }));
+                }}>
+                    <option key={-1} value="">Select a Binary</option>
+                    {binaryList.map((binary, index) => {
+                        return <option key={index} value={binary.executable_path}>{binary.name}</option>
+                    })}
+                </Form.Select>
+                <Button onClick={() => dispatch(removeBinaryFilePath(index))}>-</Button>
+            </div>
+        })}
+        <Button style={{
+            marginTop: "10px",
+            float: "right"
+        }} onClick={() => {
+            dispatch(addBinaryFilePath(""));
+        }}> Add Another Binary </Button>
     </div>
 }
 

@@ -9,7 +9,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSelections, setActiveDisassemblyView, addDisassemblyView, removeDisassemblyView } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice'
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
@@ -20,32 +20,36 @@ const App = () => {
 
   const dispatch = useAppDispatch();
 
-  const [sourceViewStates, setSourceViewStates] = React.useState<{
-    file_name: string,
-    status: "opened" | "closed"
-  }[]>([])
-
   const selections = useAppSelector(selectSelections)
 
   let dockRef: DockLayout | null;
-  const binaryFilePath = useAppSelector(selectBinaryFilePath)
+  const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+  const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
+  const [sourceViewStates, setSourceViewStates] = React.useState<{
+      file_name: string,
+      status: "opened" | "closed"
+  }[]>([])
 
   // Automatically create a disassemblyView if there is none but binaryFilePath is selected
   React.useEffect(() => {
-    if (binaryFilePath.length === 0) return;
-
-    api.getSourceFiles(binaryFilePath).then(files => {
-      setSourceViewStates(files.map(file_name => ({
-        file_name,
-        status: "closed"
-      })))
-    })
-
-    // TODO: close all disassembly views and create a new one
-
+    if (validBinaryFilePaths.length === 0) return;
     if (Object.keys(selections).length !== 0) return
-    dispatch(addDisassemblyView(null))
-  }, [binaryFilePath, dispatch, selections])
+    dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
+  }, [binaryFilePaths, dispatch, selections])
+
+  React.useEffect(() => {
+      const curSourceViewStates: { [file_name: string]: "opened" | "closed" } = {}
+      Promise.all(validBinaryFilePaths.map(async (binaryFilePath) => {
+          const sourceFiles = await api.getSourceFiles(binaryFilePath)
+          sourceFiles.forEach(sourceFile => {
+              if (!(sourceFile in curSourceViewStates)) {
+                  curSourceViewStates[sourceFile] = "closed"
+              }
+          })
+      })).then(() => {
+        setSourceViewStates(Object.entries(curSourceViewStates).map(([file_name, status]) => ({ file_name, status })))
+      })
+  }, [binaryFilePaths])
 
   React.useEffect(() => {
     dockRef!.updateTab("InputFilePath:1", {
@@ -80,6 +84,7 @@ const App = () => {
           <DisassemblyView
             key={`DisassemblyView-${disId}`}
             id={parseInt(disId)}
+            defaultBinaryFilePath={validBinaryFilePaths[parseInt(disId)]}
           /></TabContent>,
         closable: true,
       }))
@@ -197,7 +202,7 @@ const App = () => {
               minHeight: 300,
               panelExtra: (panelData) => (
                 <button onClick={e => {
-                  dispatch(addDisassemblyView(null))
+                  dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
                 }}>
                   add
                 </button>

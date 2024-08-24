@@ -6,10 +6,10 @@ export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 
 export class SourceLine {
     @Expose() line: string;
-    @Expose() addresses: number[];
-    @Expose() tags: string[];
+    @Expose() addresses: { [binaryFilePath: string]: number[] };
+    @Expose() tags: { [binaryFilePath: string]: string[] };
 
-    constructor(line: string, addresses: number[], tags: string[]) {
+    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: string[] }) {
         this.line = line
         this.addresses = addresses
         this.tags = tags

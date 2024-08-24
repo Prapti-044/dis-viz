@@ -1,11 +1,10 @@
 import React from 'react';
-import { MinimapType, selectMinimap } from '../features/minimap/minimapSlice'
+import { MinimapType } from '../features/minimap/minimapSlice'
 import { selectSelections, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
 import { codeColors, hexToHSL } from '../utils'
 import { setDisassemblyLineSelection } from '../features/selections/selectionsSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import * as api from '../api';
-import { selectBinaryFilePath } from '../features/binary-data/binaryDataSlice';
 import { BLOCK_ORDERS } from '../types';
 
 const BLOCK_LINE_HEIGHT_FACTOR = 1.2
@@ -31,15 +30,15 @@ function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: n
 }
 
 
-export default function Minimap({ minimap, visibleBlockWindow, width, order, ...props }: {
+export default function Minimap({ minimap, binaryFilePath, visibleBlockWindow, width, order, ...props }: {
     minimap: MinimapType,
+    binaryFilePath: string,
     width: number,
     order: BLOCK_ORDERS,
     visibleBlockWindow: { startAddress: number, nBlocks: number }
 }) {
     const dispatch = useAppDispatch();
     const currentDisViewId = useAppSelector(selectActiveDisassemblyView)
-    const binaryFilePath = useAppSelector(selectBinaryFilePath)
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const selections = useAppSelector(selectSelections)
 
@@ -79,6 +78,7 @@ export default function Minimap({ minimap, visibleBlockWindow, width, order, ...
 
     const topHidden: number[] = [], bottomHidden: number[] = []
     for (const disViewId in selections) {
+        if (selections[disViewId].binaryFilePath !== binaryFilePath) continue
         const selection = selections[disViewId]
         if (selection) {
             if (selection.addresses.some(address => address < minimap.blockStartAddress[drawingStartBlockI])) {
@@ -255,6 +255,7 @@ export default function Minimap({ minimap, visibleBlockWindow, width, order, ...
                 dispatch(setDisassemblyLineSelection({
                     disassemblyViewId: currentDisViewId!,
                     disIdSelections: {
+                        binaryFilePath,
                         addresses: block.instructions.map(inst => inst.address),
                         source_selection: sourceSelection
                     }

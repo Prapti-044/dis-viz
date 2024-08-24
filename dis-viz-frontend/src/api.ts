@@ -56,14 +56,14 @@ export async function getAddressRange(filepath: string) : Promise<{start: number
     return result;
 }
 
-export async function getSourceLines(binaryFile: string, sourceFile: string): Promise<SourceFile> {
+export async function getSourceLines(binaryFiles: string[], sourceFile: string): Promise<SourceFile> {
     const response = await fetch(
         apiURL + "getsourcefile", {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({filepath: {path:sourceFile}, binary_file_path: {path:binaryFile}}),
+            body: JSON.stringify({filepath: {path:sourceFile}, binary_file_paths: {paths:binaryFiles}}),
         }
     );
     const result = await response.json();
