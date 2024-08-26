@@ -4,12 +4,14 @@ import { Expose, Type } from "class-transformer";
 
 export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 
+export type SRC_LINE_TAG = 'VECTORIZED' | 'INLINE'
+
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: { [binaryFilePath: string]: number[] };
-    @Expose() tags: { [binaryFilePath: string]: string[] };
+    @Expose() tags: { [binaryFilePath: string]: SRC_LINE_TAG[] };
 
-    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: string[] }) {
+    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: SRC_LINE_TAG[] }) {
         this.line = line
         this.addresses = addresses
         this.tags = tags

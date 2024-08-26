@@ -64,9 +64,12 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             // The opcode
             if (i === 0) {
                 const doc = findIntelDocs(token);
-                return <span key={instruction.address.toString(16) + "id" + i}>
-                    {showDoc && doc ? <div className="tooltipitem">
-                        {Object.entries(doc).map(([key, value]) => value ? <p><b>{key}</b>: {value}</p> : <></>)}
+                return <span key={"inteldocspan" + instruction.address.toString(16)}>
+                    {showDoc && doc ? <div className="tooltipitem" key={"inteldocdiv" + instruction.address.toString(16)}>
+                        {Object.entries(doc).map(([key, value]) => value ?
+                            <p key={"inteldoc" + instruction.address.toString(16) + key} >
+                                <b> {key} </b> : {value}
+                            </p> : <></>)}
                     </div> : <></>}
                     <mark key={i} data-type="mnemonic"
                         onMouseEnter={() => setShowDoc(true)}
@@ -101,12 +104,10 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                 addToTitle(nextAddress ? "0x" + nextAddress.toString(16).toUpperCase() : "")
                 
                 // const nextBlock = block.next_block_numbers[0]
-              
                 // if (block.next_block_numbers.length > 0 && block.next_block_numbers[0] === nextBlock?.name)
                 //     if(block.next_block_numbers[1])
                 //         return <mark key={i} data-type="jump" data-blockname={shortenName(block.next_block_numbers[1], MAX_FN_SIZE)} title={title}>
 
-                 
                 const thisNextBlocks = block.next_block_numbers.filter(jmpNextBlock => block.next_block_numbers.length === 1 || (nextBlock && jmpNextBlock !== nextBlock.name))
                 if (nextBlock && thisNextBlocks.length > 0 && isJumpInstruction(tokens[0]))
                     return <mark

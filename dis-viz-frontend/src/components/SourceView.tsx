@@ -2,6 +2,7 @@ import React, { Suspense } from 'react'
 import '../styles/sourceview.css'
 import { codeColors } from '../utils'
 import * as api from '../api'
+import { SRC_LINE_TAG } from '../types'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSelections, setSourceLineSelection, setMouseHighlight, selectHoverHighlight, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
@@ -9,6 +10,17 @@ import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 
 loader.config({ monaco });
+
+const TAGS_TO_LETTERS = {
+    'VECTORIZED': {
+        letter: 'V',
+        color: 'blue',
+    },
+    'INLINE': {
+        letter: 'I',
+        color: 'green',
+    },
+}
 
 function SourceView({ file_name }:{
     file_name: string,
@@ -23,7 +35,12 @@ function SourceView({ file_name }:{
 
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][]}>({})
-    const [lineTags, setLineTags] = React.useState<{ [binaryFilePath: string]: string[][]}>({})
+    const [lineTags, setLineTags] = React.useState<{ [binaryFilePath: string]: ('VECTORIZED' | 'INLINE')[][]}>({})
+    const nLineTags = (Object.values(lineTags)
+        .map(tags => tags.map(tArray => tArray.length)
+        .reduce((a, b) => a + b, 0))
+        .map(a => a > 0 ? 1 : 0) as number[])
+        .reduce((a, b) => a + b, 0)
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
@@ -33,7 +50,7 @@ function SourceView({ file_name }:{
     
     const monacoOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
         lineNumbers: "on",
-        lineNumbersMinChars: 3,
+        // lineNumbersMinChars: 3 + nLineTags * 2,
         glyphMargin: true, // gap before line numbers
         // lineDecorationsWidth: "10ch", // gap after line numbers
         roundedSelection: false,
@@ -76,7 +93,7 @@ function SourceView({ file_name }:{
         occurrencesHighlight: 'off', // Disables occurrence highlighting
         codeLens: false, // Disables code lens
         lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off }, // Disables lightbulb
-        // folding: false, // Disables folding
+        folding: true,
         renderLineHighlight: 'none', // Disables line highlighting
         lineHeight: 20,
         letterSpacing: 0,
@@ -99,7 +116,7 @@ function SourceView({ file_name }:{
                 tmpSourceCode += line
             })
             const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-            const tmpLineTags: { [binaryFilePath: string]: string[][] } = {}
+            const tmpLineTags: { [binaryFilePath: string]: SRC_LINE_TAG[][] } = {}
             validBinaryFilePaths.forEach((binaryFilePath) => {
                 tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
                 tmpLineTags[binaryFilePath] = sourceFile.lines.map(line => line.tags[binaryFilePath])
@@ -142,24 +159,28 @@ function SourceView({ file_name }:{
             },
         }))
 
-        // add git blame decorations for each lineTags
-        // lineTags.forEach((tags, line) => {
-        //     if(tags.length === 0) return
-        //     const lineNum = line + 1
-        //     const text = tags.map(t => `${t}`).join(' ')
-        //     decorations.push({
-        //         range: new monaco.Range(lineNum, 1, lineNum, 1),
-        //         options: {
-        //             isWholeLine: true,
-        //             afterContentClassName: `${text}`,
-        //             overviewRuler: {
-        //                 color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
-        //                 position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
-        //             },
-        //             zIndex: 2,
-        //         },
-        //     })
-        // })
+        // add line number glyph decorations for line tags
+        let col = 0
+        for (const binaryFilePath in lineTags) {
+            lineTags[binaryFilePath].forEach((tags, line) => {
+                if(tags.length === 0) return
+                const lineNum = line + 1
+                decorations.push({
+                    range: new monaco.Range(lineNum, 1, lineNum, 1),
+                    options: {
+                        isWholeLine: true,
+                        glyphMarginHoverMessage: { value: "Whether this line is vectorized or inlined.\nV -> Vectorized\nI -> Inlined" },
+                        glyphMarginClassName: "lineTags " + tags.map(t => `${t}`).join(' '),
+                        overviewRuler: {
+                            color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
+                            position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
+                        },
+                        zIndex: 2,
+                    },
+                })
+            })
+            col += 1
+        }
         
         correspondenceDecorationCollection.set(decorations)
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags])
@@ -269,11 +290,35 @@ function SourceView({ file_name }:{
 
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection])
     
+    console.log(Array.from({length: nLineTags}, (_, i) => i+1))
 
     return <Suspense fallback={<div>Loading source code...</div>}>
+        {/* title row */}
+        <div className="source-view-title-row" style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '10px',
+            borderBottom: '1px solid #e0e0e0',
+            backgroundColor: 'white',
+            width: nLineTags * 30,
+        }}>
+            {Array.from({length: nLineTags}, (_, i) => i+1).map(i =>
+                <div key={i} style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '20px',
+                    height: '20px',
+                    backgroundColor: 'lightblue',
+                    borderRadius: '50%',
+                    marginRight: '5px',
+                }}>{i}</div>
+            )}
+        </div>
         <div className='no-text-selection'>
             <MonacoEditor
-                height="100vh"
+                height="90vh"
                 width="100%"
                 language="cpp"
                 value={sourceCode}

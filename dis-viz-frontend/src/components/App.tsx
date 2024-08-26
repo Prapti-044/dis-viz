@@ -1,7 +1,11 @@
 import React from 'react';
 import * as api from "../api";
 
-import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
+import { Menu, SubMenu, MenuItem, MenuButton } from '@szhsin/react-menu';
+import '@szhsin/react-menu/dist/index.css';
+import '@szhsin/react-menu/dist/transitions/zoom.css';
+
+import { DockLayout, LayoutData, DropDirection, TabData, PanelData, BoxData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./TabContent";
 import { ToastContainer } from 'react-toastify';
@@ -22,13 +26,26 @@ const App = () => {
 
   const selections = useAppSelector(selectSelections)
 
-  let dockRef: DockLayout | null;
+  const dockRef = React.useRef<DockLayout>(null)
   const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
   const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
   const [sourceViewStates, setSourceViewStates] = React.useState<{
       file_name: string,
       status: "opened" | "closed"
   }[]>([])
+
+  const removeSelfDisassemblyView = (disId: number) => {
+    if (dockRef.current === null) return
+    
+    const tabData = dockRef.current.find("DisassemblyView:" + disId) as TabData
+    dockRef.current.dockMove(
+      tabData,
+      null,
+      'remove'
+    )
+    dispatch(removeDisassemblyView(disId))
+  }
+
 
   // Automatically create a disassemblyView if there is none but binaryFilePath is selected
   React.useEffect(() => {
@@ -52,7 +69,8 @@ const App = () => {
   }, [binaryFilePaths])
 
   React.useEffect(() => {
-    dockRef!.updateTab("InputFilePath:1", {
+    if(dockRef.current === null) return;
+    dockRef.current.updateTab("InputFilePath:1", {
       id: "InputFilePath:1",
       title: "Input File",
       content: <TabContent><InputFilePath /></TabContent>,
@@ -60,7 +78,7 @@ const App = () => {
       minHeight: 150,
       minWidth: 250,
     })
-    dockRef!.updateTab("SourceFileTree:1", {
+    dockRef.current.updateTab("SourceFileTree:1", {
       id: "SourceFileTree:1",
       title: "Source Files",
       content: <TabContent><SourceFileTree
@@ -75,13 +93,16 @@ const App = () => {
 
   // Reconcile disassemblyViewState and dis-views
   React.useEffect(() => {
-    if (dockRef === null || Object.keys(selections).length === 0) return;
+    if (dockRef.current === null || Object.keys(selections).length === 0) return;
     Object.keys(selections)
       .map<TabData>(disId => ({
         id: "DisassemblyView:" + disId,
         title: "Disassembly View: " + disId,
         content: <TabContent key={`tab-DisassemblyView-${disId}`}>
           <DisassemblyView
+            removeSelf={() => {
+              removeSelfDisassemblyView(parseInt(disId))
+            }}
             key={`DisassemblyView-${disId}`}
             id={parseInt(disId)}
             defaultBinaryFilePath={validBinaryFilePaths[parseInt(disId)]}
@@ -89,16 +110,16 @@ const App = () => {
         closable: true,
       }))
       .forEach(disassemblyViewComponent => {
-        const tabData = dockRef!.find(disassemblyViewComponent.id!)
+        const tabData = dockRef.current!.find(disassemblyViewComponent.id!)
         if (tabData !== undefined) {
-          dockRef!.updateTab(tabData.id!.toString(), disassemblyViewComponent);
+          dockRef.current!.updateTab(tabData.id!.toString(), disassemblyViewComponent);
         }
         else {
           const newPanel: PanelData = {
             tabs: [disassemblyViewComponent],
             x: 10, y: 10, w: 400, h: 400
           }
-          dockRef!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
+          dockRef.current!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
         }
       })
     // set it active if there is only one dis-view
@@ -109,11 +130,11 @@ const App = () => {
 
   // Reconcile sourceViewStates and source-views
   React.useEffect(() => {
-    if (!dockRef) return;
+    if (dockRef.current === null) return;
     sourceViewStates
       .forEach(sourceViewDaton => {
         if (sourceViewDaton.status === "opened") {
-          const foundTab = dockRef!.find("SourceView:" + sourceViewDaton.file_name) as TabData
+          const foundTab = dockRef.current!.find("SourceView:" + sourceViewDaton.file_name) as TabData
           const newTab: TabData = {
             id: "SourceView:" + sourceViewDaton.file_name,
             title: "Source: " + sourceViewDaton.file_name.split("/")[sourceViewDaton.file_name.split("/").length - 1],
@@ -128,10 +149,10 @@ const App = () => {
               tabs: [newTab],
               x: 10, y: 10, w: 400, h: 400
             }
-            dockRef!.dockMove(newPanel, 'SourceViewPanel', 'middle')
+            dockRef.current!.dockMove(newPanel, 'SourceViewPanel', 'middle')
           }
           else {
-            dockRef!.updateTab("SourceView:" + sourceViewDaton.file_name, newTab)
+            dockRef.current!.updateTab("SourceView:" + sourceViewDaton.file_name, newTab)
           }
         }
       });
@@ -201,10 +222,16 @@ const App = () => {
               minWidth: 300,
               minHeight: 300,
               panelExtra: (panelData) => (
-                <button onClick={e => {
-                  dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
-                }}>
-                  add
+                <button
+                  onClick={e => {
+                    dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
+                  }}
+                  style={{
+                    background: 'none',
+                    color: 'black',
+                    cursor: 'pointer'
+                  }}>
+                +
                 </button>
               )
             }
@@ -233,7 +260,7 @@ const App = () => {
     }
     setLayout(newLayout)
   };
-
+  
   return (
     <div className="App">
       <ToastContainer
@@ -247,14 +274,28 @@ const App = () => {
         draggable
         pauseOnHover
       />
+      <Menu menuButton={<MenuButton>Menu</MenuButton>}>
+        <MenuItem>New File</MenuItem>
+        <SubMenu label="Edit">
+          <MenuItem>Cut</MenuItem>
+          <MenuItem>Copy</MenuItem>
+          <MenuItem>Paste</MenuItem>
+          <SubMenu label="Find">
+            <MenuItem>Find...</MenuItem>
+            <MenuItem>Find Next</MenuItem>
+            <MenuItem>Find Previous</MenuItem>
+          </SubMenu>
+        </SubMenu>
+        <MenuItem>Print...</MenuItem>
+      </Menu>
       <DockLayout
-        ref={(r) => { dockRef = r }}
+        ref={dockRef}
         defaultLayout={layout}
         onLayoutChange={onLayoutChange}
         style={{
           position: 'absolute',
           left: 5,
-          top: 5,
+          top: 36,
           right: 5,
           bottom: 5
         }}

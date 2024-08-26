@@ -75,25 +75,31 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-function DisassemblyView({ id, defaultBinaryFilePath }:{
+function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
     id: number,
-    defaultBinaryFilePath: string | null
+    defaultBinaryFilePath: string | null,
+    removeSelf: () => void
 }) {
     const dispatch = useAppDispatch();
+
     const selections = useAppSelector(selectSelections)
+    const lineSelection = selections[id]
+
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
     const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ? defaultBinaryFilePath : binaryFilePaths[0])
+    if (!validBinaryFilePaths.includes(binaryFilePath)) removeSelf()
     const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
-    const active = activeDisassemblyView === id
+    const isCurDisassemblyViewActive = activeDisassemblyView === id
+
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
     const [shouldScroll, setShouldScroll] = React.useState({
         value: true
     })
-    
-    const lineSelection = selections[id]
-    const [pages, setPages] = React.useState<BlockPage[]>([]);
+
     const disassemblyBlockRefs = React.useRef<{[start_address: number]: { div: HTMLDivElement, idx: number }}>({})
+    
+    const [pages, setPages] = React.useState<BlockPage[]>([]);
     const onScreenFirstBlockAddress = useVisibleBlockWindow(disassemblyBlockRefs)
     const [backedges, setBackedges] = React.useState<{[pageBlockIdx: string]: HTMLDivElement[]}>({})
     const [minimap, setMinimap] = React.useState<MinimapType>()
@@ -101,28 +107,23 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
     const [jumpAddress, setJumpAddress] = React.useState<string>('0x0')
     const [jumpValidationError, setJumpValidationError] = React.useState('')
 
-    const [addressRange, setAddressRange] = React.useState({
-        start: 0, end: 0
-    })
+    const [binaryJumpAddressRange, setBinaryJumpAddressRange] = React.useState({ start: 0, end: 0 })
     
     // Fetch and get the pages
     React.useEffect(() => {
-        const setAfterFetch = ((page: BlockPage) => {
-            setPages([page])
-        })
-        if(lineSelection && lineSelection.addresses.length > 0) {
+        const setAfterFetch = ((page: BlockPage) => { setPages([page]) })
+        if(lineSelection && lineSelection.addresses.length > 0)
             api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0], blockOrder).then(setAfterFetch)
-        }
-        else {
+        else
             api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
-        }
         setTimeout(() => {
             setShouldScroll({value: true})
-        }, 1000);
+        }, 500);
     }, [lineSelection, blockOrder, binaryFilePath])
 
+    // Get total address range for jumping to address
     React.useEffect(() => {
-        api.getAddressRange(binaryFilePath).then(setAddressRange)
+        api.getAddressRange(binaryFilePath).then(setBinaryJumpAddressRange)
     }, [binaryFilePath])
 
     const addNewPage = (newPageNo: number) => {
@@ -134,6 +135,7 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
         })
     }
     
+    // get minimap data
     React.useEffect(() => {
         api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
     }, [binaryFilePath, blockOrder])
@@ -141,9 +143,10 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
     const activeRef = React.useRef<HTMLInputElement>(null);
     React.useEffect(() => {
         if(activeRef.current)
-            activeRef.current.checked = active;
-    }, [active])
+            activeRef.current.checked = isCurDisassemblyViewActive;
+    }, [isCurDisassemblyViewActive])
 
+    // Setup backedges
     React.useEffect(() => {
         // Check if disassemblyBlockRefs is initialized
         if(Object.keys(disassemblyBlockRefs.current).length === 0) return;
@@ -166,6 +169,7 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
         setBackedges(currBackedges)
     }, [pages])
     
+    // Scroll to the first focus line of selection
     React.useEffect(() => {
         if(shouldScroll.value) {
             if(!disassemblyBlockRefs.current) return;
@@ -191,13 +195,6 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
         }
     }, [lineSelection, shouldScroll])
 
-    const borderStyle: {[style: string]: string} = {}
-    if(active) {
-        borderStyle.border = '1px solid red'
-    }
-
-    let finalPages = pages
-    
     return <>
         <label className="toggle" style={{
             position: 'absolute',
@@ -214,9 +211,9 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
             }}/>
             <span className="labels" data-on="Active" data-off="Inactive"></span>
         </label>
-        {finalPages.length > 0 ?  
+        {pages.length > 0 ?  
         <div style={{
-            ...borderStyle,
+            border: isCurDisassemblyViewActive ? '1px solid black' : 'none',
             overflow: 'scroll',
         }}
         >
@@ -232,7 +229,7 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                 flexDirection: 'row',
             }}>
                 <Form.Group style={{}} className='form-inline'>
-                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+                    <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px"}}>
                         Binary File:
                         <Form.Select aria-label="Binary File" style={{ width: '200px', }} value={binaryFilePath} onChange={(e) => {
                             setBinaryFilePath(e.currentTarget.value)
@@ -240,7 +237,8 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                             {validBinaryFilePaths.map((binaryFilePath) => <option key={binaryFilePath} value={binaryFilePath}>{binaryFilePath.split('/').pop()}</option>)}
                         </Form.Select>
                     </Form.Label>
-                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+
+                    <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px" }}>
                         Order By: 
                         <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
                             // dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
@@ -250,14 +248,12 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                             <option value="loop_order">Loop Structure</option>
                         </Form.Select>
                     </Form.Label>
-                </Form.Group>
 
-                <Form.Group style={{}} className='form-inline'>
-                    <Form.Label style={{whiteSpace: 'nowrap'}}>
+                    <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px" }}>
                         Jump to: 
-                        <Form.Control type='text' value={jumpAddress} placeholder='0x10E59' aria-label="Address" style={{ width: '200px', }} onChange={(e) => {
+                        <Form.Control type='text' value={jumpAddress} placeholder='0x10E59' aria-label="Address" style={{ width: '120px', }} onChange={(e) => {
                             setJumpAddress(e.target.value)
-                            if(isHex(e.target.value) && toHex(e.target.value) <= addressRange.end && toHex(e.target.value) >= addressRange.start)
+                            if(isHex(e.target.value) && toHex(e.target.value) <= binaryJumpAddressRange.end && toHex(e.target.value) >= binaryJumpAddressRange.start)
                                 setJumpValidationError('')
                             else
                                 setJumpValidationError('Input must be of format Hexa decimal and withing range');
@@ -282,14 +278,15 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                     }}>
                         Jump
                     </Button>
-
                 </Form.Group>
+
+
                 
             </div>
-            {finalPages.length > 0 && finalPages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(finalPages[0].page_no-1)}}>
+            {pages.length > 0 && pages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(pages[0].page_no-1)}}>
                 Load more
             </button>:<></>}
-            {finalPages.map((page,i) => page.blocks.map((block, j, allBlocks) =>
+            {pages.map((page,i) => page.blocks.map((block, j, allBlocks) =>
                 <div key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}>
                     <DisassemblyBlock
                         binaryFilePath={binaryFilePath}
@@ -298,7 +295,7 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                         key={pages.slice(0, i).reduce((total,p) => total + p.blocks.length, 0) +j}
                         allBlocks={allBlocks}
                         id={id}
-                        pages={finalPages}
+                        pages={pages}
                         disassemblyBlockRefs={disassemblyBlockRefs}
                         lineSelection={lineSelection}
                         drawPseudo={blockOrder === 'memory_order'?'short':'full'}
@@ -317,7 +314,7 @@ function DisassemblyView({ id, defaultBinaryFilePath }:{
                     </div>}
                 </div>
             )).flat()}
-            {finalPages.length > 0 && !finalPages[finalPages.length-1].is_last?<button onClick={e => {addNewPage(finalPages[finalPages.length-1].page_no+1)}}>
+            {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
             {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap

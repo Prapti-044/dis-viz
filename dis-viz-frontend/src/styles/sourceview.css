@@ -13,6 +13,27 @@
     font-weight: 900;
 }
 
+.lineTags::after {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 12px;
+    border-radius: 5px;
+    height: 14px;
+    width: 28px;
+}
+
+.lineTags.VECTORIZED::after {
+    content: "<span>V</span><span>I</span>";
+    background-color: #007acc;
+}
+
+.lineTags.INLINE::after {
+    content: "I";
+    background-color: brown;
+}
+
 .VECTORIZED::after {
     content: "VEC";
     color: #fff;
