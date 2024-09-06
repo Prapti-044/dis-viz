@@ -271,24 +271,14 @@ int main(int argc, char *argv[]) {
         for (const auto &binaryPath : binaryPaths) {
           const auto &decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
           
-          if (decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end()) {
-            auto &correspondences = decodedBinary->correspondences[sourceFile];
-            auto &sourceCodeInfo = decodedBinary->sourceCodeInfo[sourceFile];          
-            allBinaryCorrespondences[binaryPath] = correspondences;            
-            allBinarySourceCodeInfo[binaryPath] = sourceCodeInfo;
-          }
-        }
-        
-        // cout allBinaryCorrespondences and allBinarySourceCodeInfo
-        std::cout << "All Binary Correspondences" << std::endl;
-        for (const auto &[binaryPath, correspondences] : allBinaryCorrespondences) {
-          std::cout << "Binary Path: " << binaryPath << std::endl;
-          for (const auto &[lineNo, addresses] : correspondences) {
-            std::cout << "Line No: " << lineNo << std::endl;
-            for (const auto &address : addresses) {
-              std::cout << "Address: " << address << std::endl;
-            }
-          }
+          if (decodedBinary->correspondences.find(sourceFile) != decodedBinary->correspondences.end())
+            allBinaryCorrespondences[binaryPath] = decodedBinary->correspondences[sourceFile];
+          else
+            allBinaryCorrespondences[binaryPath] = std::map<int, std::vector<unsigned long>>();
+          if (decodedBinary->sourceCodeInfo.find(sourceFile) != decodedBinary->sourceCodeInfo.end())
+            allBinarySourceCodeInfo[binaryPath] = decodedBinary->sourceCodeInfo[sourceFile];
+          else
+            allBinarySourceCodeInfo[binaryPath] = std::map<int, std::unordered_set<SourceCodeTags>>();
         }
 
         auto lines = json::list();

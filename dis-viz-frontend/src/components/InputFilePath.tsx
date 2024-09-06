@@ -18,11 +18,10 @@ function InputFilePath() {
 
     React.useEffect(() => {
         if(binaryList.length !== 0) return;
-        const fetchBinaryList = async () => {
-            const result =  await api.getBinaryList();
-            setBinaryList(result);
-        }
-        fetchBinaryList().catch(console.error);
+        api.getBinaryList().then(bList => {
+            bList.sort((a, b) => a.name.localeCompare(b.name || ""));
+            setBinaryList(bList)
+        }).catch(console.error);
     }, [binaryList]);
 
     return <div style={{ margin: "25px" }}>

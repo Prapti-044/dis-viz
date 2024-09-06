@@ -20,6 +20,10 @@ const TAGS_TO_LETTERS = {
         letter: 'I',
         color: 'green',
     },
+    'NO_TAG': {
+        letter: 'X',
+        color: 'white',
+    }
 }
 
 function SourceView({ file_name }:{
@@ -35,12 +39,8 @@ function SourceView({ file_name }:{
 
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][]}>({})
-    const [lineTags, setLineTags] = React.useState<{ [binaryFilePath: string]: ('VECTORIZED' | 'INLINE')[][]}>({})
-    const nLineTags = (Object.values(lineTags)
-        .map(tags => tags.map(tArray => tArray.length)
-        .reduce((a, b) => a + b, 0))
-        .map(a => a > 0 ? 1 : 0) as number[])
-        .reduce((a, b) => a + b, 0)
+    const [lineTags, setLineTags] = React.useState<SRC_LINE_TAG[][][]>([])
+    const nLineTags = validBinaryFilePaths.length
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
@@ -50,9 +50,9 @@ function SourceView({ file_name }:{
     
     const monacoOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
         lineNumbers: "on",
-        // lineNumbersMinChars: 3 + nLineTags * 2,
+        lineNumbersMinChars: nLineTags * 3,
         glyphMargin: true, // gap before line numbers
-        // lineDecorationsWidth: "10ch", // gap after line numbers
+        lineDecorationsWidth: "1ch", // gap after line numbers
         roundedSelection: false,
         readOnly: true, // Disables editing
         readOnlyMessage: undefined, // Disables the read-only message
@@ -116,11 +116,19 @@ function SourceView({ file_name }:{
                 tmpSourceCode += line
             })
             const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-            const tmpLineTags: { [binaryFilePath: string]: SRC_LINE_TAG[][] } = {}
-            validBinaryFilePaths.forEach((binaryFilePath) => {
+            const tmpLineTags: SRC_LINE_TAG[][][] = Array.from({length: sourceFile.lines.length }, () => Array.from({length: nLineTags}, () => []))
+            validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
                 tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
-                tmpLineTags[binaryFilePath] = sourceFile.lines.map(line => line.tags[binaryFilePath])
-            })
+
+                sourceFile.lines.forEach((line, lineI) => {
+                    line.tags[binaryFilePath].forEach(tag => {
+                        tmpLineTags[lineI][binaryI].push(tag)
+                    })
+                    if (line.tags[binaryFilePath].length === 0) {
+                        tmpLineTags[lineI][binaryI].push('NO_TAG')
+                    }
+                }
+            )})
             setSourceCode(tmpSourceCode)
             setCorrespondences(tmpCorrespondences)
             setLineTags(tmpLineTags)
@@ -160,27 +168,26 @@ function SourceView({ file_name }:{
         }))
 
         // add line number glyph decorations for line tags
-        let col = 0
-        for (const binaryFilePath in lineTags) {
-            lineTags[binaryFilePath].forEach((tags, line) => {
-                if(tags.length === 0) return
-                const lineNum = line + 1
-                decorations.push({
-                    range: new monaco.Range(lineNum, 1, lineNum, 1),
-                    options: {
-                        isWholeLine: true,
-                        glyphMarginHoverMessage: { value: "Whether this line is vectorized or inlined.\nV -> Vectorized\nI -> Inlined" },
-                        glyphMarginClassName: "lineTags " + tags.map(t => `${t}`).join(' '),
-                        overviewRuler: {
-                            color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
-                            position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
-                        },
-                        zIndex: 2,
-                    },
-                })
+        lineTags.forEach((tags, line) => {
+            const tagsClass = 'line-tags ' + tags.map((binaryTags, i) => {
+                const sortedBinaryTags = [...binaryTags]; sortedBinaryTags.sort();
+                return `col-${i+1}-` + sortedBinaryTags.map(t => TAGS_TO_LETTERS[t].letter).join('')
+            }).join(" ").replace(/\s+/g, ' ')
+
+            const lineNum = line + 1
+            decorations.push({
+                range: new monaco.Range(lineNum, 1, lineNum, 1),
+                options: {
+                    isWholeLine: true,
+                    glyphMarginClassName: tagsClass,
+                    // overviewRuler: {
+                    //     color: tags.includes('VECTORIZED') ? '#007acc' : 'brown',
+                    //     position: tags.includes('VECTORIZED') ? monaco.editor.OverviewRulerLane.Left : monaco.editor.OverviewRulerLane.Right,
+                    // },
+                    zIndex: 2,
+                },
             })
-            col += 1
-        }
+        })
         
         correspondenceDecorationCollection.set(decorations)
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags])
@@ -287,11 +294,51 @@ function SourceView({ file_name }:{
                 }]
             }))
         })
-
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection])
     
-    console.log(Array.from({length: nLineTags}, (_, i) => i+1))
+    // add glyph decorations for line tags
+    React.useEffect(() => {
+        const glyphMargins = Array.from(document.getElementsByClassName('line-tags'))
+        console.log("🚀 ~ glyphMargins:", glyphMargins)
+        // line-tags col-1-I col-2-I col-3-X col-4-I col-5-X col-6-X
+        glyphMargins.forEach((element) => {
+            const classNames = element.classList
+            classNames.forEach((className) => {
+                if (!className.startsWith('col-')) return
+                console.log("🚀 ~ className:", className)
+                const thisTags = Object.values(TAGS_TO_LETTERS).map(v => v.letter).filter(l => l !== 'X').join('')
+                console.log(String.raw`/^col-(\d+)-([${thisTags}]+)$/`)
+                const match =  className.match(
+                    new RegExp(String.raw`/^col-(\d+)-([${thisTags}]+)$/`)
+                )
+                console.log("🚀 ~ match:", match)
+                
+                if (match) {
+                    console.log(match)
+                    const col = parseInt(match[1])
+                    console.log("🚀 ~ col:", col)
+                    const tags = match[2].split('')
+                    console.log("🚀 ~ tags:", tags)
+                    const color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)!.color).join('')
+                    console.log("🚀 ~ color:", color)
+                    
+                    // Create the tag node and append it to the glyph margin
+                    const text = document.createElement('div')
+                    text.textContent = tags.join('')
+                    console.log("🚀 ~ tags:", tags)
+                    text.style.color = color
+                    text.style.fontSize = '10px'
+                    text.style.fontWeight = 'bold'
+                    text.style.textAlign = 'center'
+                    text.style.width = '80px'
 
+                    element.appendChild(text)
+                }
+            })
+
+        })
+    })
+    
     return <Suspense fallback={<div>Loading source code...</div>}>
         {/* title row */}
         <div className="source-view-title-row" style={{

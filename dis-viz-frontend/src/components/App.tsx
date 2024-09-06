@@ -5,7 +5,7 @@ import { Menu, SubMenu, MenuItem, MenuButton } from '@szhsin/react-menu';
 import '@szhsin/react-menu/dist/index.css';
 import '@szhsin/react-menu/dist/transitions/zoom.css';
 
-import { DockLayout, LayoutData, DropDirection, TabData, PanelData, BoxData } from 'rc-dock'
+import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./TabContent";
 import { ToastContainer } from 'react-toastify';
@@ -274,7 +274,7 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <Menu menuButton={<MenuButton>Menu</MenuButton>}>
+      <Menu menuButton={<MenuButton>File</MenuButton>}>
         <MenuItem>New File</MenuItem>
         <SubMenu label="Edit">
           <MenuItem>Cut</MenuItem>

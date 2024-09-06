@@ -4,6 +4,8 @@ g++ -g -O0 hello.cpp -o bin/hello-O0
 g++ -g -O3 hello.cpp -o bin/hello-O3
 
 g++ -g -O0 bubble_sort.cpp -o bin/bubble-O0
+g++ -g -O1 bubble_sort.cpp -o bin/bubble-O1
+g++ -g -O2 bubble_sort.cpp -o bin/bubble-O2
 g++ -g -O3 bubble_sort.cpp -o bin/bubble-O3
 
 gcc -g -O0 loop_outer_block.c -o bin/loop_outer_block-O0

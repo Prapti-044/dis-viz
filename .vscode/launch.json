@@ -11,7 +11,7 @@
             // Resolved by CMake Tools:
             // "program": "${command:cmake.launchTargetPath}",
             "program": "${workspaceRoot}/dis-viz-backend/build/DisViz",
-            "args": ["-j", "-b", "/home/prapti/RA_Kate/dis-viz/sample_inputs/bin/"],
+            "args": ["-j", "-b", "/home/insane/prapti/dis-viz/sample_inputs/bin/"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [
@@ -22,7 +22,7 @@
                     "value": "$PATH:${command:cmake.launchTargetDirectory}"
                 },
             ],
-            "externalConsole": true,
+            "externalConsole": false,
             "MIMode": "gdb",
             "setupCommands": [
                 {

@@ -4,7 +4,7 @@ import { Expose, Type } from "class-transformer";
 
 export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 
-export type SRC_LINE_TAG = 'VECTORIZED' | 'INLINE'
+export type SRC_LINE_TAG = 'VECTORIZED' | 'INLINE' | 'NO_TAG'
 
 export class SourceLine {
     @Expose() line: string;
