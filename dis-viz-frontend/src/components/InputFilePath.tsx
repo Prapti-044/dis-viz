@@ -6,6 +6,7 @@ import * as api from "../api"
 import '../styles/inputsourcefilepath.css'
 import { selectBinaryFilePaths, addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
+import { addDisassemblyView } from '../features/selections/selectionsSlice'
 
 function InputFilePath() {
     const [binaryList, setBinaryList] = React.useState<{
@@ -28,6 +29,7 @@ function InputFilePath() {
         {binaryFilePaths.length === 0 && <Form.Select
             onChange={(e) => {
                 dispatch(addBinaryFilePath(e.target.value));
+                dispatch(addDisassemblyView({ binaryFilePath: e.target.value, addresses: [], source_selection: [] }))
             }}
         >
             <option key={-1} value="">Select a Binary</option>

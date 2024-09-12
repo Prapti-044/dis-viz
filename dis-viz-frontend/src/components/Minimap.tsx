@@ -1,6 +1,6 @@
 import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
-import { selectSelections, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectDisIdSelections } from '../features/selections/selectionsSlice'
 import { codeColors, hexToHSL } from '../utils'
 import { setDisassemblyLineSelection } from '../features/selections/selectionsSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
@@ -30,17 +30,17 @@ function canvas_arrow(context: CanvasRenderingContext2D, fromx: number, fromy: n
 }
 
 
-export default function Minimap({ minimap, binaryFilePath, visibleBlockWindow, width, order, ...props }: {
+export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlockWindow, width, order, ...props }: {
     minimap: MinimapType,
+    disViewId: number,
     binaryFilePath: string,
     width: number,
     order: BLOCK_ORDERS,
     visibleBlockWindow: { startAddress: number, nBlocks: number }
 }) {
     const dispatch = useAppDispatch();
-    const currentDisViewId = useAppSelector(selectActiveDisassemblyView)
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
-    const selections = useAppSelector(selectSelections)
+    const selections = useAppSelector(selectDisIdSelections)
 
     const totalBlocks = minimap.blockStartAddress.length // b
     const brushStartBlockI = minimap.blockStartAddress.findIndex(address => address === visibleBlockWindow.startAddress)
@@ -78,13 +78,13 @@ export default function Minimap({ minimap, binaryFilePath, visibleBlockWindow, w
 
     const topHidden: number[] = [], bottomHidden: number[] = []
     for (const disViewId in selections) {
-        if (selections[disViewId].binaryFilePath !== binaryFilePath) continue
+        if (selections[disViewId].selections.binaryFilePath !== binaryFilePath) continue
         const selection = selections[disViewId]
         if (selection) {
-            if (selection.addresses.some(address => address < minimap.blockStartAddress[drawingStartBlockI])) {
+            if (selection.selections.addresses.some(address => address < minimap.blockStartAddress[drawingStartBlockI])) {
                 topHidden.push(parseInt(disViewId))
             }
-            if (selection.addresses.some(address => address > minimap.blockStartAddress[drawingEndBlockI])) {
+            if (selection.selections.addresses.some(address => address > minimap.blockStartAddress[drawingEndBlockI])) {
                 bottomHidden.push(parseInt(disViewId))
             }
         }
@@ -126,7 +126,7 @@ export default function Minimap({ minimap, binaryFilePath, visibleBlockWindow, w
 
             ctx.strokeStyle = minimap.builtInBlock[i] === true ? "lightgrey" : "grey"
             for (const disViewId in selections) {
-                const addresses = selections[disViewId]?.addresses
+                const addresses = selections[disViewId]?.selections.addresses
                 if (addresses === undefined || addresses.length === 0) continue
                 for (const address of addresses) {
                     if (minimap.blockStartAddress[i] <= address && (i >= minimap.blockStartAddress.length || address <= minimap.blockStartAddress[i + 1])) {
@@ -253,7 +253,7 @@ export default function Minimap({ minimap, binaryFilePath, visibleBlockWindow, w
                 const sourceSelection = Object.entries(sourceLines).map(([source_file, lines]) => ({ source_file, lines }))
 
                 dispatch(setDisassemblyLineSelection({
-                    disassemblyViewId: currentDisViewId!,
+                    disassemblyViewId: disViewId,
                     disIdSelections: {
                         binaryFilePath,
                         addresses: block.instructions.map(inst => inst.address),

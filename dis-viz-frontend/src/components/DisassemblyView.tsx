@@ -1,6 +1,6 @@
 import React  from 'react';
 
-import { selectSelections, setActiveDisassemblyView, setDisassemblyLineSelection, selectActiveDisassemblyView } from '../features/selections/selectionsSlice'
+import { selectDisIdSelection, setActiveDisassemblyView, setInactiveDisassemblyView, setDisassemblyLineSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as api from '../api'
@@ -75,22 +75,21 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
+function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     id: number,
-    defaultBinaryFilePath: string | null,
-    removeSelf: () => void
+    removeSelf: () => void,
+    defaultBinaryFilePath?: string
 }) {
     const dispatch = useAppDispatch();
 
-    const selections = useAppSelector(selectSelections)
-    const lineSelection = selections[id]
+    const disIdSelection = useAppSelector((state) => selectDisIdSelection(state, id))
+    const lineSelection = disIdSelection.selections
 
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
-    const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ? defaultBinaryFilePath : binaryFilePaths[0])
+    const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ?? validBinaryFilePaths[0])
     if (!validBinaryFilePaths.includes(binaryFilePath)) removeSelf()
-    const activeDisassemblyView = useAppSelector(selectActiveDisassemblyView)
-    const isCurDisassemblyViewActive = activeDisassemblyView === id
+    const isCurDisassemblyViewActive = disIdSelection.isActive
 
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
     const [shouldScroll, setShouldScroll] = React.useState({
@@ -108,10 +107,21 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
     const [jumpValidationError, setJumpValidationError] = React.useState('')
 
     const [binaryJumpAddressRange, setBinaryJumpAddressRange] = React.useState({ start: 0, end: 0 })
+
+    const addNewPage = (newPageNo: number) => {
+        api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
+            let pagesCopy = [...pages]
+            pagesCopy.push(page)
+            pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
+            setPages(pagesCopy)
+        })
+    }
+    
+    
     
     // Fetch and get the pages
     React.useEffect(() => {
-        const setAfterFetch = ((page: BlockPage) => { setPages([page]) })
+        const setAfterFetch = (page: BlockPage) => { setPages([page]) }
         if(lineSelection && lineSelection.addresses.length > 0)
             api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0], blockOrder).then(setAfterFetch)
         else
@@ -126,25 +136,10 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
         api.getAddressRange(binaryFilePath).then(setBinaryJumpAddressRange)
     }, [binaryFilePath])
 
-    const addNewPage = (newPageNo: number) => {
-        api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
-            let pagesCopy = [...pages]
-            pagesCopy.push(page)
-            pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
-            setPages(pagesCopy)
-        })
-    }
-    
     // get minimap data
     React.useEffect(() => {
         api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
     }, [binaryFilePath, blockOrder])
-
-    const activeRef = React.useRef<HTMLInputElement>(null);
-    React.useEffect(() => {
-        if(activeRef.current)
-            activeRef.current.checked = isCurDisassemblyViewActive;
-    }, [isCurDisassemblyViewActive])
 
     // Setup backedges
     React.useEffect(() => {
@@ -182,12 +177,14 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
                 if (parseInt(i) > 0 && blockAddresses[parseInt(i)-1] <= firstFocusLine && firstFocusLine <= blockAddress) {
                     if (!disassemblyBlockRefs.current[blockAddresses[parseInt(i)-1]]) continue;
                     const scrollRef = disassemblyBlockRefs.current[blockAddress].div;
-                    setTimeout(() => {
-                        scrollRef.scrollIntoView({
+                    if (scrollRef) {
+                        setTimeout(() => {
+                            scrollRef.scrollIntoView({
                             behavior: 'smooth',
                             block: 'center',
                         })
-                    }, 100);
+                        }, 100);
+                    }
                     break
                 }
             }
@@ -196,21 +193,20 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
     }, [lineSelection, shouldScroll])
 
     return <>
-        <label className="toggle" style={{
-            position: 'absolute',
-            top: '10px',
-            right: '200px',
-            height: '40px',
-            zIndex: 10,
-        }}>
-            <input type="checkbox" ref={activeRef} onChange={(event) => {
+        <Form.Check type="switch" checked={isCurDisassemblyViewActive}
+            onChange={(event) => {
                 if(event.target.checked)
                     dispatch(setActiveDisassemblyView(id))
                 else
-                    dispatch(setActiveDisassemblyView(null))
-            }}/>
-            <span className="labels" data-on="Active" data-off="Inactive"></span>
-        </label>
+                    dispatch(setInactiveDisassemblyView(id))
+            }}
+            style={{
+                position: 'absolute',
+                top: '10px',
+                right: '200px',
+                zIndex: 10,
+            }}
+        />
         {pages.length > 0 ?  
         <div style={{
             border: isCurDisassemblyViewActive ? '1px solid black' : 'none',
@@ -221,7 +217,7 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
                 position: 'absolute',
                 top: '0',
                 width: '100%',
-                backgroundColor: '#f1f1f1',
+                backgroundColor: isCurDisassemblyViewActive ? 'lightgreen' : '#f1f1f1',
                 padding: '10px',
                 fontWeight: 'bold',
                 zIndex: 1,
@@ -232,7 +228,23 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
                     <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px"}}>
                         Binary File:
                         <Form.Select aria-label="Binary File" style={{ width: '200px', }} value={binaryFilePath} onChange={(e) => {
+                            dispatch(setDisassemblyLineSelection({
+                                disIdSelections: {
+                                    binaryFilePath: e.currentTarget.value,
+                                    addresses: [],
+                                    source_selection: []
+                                },
+                                disassemblyViewId: id,
+                            }))
                             setBinaryFilePath(e.currentTarget.value)
+                            setPages([])
+                            disassemblyBlockRefs.current = {}
+                            setBackedges({})
+                            setMinimap(undefined)
+                            setBlockOrder('memory_order')
+                            setJumpAddress('0x0')
+                            setJumpValidationError('')
+                            setShouldScroll({value: true})
                         }}>
                             {validBinaryFilePaths.map((binaryFilePath) => <option key={binaryFilePath} value={binaryFilePath}>{binaryFilePath.split('/').pop()}</option>)}
                         </Form.Select>
@@ -279,9 +291,6 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
                         Jump
                     </Button>
                 </Form.Group>
-
-
-                
             </div>
             {pages.length > 0 && pages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(pages[0].page_no-1)}}>
                 Load more
@@ -319,6 +328,7 @@ function DisassemblyView({ id, defaultBinaryFilePath, removeSelf }:{
             </button>:<></>}
             {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
                 binaryFilePath={binaryFilePath}
+                disViewId={id}
                 width={150}
                 visibleBlockWindow={onScreenFirstBlockAddress}
                 minimap={minimap}

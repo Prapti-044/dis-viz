@@ -2,14 +2,12 @@
     display: none !important;
 }
 
-.mouseHoverHighlight {
-    background-color: #ddd;
-    border: 1px solid gray;
+.monaco-editor .line-numbers {
+    color: gray !important;
 }
 
-.hasCorrespondence {
-    /* background-color: lightgreen; */
-    color: red!;
+.monaco-editor .line-numbers.hasCorrespondence {
+    color: darkgreen !important;
     font-weight: 900;
 }
 
@@ -21,22 +19,46 @@
 }
 
 .selectedLines-0 {
-    background-color: #C1DBE3;
+    background-color: #C1DBE3 !important;
     border: 1px solid gray;
     cursor: pointer;
 }
 .selectedLines-1 {
-    background-color: #C7DFC5;
+    background-color: #C7DFC5 !important;
     border: 1px solid gray;
     cursor: pointer;
 }
 .selectedLines-2 {
-    background-color: #F6FEAA;
+    background-color: #F6FEAA !important;
     border: 1px solid gray;
     cursor: pointer;
 }
 .selectedLines-3 {
-    background-color: #FCE694;
+    background-color: #FCE694 !important;
     border: 1px solid gray;
     cursor: pointer;
+}
+
+.mouseHoverHighlight {
+    background-color: #ddd;
+    border: 1px solid gray;
+}
+
+
+.line-tags {
+    position: flex;
+    justify-content: flex-end;
+}
+
+.line-tags div {
+    border-radius: 30%;
+    width: 15px;
+    height: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    margin-left: 10px;
 }

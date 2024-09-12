@@ -1,12 +1,9 @@
 import React from 'react'
 import { useAppSelector } from '../app/hooks';
-import { selectSelections } from '../features/selections/selectionsSlice';
+import { selectDisIdSelections } from '../features/selections/selectionsSlice'; // Updated import
 import { codeColors } from '../utils';
 import '../styles/sourcefiletree.css'
 import CSS from 'csstype';
-
-
-const DEFAULT_FILE_COLOR = "white"
 
 type FileType = {
     name: string,
@@ -21,13 +18,16 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
     sourceViewData: { file_name: string, status: "opened" | "closed" }[],
     setSourceViewData: (_: { file_name: string, status: "opened" | "closed" }[]) => void,
 }) {
-    const selections = useAppSelector(selectSelections)
+    const selections = useAppSelector(selectDisIdSelections)
     
-    const sourceColors: {[source_file: string]: string[]} = {}
+    const sourceColors: {[source_file: string]: string[]} = sourceViewData.reduce((acc, viewData) => {
+        acc[viewData.file_name] = [];
+        return acc;
+    }, {} as {[source_file: string]: string[]});
     Object.entries(selections)
         .filter(([_, obj]) => obj)
-        .map(([disassemblyId, obj]) => ({ colorId: disassemblyId, source_files: obj!.source_selection.map(sel => sel.source_file)}))
-        .map(({colorId, source_files}) => source_files.map(source_file => ({colorId: Number(colorId), source_file})))
+        .map(([disassemblyId, obj]) => ({ colorId: disassemblyId, source_files: obj.selections.source_selection.map(sel => sel.source_file)}))
+        .map(({colorId, source_files}) => source_files.map(source_file => ({colorId: parseInt(colorId), source_file})))
         .flat()
         .forEach(sel => {
             if(!(sel.source_file in sourceColors)) {
@@ -36,36 +36,29 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
             sourceColors[sel.source_file].push(codeColors[sel.colorId])
         })
 
-    sourceViewData.forEach((viewData) => {
-        if (!(viewData.file_name in sourceColors)) {
-            sourceColors[viewData.file_name] = [DEFAULT_FILE_COLOR];
-        }
-    })
-
-    const finalSourceCSSBackground: {[source_file: string]: string} = {}
-    sourceViewData.forEach(viewData => {
-        const currentColors = sourceColors[viewData.file_name]
-        if (currentColors.length > 1) {
-            const percent = Math.floor(1/currentColors.length * 100)
-            finalSourceCSSBackground[viewData.file_name] = "linear-gradient(to right, " + currentColors.map((color,i) => `${color} ${i*percent}%, ${color} ${i===currentColors.length-1?100:((i+1)*percent)}%`).join(', ') + ")"
-        }
-        else {
-            finalSourceCSSBackground[viewData.file_name] = sourceColors[viewData.file_name][0]
-        }
-    })
-
     const clickedOnSource = (e: React.MouseEvent<HTMLLIElement>) => {
-        const clickedSourceFile = e.currentTarget.getAttribute('datasource')!
-        let sourceViewDataCopy = [...sourceViewData]
+        const clickedSourceFile = e.currentTarget.getAttribute('data-source')!
+        const sourceViewDataCopy = [...sourceViewData]
         const index = sourceViewDataCopy.findIndex(sourceData => sourceData.file_name === clickedSourceFile)!
-
-        if (sourceViewDataCopy[index].status === "opened")
-            sourceViewDataCopy[index].status = "closed"
-        else if(sourceViewDataCopy[index].status === "closed")
-            sourceViewDataCopy[index].status = "opened"
+        sourceViewDataCopy[index].status = "opened"
         setSourceViewData(sourceViewDataCopy)
     }
 
+    const getColorSquares = (colors: string[]) => {
+        return colors.map((color, index) => (
+            <span
+                key={index}
+                style={{
+                    display: 'inline-block',
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: color,
+                    marginRight: '4px',
+                    border: '1px solid #000',
+                }}
+            />
+        ));
+    };
 
     const rootFile: FileType = {
         name: '/',
@@ -128,23 +121,24 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
     function getJSXfromFiles(rootFile: FileType) {
         if (rootFile.type === "file") {
             const style: CSS.Properties = {
-                background: finalSourceCSSBackground[rootFile.fullPath],
-                border: finalSourceCSSBackground[rootFile.fullPath] === 'white' ? '0':'1px solid black',
                 whiteSpace: 'nowrap',
             }
             if (rootFile.status === 'opened') {
                 style.textDecoration = 'underline'
                 style.textDecorationColor = 'red'
             }
-            return <li
-                key={rootFile.name}
-                // @ts-ignore
-                datasource={rootFile.fullPath}
-                onClick={clickedOnSource}
-                style={style}
+            const colors = sourceColors[rootFile.fullPath] || [];
+            return (
+                <li
+                    key={rootFile.name}
+                    data-source={rootFile.fullPath}
+                    onClick={clickedOnSource}
+                    style={style}
                 >
+                    {getColorSquares(colors)}
                     {rootFile.name}
-            </li>
+                </li>
+            );
         }
         return <div className="folder-wrapper" key={'d'+rootFile.name}>
             <li className="folder">
