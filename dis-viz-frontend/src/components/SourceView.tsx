@@ -1,10 +1,10 @@
 import React, { Suspense } from 'react'
 import '../styles/sourceview.css'
-import { codeColors } from '../utils'
+import { setSelection } from '../features/selections/selectionsSlice'
 import * as api from '../api'
 import { SRC_LINE_TAG } from '../types'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
-import { selectDisIdSelections, setSourceLineSelection, setMouseHighlight, selectHoverHighlight } from '../features/selections/selectionsSlice'
+import { selectSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
@@ -33,10 +33,14 @@ function SourceView({ file_name }: {
     file_name: string,
 }) {
     const dispatch = useAppDispatch()
-    const selections = useAppSelector(selectDisIdSelections)
+    const thisSelection = useAppSelector(selectSelection).source_selection.filter(selection => selection.source_file === file_name)[0]
+    console.log("thisSelection", thisSelection)
+    console.log("thisSelection.lines", thisSelection?.source_lines)
+    const selectedLines = React.useMemo(() => thisSelection?.source_lines ?? [], [thisSelection])
+    console.log("selectedLines", selectedLines)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter(f => f !== '')
-    const mouseHighlight = useAppSelector(selectHoverHighlight)
+    // const mouseHighlight = useAppSelector(selectHoverHighlight)
     const [tagsNeedUpdate, setTagsNeedUpdate] = React.useState(false)
 
     const [sourceCode, setSourceCode] = React.useState("")
@@ -193,77 +197,81 @@ function SourceView({ file_name }: {
     // add decoration for selected lines
     React.useEffect(() => {
         if (editorRef.current === null || selectionDecorationCollection === null) return
+            
+        console.log(selectedLines)
 
-        // selections
-        const decorations: monaco.editor.IModelDeltaDecoration[] = []
-        for (const disassemblyViewId in selections) {
-            const linesToHighlight = selections[parseInt(disassemblyViewId)]?.selections.source_selection.find(selection => selection.source_file === file_name)?.lines.map(line => line + 1) // make it 1-based
-
-            if (linesToHighlight === undefined) continue
-            // Create decorations for the specified lines
-            decorations.push(...linesToHighlight.map((lineNumber) => ({
-                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-                options: {
-                    isWholeLine: true,
-                    className: `selectedLines-${disassemblyViewId}`,
-                    overviewRuler: {
-                        color: codeColors[disassemblyViewId],
-                        position: monaco.editor.OverviewRulerLane.Full,
-                    },
-                    minimap: {
-                        color: codeColors[disassemblyViewId] + 'FF',
-                        position: monaco.editor.MinimapPosition.Inline,
-                    },
-                    zIndex: 2,
+        const decorations: monaco.editor.IModelDeltaDecoration[] = selectedLines.map(l => l + 1).map((lineNumber) => ({
+            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+            options: {
+                isWholeLine: true,
+                className: 'selected-line',
+                overviewRuler: {
+                    color: 'lightgreen',
+                    position: monaco.editor.OverviewRulerLane.Full,
                 },
-            })))
-        }
+                minimap: {
+                    color: 'lightgreen',
+                    position: monaco.editor.MinimapPosition.Inline,
+                },
+                zIndex: 2,
+            },
+        }))
 
         // mouse highlight
-        const linesToHighlight = mouseHighlight.source_selection.find(selection => selection.source_file === file_name)?.lines.map(line => line + 1) // make it 1-based
-        if (linesToHighlight !== undefined) {
-            // Create decorations for the specified lines
-            decorations.push(...linesToHighlight.map((lineNumber) => ({
-                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-                options: {
-                    isWholeLine: true,
-                    className: `mouseHoverHighlight`,
-                    overviewRuler: {
-                        color: '#000000ff',
-                        position: monaco.editor.OverviewRulerLane.Full,
-                    },
-                    minimap: {
-                        color: '#000000ff',
-                        position: monaco.editor.MinimapPosition.Inline,
-                    },
-                    zIndex: 3,
-                },
-            })))
-        }
+        // const linesToHighlight = mouseHighlight.source_selection.find(selection => selection.source_file === file_name)?.lines.map(line => line + 1) // make it 1-based
+        // if (linesToHighlight !== undefined) {
+        //     // Create decorations for the specified lines
+        //     decorations.push(...linesToHighlight.map((lineNumber) => ({
+        //         range: new monaco.Range(lineNumber, 1, lineNumber, 1),
+        //         options: {
+        //             isWholeLine: true,
+        //             className: `mouseHoverHighlight`,
+        //             overviewRuler: {
+        //                 color: '#000000ff',
+        //                 position: monaco.editor.OverviewRulerLane.Full,
+        //             },
+        //             minimap: {
+        //                 color: '#000000ff',
+        //                 position: monaco.editor.MinimapPosition.Inline,
+        //             },
+        //             zIndex: 3,
+        //         },
+        //     })))
+        // }
         selectionDecorationCollection.set(decorations)
         setTagsNeedUpdate(i => !i)
-    }, [selections, file_name, editorRefUpdated, selectionDecorationCollection, mouseHighlight])
+    }, [selectedLines, file_name, editorRefUpdated, selectionDecorationCollection
+        // mouseHighlight
+    ])
+
+    function setThisSelection(binaryFilePath: string, addresses: number[]) {
+        console.log(binaryFilePath, addresses, validBinaryFilePaths)
+        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, 'memory_order').then(selections => {
+            console.log(selections)
+            dispatch(setSelection(selections))
+        })
+    }
 
     // add decorations for hovered lines
     React.useEffect(() => {
         if (editorRef.current === null || correspondenceDecorationCollection === null || Object.keys(correspondences).length === 0) return
 
-        editorRef.current.onMouseMove((e) => {
-            if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) return
-            const lineNumber = e.target.position.lineNumber - 1
-            const addresses: { [binaryFilePath: string]: number[] } = {}
-            validBinaryFilePaths.forEach((binaryFilePath) => {
-                addresses[binaryFilePath] = correspondences[binaryFilePath][lineNumber]
-            })
-            if (Object.values(addresses).every(addresses => addresses.length === 0)) return
-            dispatch(setMouseHighlight({
-                addresses: addresses,
-                source_selection: [{
-                    source_file: file_name,
-                    lines: [lineNumber]
-                }]
-            }))
-        })
+        // editorRef.current.onMouseMove((e) => {
+        //     if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) return
+        //     const lineNumber = e.target.position.lineNumber - 1
+        //     const addresses: { [binaryFilePath: string]: number[] } = {}
+        //     validBinaryFilePaths.forEach((binaryFilePath) => {
+        //         addresses[binaryFilePath] = correspondences[binaryFilePath][lineNumber]
+        //     })
+        //     if (Object.values(addresses).every(addresses => addresses.length === 0)) return
+        //     dispatch(setMouseHighlight({
+        //         addresses: addresses,
+        //         source_selection: [{
+        //             source_file: file_name,
+        //             lines: [lineNumber]
+        //         }]
+        //     }))
+        // })
 
         editorRef.current.onDidChangeCursorSelection((e) => {
             const selection = editorRef.current!.getSelection()
@@ -275,25 +283,15 @@ function SourceView({ file_name }: {
                 start: Math.min(startLine, endLine),
                 end: Math.max(startLine, endLine),
             }
-
-            const addresses: { [binaryFilePath: string]: number[] } = {}
-            validBinaryFilePaths.forEach((binaryFilePath) => {
-                if (!(binaryFilePath in correspondences)) return
-                addresses[binaryFilePath] = []
-                for (let i = finalSelection.start; i <= finalSelection.end; i++) {
-                    correspondences[binaryFilePath][i].forEach(address => {
-                        addresses[binaryFilePath].push(address)
-                    })
-                }
-            })
-            console.log(Object.entries(addresses).map(([binaryFilePath, addresses]) => `${binaryFilePath.split('/').pop()}: ${addresses.join(', ')}`).join('\n'))
-            dispatch(setSourceLineSelection({
-                addresses: addresses,
-                source_selection: [{
-                    source_file: file_name,
-                    lines: Array.from({ length: finalSelection.end - finalSelection.start + 1 }, (_, i) => i + finalSelection.start)
-                }]
-            }))
+            
+            const binaryFilePath = validBinaryFilePaths[0]
+            const addresses: number[] = []
+            for (let i = finalSelection.start; i <= finalSelection.end; i++) {
+                correspondences[binaryFilePath][i].forEach(address => {
+                    addresses.push(address)
+                })
+            }
+            setThisSelection(binaryFilePath, addresses)
         })
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection])
 

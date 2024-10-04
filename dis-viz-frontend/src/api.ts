@@ -2,11 +2,12 @@ import { getUrls } from './config'
 import { plainToInstance } from 'class-transformer';
 import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS } from './types'
 import { MinimapType } from './features/minimap/minimapSlice';
-
+import { Selection } from './features/selections/selectionsSlice';
 
 
 const apiURL = getUrls().backend + '/api/'
 
+// Get the list of source files for a given binary file
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(
         apiURL + "sourcefiles", {
@@ -21,6 +22,7 @@ export async function getSourceFiles(filepath: string) : Promise<string[]> {
     return result.map((d: {'file': string}) => d.file);
 }
 
+// Get the minimap data for a given binary file
 export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Promise<MinimapType> {
     const response = await fetch(
         apiURL + "getminimapdata/" + order, {
@@ -42,6 +44,7 @@ export async function getMinimapData(filepath: string, order: BLOCK_ORDERS) : Pr
     };
 }
 
+// Get the address range for a given binary file
 export async function getAddressRange(filepath: string) : Promise<{start: number, end: number}> {
     const response = await fetch(
         apiURL + "addressrange", {
@@ -56,6 +59,7 @@ export async function getAddressRange(filepath: string) : Promise<{start: number
     return result;
 }
 
+// Get the source code of a source file, along with all correspondences
 export async function getSourceLines(binaryFiles: string[], sourceFile: string): Promise<SourceFile> {
     const response = await fetch(
         apiURL + "getsourcefile", {
@@ -158,4 +162,18 @@ export async function getBinaryList(): Promise<{
     const response = await fetch(apiURL + "binarylist");
     const result = await response.json();
     return result.binarylist;
+}
+
+export async function getSourceAndBinaryCorrespondencesFromSelection(binary_file: string, addresses: number[], other_binary_files: string[], order: BLOCK_ORDERS): Promise<Selection> {
+    const response = await fetch(
+        apiURL + "getsourceandbinarycorrespondencesfromselection/" + order, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({binary_file: binary_file, addresses: addresses, other_binary_files: other_binary_files}),
+        }
+    );
+    const result = await response.json();
+    return result;
 }

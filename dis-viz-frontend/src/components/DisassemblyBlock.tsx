@@ -1,8 +1,9 @@
 import React from "react";
 import Card from "react-bootstrap/Card";
 import ListGroup from "react-bootstrap/ListGroup";
-import { DisIdSelections, setDisassemblyLineSelection } from "../features/selections/selectionsSlice";
+import { setSelection } from "../features/selections/selectionsSlice";
 import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
+import { selectBinaryFilePaths } from "../features/binary-data/binaryDataSlice";
 import { codeColors, shortenName } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
@@ -10,10 +11,11 @@ import { useAppDispatch } from '../app/hooks';
 import * as api from "../api";
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
+import { useAppSelector } from '../app/hooks';
 
 
 
-function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disassemblyBlockRefs, lineSelection, backedgeTargets, drawPseudo, blockOrder }: { 
+function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disassemblyBlockRefs, addressSelection, backedgeTargets, drawPseudo, blockOrder }: { 
     binaryFilePath: string,
     block: InstructionBlock, 
     i: number,
@@ -23,7 +25,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     disassemblyBlockRefs: React.MutableRefObject<{
         [start_address: number]: { div: HTMLDivElement, idx: number }
     }>,
-    lineSelection: DisIdSelections|null,
+    addressSelection: boolean[],
     backedgeTargets: HTMLDivElement[],
     drawPseudo: 'full'|'none'|'short',
     blockOrder: BLOCK_ORDERS,
@@ -33,6 +35,10 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
     const pageIdx = pages.findIndex(page => page.start_address <= block.start_address && block.start_address <= page.end_address)
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+    const validBinaryFilePaths = binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "")
+    
+
     
     const onMouseDown = (lineNum: number) => {
         setIsSelecting(true);
@@ -74,32 +80,15 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
             .map(block => block.instructions)
             .flat()
             .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
+            .map(instruction => instruction.address)
 
-        const selectedSourceLines: {
-            [source_file: string]: Set<number>,
-        } = {}
-        selectedDisassemblyLines.forEach(line => {
-            Object.entries(line.correspondence).forEach(([source_file, lines]) => {
-                if (!(source_file in selectedSourceLines)) {
-                    selectedSourceLines[source_file] = new Set()
-                }
-                lines.forEach(line => {
-                    selectedSourceLines[source_file].add(line)
-                })
-            })
+        setThisSelection(selectedDisassemblyLines)
+    }
+    
+    function setThisSelection(addresses: number[]) {
+        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
+            dispatch(setSelection(selections))            
         })
-
-        dispatch(setDisassemblyLineSelection({
-            disIdSelections: {
-                binaryFilePath,
-                addresses: selectedDisassemblyLines.map(instruction => instruction.address),
-                source_selection: Object.entries(selectedSourceLines).map(([source_file, lines]) => ({
-                    source_file,
-                    lines: Array.from(lines)
-                }))
-            },
-            disassemblyViewId: id,
-        }))
     }
 
 
@@ -113,20 +102,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     return <>
         <Card className={block.block_type==='normal'?'':'pseudoloop'} onClick={() => {
             if (block.block_type==='pseudoloop' && drawPseudo!=='full') {
-                dispatch(setDisassemblyLineSelection({
-                    disassemblyViewId: id,
-                    disIdSelections: {
-                        binaryFilePath,
-                        addresses: block.instructions.map(instruction => instruction.address),
-                        source_selection: block.instructions
-                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
-                                .map(source_file => ({
-                                    source_file,
-                                    lines: instruction.correspondence[source_file]
-                                }))
-                            ).flat()
-                    }
-                }))
+                setThisSelection(block.instructions.map(instruction => instruction.address))
             }
         }}
             // key={i}
@@ -190,22 +166,6 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                         strokeWidth= "1px"
                         transform="translate(25, 30) rotate(-90) scale(5,5)"
                         onClick={(e) => {
-                            api.getDisassemblyBlock(binaryFilePath, block.backedges[0], blockOrder).then(block => {
-                                dispatch(setDisassemblyLineSelection({
-                                    disassemblyViewId: id,
-                                    disIdSelections: {
-                                        binaryFilePath,
-                                        addresses: block.instructions.map(instruction => instruction.address),
-                                        source_selection: block.instructions
-                                            .map(instruction => instruction.correspondence === undefined ? [] : Object.keys(instruction.correspondence)
-                                                .map(source_file => ({
-                                                    source_file,
-                                                    lines: instruction.correspondence[source_file]
-                                                }))
-                                            ).flat()
-                                    }
-                                }))
-                            })
                             
                         }}
                     />
@@ -231,7 +191,6 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                 {block.instructions.map((ins, j) => {
                     let isHidable = false
                     if (block.hidables) {
-
                         for (let hidableI = 0; hidableI < block.hidables.length; hidableI++) {
                             const hidable = block.hidables[hidableI]
                             if (hidable.start_address <= ins.address && ins.address <= hidable.end_address) {
@@ -248,7 +207,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                                     <DisassemblyLine
                                         binaryFilePath={binaryFilePath}
                                         block={block}
-                                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                                        isHighlighted={addressSelection[j]}
                                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                                         key={i.toString() + j.toString()}
                                         instruction={ins}
@@ -268,7 +227,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                     return (<DisassemblyLine
                         binaryFilePath={binaryFilePath}
                         block={block}
-                        isHighlighted={ins.correspondence !== undefined && Object.keys(ins.correspondence).length !== 0 && (lineSelection ? lineSelection.addresses.includes(ins.address) : false)}
+                        isHighlighted={addressSelection[j]}
                         mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                         key={i.toString() + j.toString()}
                         instruction={ins}

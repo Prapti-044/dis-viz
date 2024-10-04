@@ -13,43 +13,45 @@ import 'react-toastify/dist/ReactToastify.css';
 import { toast } from 'react-toastify';
 
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { addDisassemblyView, removeDisassemblyView } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
-import { selectDisIdSelections } from '../features/selections/selectionsSlice'
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
 
 const App = () => {
-
-  const dispatch = useAppDispatch();
-
   const dockRef = React.useRef<DockLayout>(null)
   const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
-  const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
-  const selections = useAppSelector(selectDisIdSelections)
+  const [disassemblyViewIds, setDisassemblyViewIds] = React.useState<number[]>([]);
   const [sourceViewStates, setSourceViewStates] = React.useState<{
       file_name: string,
       status: "opened" | "closed"
   }[]>([])
+  
+  const binaryFilePathsRef = React.useRef(binaryFilePaths);
 
-  const removeSelfDisassemblyView = (disId: number) => {
-    if (dockRef.current === null) return
-    
-    const tabData = dockRef.current.find("DisassemblyView:" + disId) as TabData
-    dockRef.current.dockMove(
-      tabData,
-      null,
-      'remove'
-    )
-    dispatch(removeDisassemblyView(disId))
-  }
+  React.useEffect(() => {
+    binaryFilePathsRef.current = binaryFilePaths;
+  }, [binaryFilePaths]);
+
+  const removeSelfDisassemblyView = React.useCallback((disId: number) => {
+    console.log("removing disassembly view", disId)
+    setDisassemblyViewIds(disassemblyViewIds.filter(id => id !== disId))
+    if (dockRef.current) {
+      const disassemblyViewPanel = dockRef.current.find('DisassemblyViewPanel') as PanelData;
+      if (disassemblyViewPanel) {
+        const tabToRemove = disassemblyViewPanel.tabs.find(tab => tab.id === `DisassemblyView:${disId}`);
+        if (tabToRemove) {
+          dockRef.current.dockMove(tabToRemove, null, 'remove')
+        }
+      }
+    }
+  }, [disassemblyViewIds, dockRef])
 
   // Get the source files for each binary file
   React.useEffect(() => {
       const curSourceViewStates: { [file_name: string]: "opened" | "closed" } = {}
-      Promise.all(validBinaryFilePaths.map(async (binaryFilePath) => {
+      Promise.all(binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "").map(async (binaryFilePath) => {
           const sourceFiles = await api.getSourceFiles(binaryFilePath)
           sourceFiles.forEach(sourceFile => {
               if (!(sourceFile in curSourceViewStates)) {
@@ -76,6 +78,36 @@ const App = () => {
     })
   }, [sourceViewStates])
   
+  const onAddDisassemblyView = React.useCallback(() => {
+    if (binaryFilePathsRef.current.filter((binaryFilePath) => binaryFilePath !== "").length > 0) {
+      let newId = 1;
+      for (const disassemblyViewId of disassemblyViewIds) {
+        if (disassemblyViewId === newId) newId++;
+        else break;
+      }
+      const newDisassemblyViewId = `DisassemblyView:${newId}`;
+      const newDisassemblyViewComponent: TabData = {
+        id: newDisassemblyViewId,
+        title: `Disassembly View: ${newId}`,
+        content: <TabContent key={`tab-DisassemblyView-${newId}`}>
+          <DisassemblyView
+            id={newId}
+            removeSelf={() => { removeSelfDisassemblyView(newId) }}
+          /></TabContent>,
+        closable: true,
+      };
+      const newPanel: PanelData = {
+        tabs: [newDisassemblyViewComponent],
+        x: 10, y: 10, w: 400, h: 400
+      };
+      dockRef.current?.dockMove(newPanel, 'DisassemblyViewPanel', 'middle');
+      setDisassemblyViewIds([...disassemblyViewIds, newId])
+    }
+    else {
+      toast.error("No valid binary file paths found")
+    }
+  }, [disassemblyViewIds, removeSelfDisassemblyView])
+  
   React.useEffect(() => {
     if (dockRef.current === null) return;
     // update the panel extra button with the new validBinaryFilePaths
@@ -83,14 +115,7 @@ const App = () => {
     if (disassemblyViewPanel === undefined) return
     disassemblyViewPanel.panelLock!.panelExtra = (panelData: PanelData) => (
       <button
-        onClick={e => {
-          if (validBinaryFilePaths.length > 0) {
-            dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
-          }
-          else {
-            toast.error("No valid binary file paths found")
-          }
-        }}
+        onClick={onAddDisassemblyView}
         style={{
           background: 'none',
           color: 'black',
@@ -99,39 +124,7 @@ const App = () => {
         +
       </button>
     )
-  }, [binaryFilePaths])
-
-  // Reconcile disassemblyViewState and dis-views
-  React.useEffect(() => {
-    if (dockRef.current === null || Object.keys(selections).length === 0) return;
-    Object.keys(selections)
-      .map<TabData>(disId => ({
-        id: "DisassemblyView:" + disId,
-        title: "Disassembly View: " + disId,
-        content: <TabContent key={`tab-DisassemblyView-${disId}`}>
-          <DisassemblyView
-            removeSelf={() => {
-              removeSelfDisassemblyView(parseInt(disId))
-            }}
-            key={`DisassemblyView-${disId}`}
-            id={parseInt(disId)}
-          /></TabContent>,
-        closable: true,
-      }))
-      .forEach(disassemblyViewComponent => {
-        const tabData = dockRef.current!.find(disassemblyViewComponent.id!)
-        if (tabData !== undefined) {
-          dockRef.current!.updateTab(tabData.id!.toString(), disassemblyViewComponent);
-        }
-        else {
-          const newPanel: PanelData = {
-            tabs: [disassemblyViewComponent],
-            x: 10, y: 10, w: 400, h: 400
-          }
-          dockRef.current!.dockMove(newPanel, 'DisassemblyViewPanel', 'middle')
-        }
-      })
-  }, [dispatch, selections])
+  }, [binaryFilePaths, onAddDisassemblyView])
 
   // Reconcile sourceViewStates and source-views
   React.useEffect(() => {
@@ -223,14 +216,7 @@ const App = () => {
               minHeight: 300,
               panelExtra: (panelData) => (
                 <button
-                  onClick={e => {
-                    if (validBinaryFilePaths.length > 0) {
-                      dispatch(addDisassemblyView({ binaryFilePath: validBinaryFilePaths[0], addresses: [], source_selection: [] }))
-                    }
-                    else {
-                      toast.error("No valid binary file paths found")
-                    }
-                  }}
+                  onClick={onAddDisassemblyView}
                   style={{
                     background: 'none',
                     color: 'black',
@@ -260,7 +246,7 @@ const App = () => {
         setSourceViewStates(sourceViewStatesCopy)
       }
       else if (currentTabId.split(':')[0] === 'DisassemblyView') {
-        dispatch(removeDisassemblyView(parseInt(currentTabId.split(":")[1])))
+        setDisassemblyViewIds(disassemblyViewIds.filter(id => id !== parseInt(currentTabId.split(':')[1])))
       }
     }
     setLayout(newLayout)

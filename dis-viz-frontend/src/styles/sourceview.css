@@ -18,23 +18,8 @@
     -ms-user-select: none;
 }
 
-.selectedLines-0 {
+.monaco-editor .selected-line {
     background-color: #C1DBE3 !important;
-    border: 1px solid gray;
-    cursor: pointer;
-}
-.selectedLines-1 {
-    background-color: #C7DFC5 !important;
-    border: 1px solid gray;
-    cursor: pointer;
-}
-.selectedLines-2 {
-    background-color: #F6FEAA !important;
-    border: 1px solid gray;
-    cursor: pointer;
-}
-.selectedLines-3 {
-    background-color: #FCE694 !important;
     border: 1px solid gray;
     cursor: pointer;
 }

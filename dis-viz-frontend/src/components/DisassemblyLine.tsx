@@ -3,10 +3,11 @@ import '../styles/disassemblyview.css'
 
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { setSelection } from '../features/selections/selectionsSlice';
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
-import { addDisassemblyView, selectHoverHighlight, setMouseHighlight } from '../features/selections/selectionsSlice';
 import * as api from "../api";
 
 
@@ -36,10 +37,11 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
 }) {
 
     const dispatch = useAppDispatch();
-    const mouseHoverHighlight = useAppSelector(selectHoverHighlight)
-    const isMouseHovered = mouseHoverHighlight.addresses[binaryFilePath]?.includes(instruction.address) || false
 
     const [showDoc, setShowDoc] = React.useState(false)
+    
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+    const validBinaryFilePaths = binaryFilePaths.filter(path => path !== "")
 
     let instruction_address = instruction.address.toString(16).toUpperCase();
     while (instruction_address.length < 4)
@@ -55,6 +57,12 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
         selectionStyle.backgroundColor = "#eee";
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";
+    }
+
+    function setThisSelection(addresses: number[]) {
+        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
+            dispatch(setSelection(selections))            
+        })
     }
 
     function parseInstruction(instruction: Instruction, block: InstructionBlock) {
@@ -118,7 +126,6 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                     > 
                         {/* {token} */}
                         
-                        {/* Set background image of the button with styling */}
                         <button style={{
                             backgroundImage: `url(${openInNewTabImage})`,
                             border: "none",
@@ -132,11 +139,7 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                         }} onClick={() => {
 
                             api.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder).then(block => {
-                                dispatch(addDisassemblyView({
-                                    binaryFilePath: binaryFilePath,
-                                    addresses: block.instructions.map(instruction => instruction.address),
-                                    source_selection: []
-                                }))
+                                setThisSelection(block.instructions.map(instruction => instruction.address))
                             })
                         }} className="opennewbutton"> </button>
                     </mark>
@@ -214,16 +217,17 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                 lines: lines
             })
         }
-        dispatch(setMouseHighlight({
-            addresses: { [binaryFilePath]: [instruction.address] }, 
-            source_selection: source_files
-        }))
+        // dispatch(setMouseHighlight({
+        //     addresses: { [binaryFilePath]: [instruction.address] }, 
+        //     source_selection: source_files
+        // }))
     }
 
     return <div
         key={disLineToId(disId, instruction.address)}
         id={disLineToId(disId, instruction.address)}
-        className={"assemblycode" + (isMouseHovered ? " hover":"")}
+        // className={"assemblycode" + (isMouseHovered ? " hover":"")}
+        className={"assemblycode"}
     >
         {isHidable ? <span className="hidablegutter"></span> : <></>}
         <code

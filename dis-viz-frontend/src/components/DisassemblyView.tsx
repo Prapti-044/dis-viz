@@ -1,6 +1,6 @@
 import React  from 'react';
 
-import { selectDisIdSelection, setActiveDisassemblyView, setInactiveDisassemblyView, setDisassemblyLineSelection } from '../features/selections/selectionsSlice'
+import { selectSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as api from '../api'
@@ -80,16 +80,12 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     removeSelf: () => void,
     defaultBinaryFilePath?: string
 }) {
-    const dispatch = useAppDispatch();
-
-    const disIdSelection = useAppSelector((state) => selectDisIdSelection(state, id))
-    const lineSelection = disIdSelection.selections
-
+    const selections = useAppSelector(selectSelection)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
     const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ?? validBinaryFilePaths[0])
     if (!validBinaryFilePaths.includes(binaryFilePath)) removeSelf()
-    const isCurDisassemblyViewActive = disIdSelection.isActive
+    const thisBinarySelection = selections.binary_selection.find(selection => selection.binary_file === binaryFilePath)?.addresses
 
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
     const [shouldScroll, setShouldScroll] = React.useState({
@@ -122,14 +118,14 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     // Fetch and get the pages
     React.useEffect(() => {
         const setAfterFetch = (page: BlockPage) => { setPages([page]) }
-        if(lineSelection && lineSelection.addresses.length > 0)
-            api.getDisassemblyPageByAddress(binaryFilePath, lineSelection.addresses[0], blockOrder).then(setAfterFetch)
+        if (thisBinarySelection && thisBinarySelection.length > 0)
+            api.getDisassemblyPageByAddress(binaryFilePath, thisBinarySelection[0], blockOrder).then(setAfterFetch)
         else
             api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
         setTimeout(() => {
             setShouldScroll({value: true})
         }, 500);
-    }, [lineSelection, blockOrder, binaryFilePath])
+    }, [blockOrder, binaryFilePath, thisBinarySelection])
 
     // Get total address range for jumping to address
     React.useEffect(() => {
@@ -168,8 +164,8 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     React.useEffect(() => {
         if(shouldScroll.value) {
             if(!disassemblyBlockRefs.current) return;
-            if(!lineSelection || lineSelection.addresses.length === 0) return;
-            const firstFocusLine = lineSelection.addresses[0]
+            if(!thisBinarySelection || thisBinarySelection.length <= 0) return;
+            const firstFocusLine = thisBinarySelection[0]
 
             const blockAddresses = Object.keys(disassemblyBlockRefs.current).map(key => parseInt(key, 10))
             for(const i in blockAddresses) {
@@ -190,37 +186,19 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
             }
             setShouldScroll({value: false})
         }
-    }, [lineSelection, shouldScroll])
+    }, [thisBinarySelection, shouldScroll])
 
     return <>
-        <Form.Check type="switch" checked={isCurDisassemblyViewActive}
-            onChange={(event) => {
-                if(event.target.checked)
-                    dispatch(setActiveDisassemblyView(id))
-                else
-                    dispatch(setInactiveDisassemblyView(id))
-            }}
-            style={{
-                position: 'absolute',
-                top: '10px',
-                right: '200px',
-                zIndex: 10,
-            }}
-        />
         {pages.length > 0 ?  
-        <div style={{
-            border: isCurDisassemblyViewActive ? '1px solid black' : 'none',
-            overflow: 'scroll',
-        }}
-        >
+        <div style={{ overflow: 'scroll', }} >
             <div style={{
                 position: 'absolute',
                 top: '0',
                 width: '100%',
-                backgroundColor: isCurDisassemblyViewActive ? '#d0f7c9' : '#f1f1f1',
+                backgroundColor: '#f1f1f1',
                 padding: '10px',
                 fontWeight: 'bold',
-                zIndex: 2,
+                zIndex: 3,
                 display: 'flex',
                 flexDirection: 'row',
             }}>
@@ -228,14 +206,6 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                     <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px"}}>
                         Binary File:
                         <Form.Select aria-label="Binary File" style={{ width: '200px', }} value={binaryFilePath} onChange={(e) => {
-                            dispatch(setDisassemblyLineSelection({
-                                disIdSelections: {
-                                    binaryFilePath: e.currentTarget.value,
-                                    addresses: [],
-                                    source_selection: []
-                                },
-                                disassemblyViewId: id,
-                            }))
                             setBinaryFilePath(e.currentTarget.value)
                             setPages([])
                             disassemblyBlockRefs.current = {}
@@ -253,7 +223,6 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                     <Form.Label style={{whiteSpace: 'nowrap', marginRight: "10px" }}>
                         Order By: 
                         <Form.Select aria-label="Block Order" style={{ width: '200px', }} value={blockOrder} onChange={(e) => {
-                            // dispatch(changeOrder(e.currentTarget.value as BLOCK_ORDERS))
                             setBlockOrder(e.currentTarget.value as BLOCK_ORDERS)
                         }}>
                             <option value="memory_order">Memory Address</option>
@@ -277,15 +246,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                     </Form.Label>
                     <Button onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
                         if(jumpValidationError !== '') return
-                        // using api, get the sourceLines
-                        dispatch(setDisassemblyLineSelection({
-                            disIdSelections: {
-                                binaryFilePath,
-                                addresses: [toHex(jumpAddress)],
-                                source_selection: []
-                            },
-                            disassemblyViewId: id,
-                        }))
+                        // TODO: Implement
                         setShouldScroll({value: true})
                     }}>
                         Jump
@@ -306,7 +267,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                         id={id}
                         pages={pages}
                         disassemblyBlockRefs={disassemblyBlockRefs}
-                        lineSelection={lineSelection}
+                        addressSelection={block.instructions.map(instruction => thisBinarySelection?.includes(instruction.address) ? true : false)}
                         drawPseudo={blockOrder === 'memory_order'?'short':'full'}
                         blockOrder={blockOrder}
                         backedgeTargets={(i+':'+j) in backedges?backedges[i+':'+j]:[]}/>
