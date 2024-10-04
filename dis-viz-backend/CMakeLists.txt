@@ -15,8 +15,6 @@ option(DYNINST_LOCATION "Location of prebuilt dyninst. Leave OFF if you want to 
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/include)
 
-find_package(Crow)
-
 # External Projects
 include(ExternalProject)
 set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
@@ -24,6 +22,11 @@ set(EXTERNAL_INSTALL_LOCATION ${CMAKE_BINARY_DIR}/external)
 ExternalProject_Add(indicators
     GIT_REPOSITORY https://github.com/p-ranav/indicators
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+)
+
+ExternalProject_Add(crow
+    GIT_REPOSITORY https://github.com/CrowCpp/Crow
+    CMAKE_ARGS -DCROW_BUILD_EXAMPLES=OFF -DCROW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
 if(DEFINED ${DYNINST_LOCATION})
@@ -47,14 +50,15 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 find_package(Boost REQUIRED COMPONENTS program_options)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
+# Directly link the crow library files
 target_link_libraries(${PROJECT_NAME} PRIVATE
     symtabAPI parseAPI instructionAPI dynElf elf common dynDwarf 
-    Crow::Crow
+    # ${EXTERNAL_INSTALL_LOCATION}/lib/libcrow.a
     ${Boost_LIBRARIES}
 )
 
 add_dependencies(${PROJECT_NAME}
-    indicators
+    indicators crow
 )
 if(NOT DEFINED ${DYNINST_LOCATION})
     add_dependencies(${PROJECT_NAME} dyninst)

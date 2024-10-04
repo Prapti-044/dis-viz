@@ -52,13 +52,14 @@
 
 .line-tags div {
     border-radius: 30%;
+    /* border: 1px solid black; */
     width: 15px;
     height: 15px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    font-weight: 900;
+    font-weight: 700;
     cursor: pointer;
     margin-left: 10px;
 }

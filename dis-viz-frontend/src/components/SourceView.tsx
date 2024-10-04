@@ -13,12 +13,12 @@ loader.config({ monaco });
 
 const TAGS_TO_LETTERS = {
     'VECTORIZED': {
-        letter: 'V',
+        letter: 'v',
         box_color: 'cyan',
         text_color: 'black',
     },
     'INLINE': {
-        letter: 'I',
+        letter: 'i',
         box_color: 'green',
         text_color: 'white',
     },
@@ -26,8 +26,6 @@ const TAGS_TO_LETTERS = {
         letter: '-',
         box_color: '#f5f5f5',
         text_color: '#fefefe',
-        // box_color: 'white',
-        // text_color: 'white',
     }
 }
 
@@ -331,6 +329,9 @@ function SourceView({ file_name }: {
                     text.textContent = tags.join('')
                     text.style.backgroundColor = box_color
                     text.style.color = text_color
+                    if (tags.some(tag => tag !== '-')) {
+                        text.style.border = '1px solid black'
+                    }
 
                     element.appendChild(text)
                 }
