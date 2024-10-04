@@ -267,10 +267,11 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
         <select style={{
             position: "absolute",
             fontSize: "17px",
-            top: "5px", //5px
-            right: "60px",
+            top: "60px", //5px
+            right: "20px",
             color: "#4b89e7",
-            zIndex: "5"
+            zIndex: 3,
+            width: "150px"
         }} value={highlightOption} onChange={e => setHighlightOption(e.target.value)}>
             <option value="none">Default</option>
             <option value="VEC">Vectorized</option>
@@ -283,10 +284,12 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
             bottom: "0px", //30
             right: "20px",
             width: width + "px",
-            height: "96%",
+            top: "90px",
+            // height: "96%",
             background: "#ffffff",
-            border: "5px solid lightgrey",
-            zIndex: "5"
+            // border: "5px solid lightgrey",
+            borderLeft: "2px solid lightgray",
+            zIndex: 3
         }}>
             <canvas ref={canvasRef} {...props} onClick={onCanvasClick} />
             <div style={{

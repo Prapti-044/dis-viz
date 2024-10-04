@@ -236,17 +236,7 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
             
             {instruction.flags.includes("INST_VECTORIZED")?
-                <span style={{
-                    color: 'black',
-                    backgroundColor: 'cyan',
-                    paddingLeft: '5px',
-                    paddingRight: '5px',
-                    borderRadius: '5px',
-                    height: '18px',
-                    marginRight: '5px',
-                    float: 'right',
-                    border: '1px solid black',
-                }}>vec</span>
+                <span className="vectorized-tag">vec</span>
             : <></>}
             {parsedTokens}
         </code>

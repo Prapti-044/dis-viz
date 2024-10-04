@@ -16,3 +16,14 @@ li.sourcename button {
 li.sourcename button:hover {
     border: 1px solid blue;
 }
+
+.binary-index {
+    margin-right: 10px;
+    background-color: lightblue;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}

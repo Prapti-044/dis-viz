@@ -217,10 +217,10 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                 position: 'absolute',
                 top: '0',
                 width: '100%',
-                backgroundColor: isCurDisassemblyViewActive ? 'lightgreen' : '#f1f1f1',
+                backgroundColor: isCurDisassemblyViewActive ? '#d0f7c9' : '#f1f1f1',
                 padding: '10px',
                 fontWeight: 'bold',
-                zIndex: 1,
+                zIndex: 2,
                 display: 'flex',
                 flexDirection: 'row',
             }}>

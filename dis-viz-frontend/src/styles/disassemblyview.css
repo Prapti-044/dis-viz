@@ -211,3 +211,17 @@ svg.backedge .block:hover {
     fill: #D3D3D3;
     border: 1px solid #FAF9F6;
 }
+
+.vectorized-tag {
+    color: black;
+    background-color: cyan;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 5px;
+    height: 18px;
+    margin-right: 5px;
+    float: right;
+    border: 1px solid black;
+    font-size: 12px;
+    font-weight: 500;
+}

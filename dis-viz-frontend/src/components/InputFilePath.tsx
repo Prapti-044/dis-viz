@@ -43,7 +43,7 @@ function InputFilePath() {
                 alignItems: "center",
                 marginTop: "10px"
             }}>
-                <div style={{ marginRight: "10px" }}>{index + 1}</div>
+                <div className="binary-index">{index + 1}</div>
                 <Form.Select value={binaryFilePath} 
                 onChange={(e) => {
                     dispatch(replaceBinaryFilePath({ index, binaryFilePath: e.target.value }));

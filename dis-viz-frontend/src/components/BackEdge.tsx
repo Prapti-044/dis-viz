@@ -44,7 +44,7 @@ const BackEdge = ({ source, target, level, zIndex, borderColor, borderStyle, bor
 
     return (
         <svg style={{
-            zIndex: 10,
+            zIndex: 2,
             position: 'absolute',
             top: BLOCK_TOP_OFFSET-svgPad - (up?height:0) + (up?0:box0.height-25),
             left: blockWidth + BLOCK_ARROW_GAP - svgPad,

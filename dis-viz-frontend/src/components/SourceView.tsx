@@ -161,10 +161,10 @@ function SourceView({ file_name }: {
                 //     color: 'lightgreen',
                 //     position: monaco.editor.OverviewRulerLane.Full,
                 // },
-                minimap: {
-                    color: '#90EE9088',
-                    position: monaco.editor.MinimapPosition.Inline,
-                },
+                // minimap: {
+                //     color: '#90EE9088',
+                //     position: monaco.editor.MinimapPosition.Inline,
+                // },
                 zIndex: 1,
             },
         }))
