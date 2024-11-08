@@ -337,6 +337,30 @@ int main(int argc, char *argv[]) {
         });
         return payload;
       });
+  
+
+  CROW_ROUTE(app, "/api/downloaddisassembly")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
+        auto reqBody = crow::json::load(req.body);
+        auto binaryPath = reqBody["path"].s();
+        auto includeAddresses = reqBody["include_addresses"].b();
+
+        auto disassembly = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
+        std::stringstream output;
+        for (const auto& block : disassembly->disassembly.memory_order_blocks) {
+            for (const auto& instruction : block.instructions) {
+                if (includeAddresses) {
+                    output << "0x" << std::hex << instruction.address << ": ";
+                }
+                output << instruction.instruction << "\n";
+            }
+        }
+
+        crow::response res;
+        res.set_header("Content-Type", "text/plain");
+        res.body = output.str();
+        return res;
+      });
 
   CROW_ROUTE(app, "/api/getdisassemblyblockbyid/<string>")
       .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req,

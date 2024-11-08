@@ -1,10 +1,9 @@
 import React from 'react'
 import { useAppSelector } from '../app/hooks';
 import { selectSelection } from '../features/selections/selectionsSlice';
-import { codeColors } from '../utils';
 import '../styles/sourcefiletree.css'
 import CSS from 'csstype';
-
+import { HIGHLIGHT_COLOR } from '../utils';
 type FileType = {
     name: string,
     fullPath: string,
@@ -90,7 +89,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
         if (rootFile.type === "file") {
             const style: CSS.Properties = {
                 whiteSpace: 'nowrap',
-                backgroundColor: selectedFiles.includes(rootFile.fullPath) ? 'lightgreen' : 'transparent'
+                backgroundColor: selectedFiles.includes(rootFile.fullPath) ? HIGHLIGHT_COLOR : 'transparent'
             }
             if (rootFile.status === 'opened') {
                 style.textDecoration = 'underline'

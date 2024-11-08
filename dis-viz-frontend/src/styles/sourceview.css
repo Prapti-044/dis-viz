@@ -19,7 +19,7 @@
 }
 
 .monaco-editor .selected-line {
-    background-color: #C1DBE3 !important;
+    background-color: #c7dfc5 !important;
     border: 1px solid gray;
     cursor: pointer;
 }

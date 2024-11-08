@@ -1,11 +1,6 @@
 import inteldocs from './inteldocs.json'
 
-export const codeColors = [
-  '#C1DBE3',
-  '#C7DFC5',
-  '#F6FEAA',
-  '#FCE694'
-]
+export const HIGHLIGHT_COLOR = "#C7DFC5"
 
 export const MAX_FN_SIZE = 32
 export function shortenName(name: string, len: number): string {

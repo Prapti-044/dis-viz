@@ -1,7 +1,7 @@
 import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
 import { selectSelection, setSelection } from '../features/selections/selectionsSlice'
-import { codeColors, hexToHSL } from '../utils'
+import { HIGHLIGHT_COLOR, hexToHSL } from '../utils'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import * as api from '../api';
@@ -125,7 +125,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
             ctx.strokeStyle = minimap.builtInBlock[i] === true ? "lightgrey" : "grey"
             for (const address of selection) {
                 if (minimap.blockStartAddress[i] <= address && (i >= minimap.blockStartAddress.length || address <= minimap.blockStartAddress[i + 1])) {
-                    const { h, s, l } = hexToHSL(codeColors[disViewId])
+                    const { h, s, l } = hexToHSL(HIGHLIGHT_COLOR)
                     if (minimap.builtInBlock[i])
                         ctx.strokeStyle = "hsl(" + Math.max(h - 10, 0) + "," + s + "%," + l + "%)"
                     else
@@ -161,7 +161,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
         // Draw arrows for hidden blocks at top and bottom
         if (topHidden) {
             ctx.beginPath()
-            ctx.strokeStyle = codeColors[disViewId]
+            ctx.strokeStyle = HIGHLIGHT_COLOR
             canvas_arrow(ctx,
                 BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH / 20,
                 BLOCKS_START_TOP,
@@ -171,7 +171,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
         }
         if (bottomHidden) {
             ctx.beginPath()
-            ctx.strokeStyle = codeColors[disViewId]
+            ctx.strokeStyle = HIGHLIGHT_COLOR
             canvas_arrow(ctx,
                 BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH / 20,
                 ctx.canvas.height - HIDDEN_ARROW_LEN,

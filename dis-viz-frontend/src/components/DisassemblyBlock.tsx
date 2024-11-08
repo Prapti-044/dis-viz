@@ -4,7 +4,7 @@ import ListGroup from "react-bootstrap/ListGroup";
 import { setSelection } from "../features/selections/selectionsSlice";
 import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
 import { selectBinaryFilePaths } from "../features/binary-data/binaryDataSlice";
-import { codeColors, shortenName } from "../utils";
+import { shortenName, HIGHLIGHT_COLOR } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppDispatch } from '../app/hooks';
@@ -213,7 +213,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                                         instruction={ins}
                                         isSelecting={isSelecting}
                                         onGoingSelection={onGoingSelection}
-                                        color={codeColors[id]}
+                                        color={HIGHLIGHT_COLOR}
                                         disId={id}
                                         isHidable={isHidable}
                                         blockOrder={blockOrder}
@@ -233,7 +233,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                         instruction={ins}
                         isSelecting={isSelecting}
                         onGoingSelection={onGoingSelection}
-                        color={codeColors[id]}
+                        color={HIGHLIGHT_COLOR}
                         disId={id}
                         isHidable={isHidable}
                         blockOrder={blockOrder}

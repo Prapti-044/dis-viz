@@ -6,6 +6,7 @@ import { SRC_LINE_TAG } from '../types'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
+import { HIGHLIGHT_COLOR } from '../utils'
 import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 
@@ -162,7 +163,7 @@ function SourceView({ file_name }: {
                 isWholeLine: true,
                 lineNumberClassName: 'hasCorrespondence',
                 // overviewRuler: {
-                //     color: 'lightgreen',
+                //     color: HIGHLIGHT_COLOR,
                 //     position: monaco.editor.OverviewRulerLane.Full,
                 // },
                 // minimap: {
@@ -206,11 +207,11 @@ function SourceView({ file_name }: {
                 isWholeLine: true,
                 className: 'selected-line',
                 overviewRuler: {
-                    color: 'lightgreen',
+                    color: HIGHLIGHT_COLOR,
                     position: monaco.editor.OverviewRulerLane.Full,
                 },
                 minimap: {
-                    color: 'lightgreen',
+                    color: HIGHLIGHT_COLOR,
                     position: monaco.editor.MinimapPosition.Inline,
                 },
                 zIndex: 2,
@@ -319,16 +320,95 @@ function SourceView({ file_name }: {
                 if (match) {
                     const col = parseInt(match[1])
                     const tags = match[2].split('')
-                    const box_color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)?.box_color || 'grey').join('')
+                    const box_color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)?.box_color || 'grey')
                     const text_color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)?.text_color || 'black').join('')
 
-                    // Create the tag glyph with rounded corners square and the tag text, the background color is the tag color
                     const text = document.createElement('div')
-                    text.textContent = tags.join('')
-                    text.style.backgroundColor = box_color
-                    text.style.color = text_color
-                    if (tags.some(tag => tag !== '-')) {
-                        text.style.border = '1px solid black'
+                    if (tags.length === 1) {
+                        // Create the tag glyph with rounded corners square and the tag text, the background color is the tag color
+                        text.textContent = tags[0]
+                        text.style.color = text_color
+                        text.style.backgroundColor = box_color[0]
+                        if (tags.some(tag => tag !== '-')) {
+                            text.style.border = '1px solid black'
+                        }
+                    }
+                    else {
+                        text.style.display = 'flex'
+                        text.style.flexDirection = 'row'
+                        text.style.flexWrap = 'wrap'
+                        text.style.maxWidth = '14px'
+                        text.style.height = '14px'
+
+                        // Create the four corner divs
+                        const topLeft = document.createElement('div')
+                        const topRight = document.createElement('div') 
+                        const bottomLeft = document.createElement('div')
+                        const bottomRight = document.createElement('div')
+
+                        // Style each corner div
+                        const cornerDivs = [topLeft, topRight, bottomLeft, bottomRight]
+                        cornerDivs.forEach(div => {
+                            div.style.width = '50%'
+                            div.style.height = '50%'
+                            div.style.border = 'none'
+                            div.style.borderRadius = '20%'
+                            div.style.padding = '0'
+                            div.style.margin = '0'
+                            div.style.backgroundColor = 'lightgray'
+                            div.style.fontSize = '10px'
+                        });
+                        // Place tags based on length
+                        if (tags.length === 2) {
+                            console.log(box_color)
+                            topLeft.textContent = tags[0]
+                            topLeft.style.color = text_color
+                            topLeft.style.backgroundColor = box_color[0]
+
+                            bottomRight.textContent = tags[1]
+                            bottomRight.style.color = text_color
+                            bottomRight.style.backgroundColor = box_color[1]
+                        } else if (tags.length === 3) {
+                            topLeft.textContent = tags[0]
+                            topLeft.style.backgroundColor = box_color[0]
+                            topLeft.style.color = text_color[0]
+                            if (tags[0] !== '-') topLeft.style.border = '1px solid black'
+
+                            topRight.textContent = tags[1]
+                            topRight.style.backgroundColor = box_color[1]
+                            topRight.style.color = text_color[1]
+                            if (tags[1] !== '-') topRight.style.border = '1px solid black'
+
+                            bottomLeft.textContent = tags[2]
+                            bottomLeft.style.backgroundColor = box_color[2]
+                            bottomLeft.style.color = text_color[2]
+                            if (tags[2] !== '-') bottomLeft.style.border = '1px solid black'
+                        } else if (tags.length === 4) {
+                            topLeft.textContent = tags[0]
+                            topLeft.style.backgroundColor = box_color[0]
+                            topLeft.style.color = text_color[0]
+                            if (tags[0] !== '-') topLeft.style.border = '1px solid black'
+
+                            topRight.textContent = tags[1]
+                            topRight.style.backgroundColor = box_color[1]
+                            topRight.style.color = text_color[1]
+                            if (tags[1] !== '-') topRight.style.border = '1px solid black'
+
+                            bottomLeft.textContent = tags[2]
+                            bottomLeft.style.backgroundColor = box_color[2]
+                            bottomLeft.style.color = text_color[2]
+                            if (tags[2] !== '-') bottomLeft.style.border = '1px solid black'
+
+                            bottomRight.textContent = tags[3]
+                            bottomRight.style.backgroundColor = box_color[3]
+                            bottomRight.style.color = text_color[3]
+                            if (tags[3] !== '-') bottomRight.style.border = '1px solid black'
+                        }
+
+                        text.appendChild(topLeft)
+                        text.appendChild(topRight)
+                        text.appendChild(bottomLeft)
+                        text.appendChild(bottomRight)
                     }
 
                     element.appendChild(text)

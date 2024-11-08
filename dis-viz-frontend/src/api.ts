@@ -7,6 +7,17 @@ import { Selection } from './features/selections/selectionsSlice';
 
 const apiURL = getUrls().backend + '/api/'
 
+export async function downloadDisassembly(filepath: string, includeAddresses: boolean): Promise<Blob> {
+    const response = await fetch(apiURL + "downloaddisassembly", {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({path: filepath, include_addresses: includeAddresses}),
+    });
+    return response.blob();
+}
+
 // Get the list of source files for a given binary file
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(

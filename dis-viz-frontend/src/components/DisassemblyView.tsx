@@ -10,6 +10,7 @@ import DisassemblyBlock from './DisassemblyBlock';
 import { useAppDispatch, useAppSelector } from '../app/hooks';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
+import Modal from 'react-bootstrap/Modal';
 import { MinimapType } from '../features/minimap/minimapSlice';
 import { isHex, toHex } from '../utils';
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
@@ -103,6 +104,8 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     const [jumpValidationError, setJumpValidationError] = React.useState('')
 
     const [binaryJumpAddressRange, setBinaryJumpAddressRange] = React.useState({ start: 0, end: 0 })
+
+    const [showDownloadModal, setShowDownloadModal] = React.useState(false);
 
     const addNewPage = (newPageNo: number) => {
         api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
@@ -251,6 +254,51 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
                     }}>
                         Jump
                     </Button>
+                    <>
+                        <Button style={{marginLeft: '10px'}} onClick={(e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
+                            setShowDownloadModal(true)
+                        }}>
+                            Download
+                        </Button>
+
+                        <Modal show={showDownloadModal} onHide={() => setShowDownloadModal(false)}>
+                            <Modal.Header closeButton>
+                                <Modal.Title>Download Confirmation</Modal.Title>
+                            </Modal.Header>
+                            <Modal.Body>
+                                <p>Download disassembly of {binaryFilePath.split('/').pop()}?</p>
+                                <Form.Check 
+                                    type="checkbox"
+                                    id="download-with-addresses"
+                                    label="Include addresses"
+                                    defaultChecked={false}
+                                    ref={(input: HTMLInputElement) => {
+                                        if (input) {
+                                            input.indeterminate = false;
+                                        }
+                                    }}
+                                />
+                            </Modal.Body>
+                            <Modal.Footer>
+                                <Button variant="secondary" onClick={() => setShowDownloadModal(false)}>
+                                    Cancel
+                                </Button>
+                                <Button variant="primary" onClick={(e) => {
+                                    const includeAddresses = document.getElementById('download-with-addresses') as HTMLInputElement;
+                                    api.downloadDisassembly(binaryFilePath, includeAddresses.checked).then((blob: Blob) => {
+                                        const url = window.URL.createObjectURL(blob)
+                                        const a = document.createElement('a')
+                                        a.href = url
+                                        a.download = 'disassembly.txt'
+                                        a.click()
+                                        setShowDownloadModal(false)
+                                    })
+                                }}>
+                                    Download
+                                </Button>
+                            </Modal.Footer>
+                        </Modal>
+                    </>
                 </Form.Group>
             </div>
             {pages.length > 0 && pages[0].page_no > 1?<button style={{ marginTop: 120 }} onClick={e => {addNewPage(pages[0].page_no-1)}}>
