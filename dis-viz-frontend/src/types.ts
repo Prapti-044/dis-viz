@@ -32,7 +32,8 @@ export type InstructionFlag =
     "INST_MEMORY_WRITE" |
     "INST_CALL" |
     "INST_SYSCALL" |
-    "INST_FP"
+    "INST_FP" |
+    "INST_HOISTED"
 
 export class Instruction {
     @Expose() instruction: string

@@ -15,6 +15,8 @@
 #include <numeric>
 #include <string>
 
+#include "include/parse_source.hpp"
+
 using json = crow::json::wvalue;
 namespace po = boost::program_options;
 
@@ -301,9 +303,11 @@ int main(int argc, char *argv[]) {
 
         auto lines = json::list();
         auto ifs = std::ifstream(sourceFile);
+        auto sourceCode = std::string();
 
         for (auto [lineNo, line] = std::tuple{0, std::string()};
              std::getline(ifs, line); lineNo++) {
+          sourceCode += line + "\n";
           auto addresses = json();
           auto tags = json();
 
@@ -332,11 +336,16 @@ int main(int argc, char *argv[]) {
                            {"addresses", addresses},
                            {"tags", tags}});
         }
+        
+        // parse the AST of source code
+        auto sourceCodeData = parseSourceCode(sourceFile);
+
         auto payload = json({
             {"lines", std::move(lines)},
         });
         return payload;
       });
+  
   
 
   CROW_ROUTE(app, "/api/downloaddisassembly")

@@ -244,6 +244,9 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             : <></>}
             {parsedTokens}
         </code>
+        {instruction.flags.includes("INST_HOISTED")?
+            <span className="hoisted-tag">hoisted</span>
+        : <></>}
     </div>
 }
 

@@ -80,6 +80,9 @@ json convertInstructionInfo(const InstructionInfo &instruction) {
     case INST_FP:
       flags.push_back("INST_FP");
       break;
+    case INST_HOISTED:
+      flags.push_back("INST_HOISTED");
+      break;
     }
   }
   result["flags"] = flags;

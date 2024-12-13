@@ -18,6 +18,8 @@
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
 #include <vector>
 
+#include "include/parse_source.hpp"
+
 using std::set, std::vector, std::string, std::map, std::unordered_map, std::ifstream, std::stringstream, std::unique_ptr;
 
 namespace InstructionAPI = Dyninst::InstructionAPI;
@@ -864,8 +866,63 @@ std::tuple<
     
     
     bar.tick();
-
   }
+
+  for (const auto &sourceFile : unique_sourcefiles) {
+    auto sourceCodeData = parseSourceCode(sourceFile);
+    for (const auto &loop : sourceCodeData.loops) {
+      if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
+          source_correspondences[sourceFile].find(loop.line-1) != source_correspondences[sourceFile].end()) {
+        
+        auto loopName = string();
+        const auto &addresses = source_correspondences[sourceFile][loop.line-1];
+        
+        for(const auto &address: addresses) {
+          // Find the block containing this address
+          auto blockIt = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&address](const BlockInfo &block) {
+            return block.startAddress <= address && address <= block.endAddress;
+          });
+
+          if (blockIt != addressOrderBlocks.end()) {
+            if (!blockIt->loops.empty()) {
+              auto newLoopName = blockIt->loops.back().name;
+              auto newLoopDepth = std::count(newLoopName.begin(), newLoopName.end(), '.');
+              auto oldLoopDepth = std::count(loopName.begin(), loopName.end(), '.');
+              if (newLoopDepth > oldLoopDepth || loopName.empty()) {
+                loopName = newLoopName;
+              }
+            }
+          }
+        }
+        for (const auto &bodyLine : loop.bodyLines) {
+          auto bodyLineBlockIt = addressOrderBlocks.end();
+          if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
+              source_correspondences[sourceFile].find(bodyLine-1) != source_correspondences[sourceFile].end()) {
+            const auto &bodyLineCorrAddresses = source_correspondences[sourceFile][bodyLine-1];
+            for (const auto &bodyLineCorrAddress : bodyLineCorrAddresses) {
+              bodyLineBlockIt = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&bodyLineCorrAddress](const BlockInfo &block) {
+                return block.startAddress <= bodyLineCorrAddress && bodyLineCorrAddress <= block.endAddress;
+              });
+              auto bodyLineLoopName = string();
+              if (bodyLineBlockIt->loops.size() > 0) {
+                bodyLineLoopName = bodyLineBlockIt->loops.back().name;
+              }
+              std::cout << "loop body line " << bodyLine << " Address: 0x" << std::hex << bodyLineCorrAddress << std::dec << " (" << bodyLineBlockIt->name << ")" << " loopName: " << loopName << std::endl;
+              if (bodyLineLoopName.empty() || bodyLineLoopName.rfind(loopName, 0) == 0) {
+                for (auto &inst : bodyLineBlockIt->instructions) {
+                  if (inst.address == bodyLineCorrAddress) {
+                    std::cout << "hoisting instruction at address 0x" << std::hex << inst.address << std::dec << std::endl;
+                    inst.flags.insert(INST_HOISTED);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos, sourceCodeInfo};
 }
 
@@ -899,7 +956,6 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
 
   auto [addressOrderBlocks, loopOrderBlocks, correspondence, unique_sourcefiles, functionInfos, sourceCodeInfo] = getAssembly(symtab, funcs);
 
-  // std::cout << "Total Loops: " << totalLoops << std::endl;
   auto source_files = vector<string>(unique_sourcefiles.begin(),
                                         unique_sourcefiles.end());
   
