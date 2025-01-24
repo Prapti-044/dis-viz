@@ -6,7 +6,10 @@ int main(int argc, char **argv) {
 
     for (int i = 0; i < 50000; ++i) {
         int sum = (argc*a + b) / 2;
-        int value = sum + i*getpid();
+        int value = 0;
+        for (int j = 0; j < argc; ++j) {
+            value += sum + i*getpid();
+        }
         total += value;
     }
 

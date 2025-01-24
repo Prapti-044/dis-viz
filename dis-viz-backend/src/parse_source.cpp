@@ -6,12 +6,6 @@
 void printAST(CXCursor cursor, const std::string &filePath, unsigned int depth) {
   CXSourceLocation location = clang_getCursorLocation(cursor);
 
-  // Skip nodes from included files
-  // For inline code, treat all locations as from main file
-  //   if (!clang_Location_isFromMainFile(location)) {
-  //     return;
-  //   }
-
   CXString cursorKind =
       clang_getCursorKindSpelling(clang_getCursorKind(cursor));
   CXString cursorSpelling = clang_getCursorSpelling(cursor);

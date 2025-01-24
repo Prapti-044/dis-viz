@@ -204,8 +204,7 @@ svg.backedge {
     padding: 2px;
     transform: rotate(45deg);
     -webkit-transform: rotate(45deg);
-  
-  }
+}
 
 svg.backedge .block:hover {
     fill: #D3D3D3;
@@ -222,6 +221,20 @@ svg.backedge .block:hover {
     margin-right: 5px;
     float: right;
     border: 1px solid black;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.hoisted-tag {
+    color: black;
+    background-color: lightgrey;
+    padding-left: 5px;
+    padding-right: 5px;
+    border-radius: 5px;
+    height: 18px;
+    margin-right: 5px;
+    float: right;
+    border: 1px solid grey;
     font-size: 12px;
     font-weight: 500;
 }

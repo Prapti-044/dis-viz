@@ -877,6 +877,7 @@ std::tuple<
         auto loopName = string();
         const auto &addresses = source_correspondences[sourceFile][loop.line-1];
         
+        // populate loopName
         for(const auto &address: addresses) {
           // Find the block containing this address
           auto blockIt = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&address](const BlockInfo &block) {
@@ -894,7 +895,12 @@ std::tuple<
             }
           }
         }
+        
+        // std::cout << "Loop Line: " << loop.line << " Loop Name: " << loopName << std::endl;
+        
+        // Find hoisted instructions
         for (const auto &bodyLine : loop.bodyLines) {
+          // std::cout << "\tBody Line: " << bodyLine << std::endl;
           auto bodyLineBlockIt = addressOrderBlocks.end();
           if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
               source_correspondences[sourceFile].find(bodyLine-1) != source_correspondences[sourceFile].end()) {
@@ -907,13 +913,13 @@ std::tuple<
               if (bodyLineBlockIt->loops.size() > 0) {
                 bodyLineLoopName = bodyLineBlockIt->loops.back().name;
               }
-              std::cout << "loop body line " << bodyLine << " Address: 0x" << std::hex << bodyLineCorrAddress << std::dec << " (" << bodyLineBlockIt->name << ")" << " loopName: " << loopName << std::endl;
-              if (bodyLineLoopName.empty() || bodyLineLoopName.rfind(loopName, 0) == 0) {
-                for (auto &inst : bodyLineBlockIt->instructions) {
-                  if (inst.address == bodyLineCorrAddress) {
-                    std::cout << "hoisting instruction at address 0x" << std::hex << inst.address << std::dec << std::endl;
-                    inst.flags.insert(INST_HOISTED);
-                  }
+              // std::cout << "\t\tbodyLineBlock: " << bodyLineBlockIt->name << " loopName: " << bodyLineLoopName << std::endl;
+              if (bodyLineLoopName.empty() || bodyLineLoopName.rfind(loopName, 0) != 0) {
+                auto inst = std::find_if(bodyLineBlockIt->instructions.begin(), bodyLineBlockIt->instructions.end(), [&bodyLineCorrAddress](const InstructionInfo &i) {
+                  return i.address == bodyLineCorrAddress;
+                });
+                if (inst != bodyLineBlockIt->instructions.end()) {
+                  inst->flags.insert(INST_HOISTED);
                 }
               }
             }
