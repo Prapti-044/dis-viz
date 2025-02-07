@@ -12,33 +12,57 @@ import * as monaco from 'monaco-editor'
 
 loader.config({ monaco });
 
-const TAGS_TO_LETTERS = {
-    'VECTORIZED': {
+const TAG_WIDTH = 20
+const TAGS = [
+    {
+        name: 'VECTORIZED',
         letter: 'v',
-        box_color: 'cyan',
-        text_color: 'black',
+        color: ['#FAFAFA', '#69f4f4', '#00ffff'],
     },
-    'INLINE': {
+    {
+        name: 'INLINE',
         letter: 'i',
-        box_color: 'green',
-        text_color: 'white',
+        color: ['#FAFAFA', '#c49935', '#9b7e1d'],
     },
-    'NO_TAG': {
-        letter: '-',
-        box_color: '#f5f5f5',
-        text_color: '#fefefe',
-    }
-}
+    {
+        name: 'MEMORY_READ',
+        letter: 'r',
+        color: ['#FAFAFA', '#a38eb3', '#75499c'],
+    },
+    {
+        name: 'MEMORY_WRITE',
+        letter: 'w',
+        color: ['#FAFAFA', '#a3acea', '#576bf0'],
+    },
+    {
+        name: 'CALL',
+        letter: 'c',
+        color: ['#FAFAFA', '#d494b0', '#c058a1'],
+    },
+    {
+        name: 'SYSCALL',
+        letter: 's',
+        color: ['#FAFAFA', '#7c7dbb', '#4d50ad'],
+    },
+    {
+        name: 'FP',
+        letter: 'f',
+        color: ['#FAFAFA', '#d88e4d', '#d96d20'],
+    },
+    {
+        name: 'HOISTED',
+        letter: 'h',
+        color: ['#FAFAFA', '#f6d9ce', '#f6d9ce'],
+    },
+]
+const TAG_BG_COLORS = ['#eeeeee', '#e68200', '#7e4801']
 
 function SourceView({ file_name }: {
     file_name: string,
 }) {
     const dispatch = useAppDispatch()
     const thisSelection = useAppSelector(selectSelection).source_selection.filter(selection => selection.source_file === file_name)[0]
-    console.log("thisSelection", thisSelection)
-    console.log("thisSelection.lines", thisSelection?.source_lines)
     const selectedLines = React.useMemo(() => thisSelection?.source_lines ?? [], [thisSelection])
-    console.log("selectedLines", selectedLines)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter(f => f !== '')
     // const mouseHighlight = useAppSelector(selectHoverHighlight)
@@ -46,8 +70,7 @@ function SourceView({ file_name }: {
 
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
-    const [lineTags, setLineTags] = React.useState<SRC_LINE_TAG[][][]>([])
-    const nLineTags = validBinaryFilePaths.length
+    const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary]
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
@@ -57,7 +80,7 @@ function SourceView({ file_name }: {
 
     const monacoOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
         lineNumbers: "on",
-        lineNumbersMinChars: nLineTags * 4,
+        lineNumbersMinChars: TAGS.length * TAG_WIDTH * 0.115,
         glyphMargin: true, // gap before line numbers
         lineDecorationsWidth: "1ch", // gap after line numbers
         roundedSelection: false,
@@ -123,19 +146,15 @@ function SourceView({ file_name }: {
                 tmpSourceCode += line
             })
             const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-            const tmpLineTags: SRC_LINE_TAG[][][] = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: nLineTags }, () => []))
+            const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: TAGS.length }, () => [] as number[])) // [line][tag][binary]
             validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
                 tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
 
                 sourceFile.lines.forEach((line, lineI) => {
                     line.tags[binaryFilePath].forEach(tag => {
-                        tmpLineTags[lineI][binaryI].push(tag)
+                        tmpLineTags[lineI][TAGS.findIndex(t => t.name === tag)].push(binaryI)
                     })
-                    if (line.tags[binaryFilePath].length === 0) {
-                        tmpLineTags[lineI][binaryI].push('NO_TAG')
-                    }
-                }
-                )
+                })
             })
             setSourceCode(tmpSourceCode)
             setCorrespondences(tmpCorrespondences)
@@ -176,17 +195,19 @@ function SourceView({ file_name }: {
 
         // add line number glyph decorations for line tags
         lineTags.forEach((tags, line) => {
-            const tagsClass = 'line-tags ' + tags.map((binaryTags, i) => {
-                const sortedBinaryTags = [...binaryTags]; sortedBinaryTags.sort();
-                return `col-${i + 1}-` + sortedBinaryTags.map(t => TAGS_TO_LETTERS[t].letter).join('')
-            }).join(" ").replace(/\s+/g, ' ')
+            const tagClasses = ['line-tags']
+            
+            tags.forEach((binaries, i) => {
+                const tagLetter = TAGS[i].letter
+                tagClasses.push(`${tagLetter}${binaries.join('')}`);
+            })
 
             const lineNum = line + 1
             decorations.push({
                 range: new monaco.Range(lineNum, 1, lineNum, 1),
                 options: {
                     isWholeLine: true,
-                    glyphMarginClassName: tagsClass,
+                    glyphMarginClassName: tagClasses.join(' '),
                     zIndex: 2,
                 },
             })
@@ -199,7 +220,6 @@ function SourceView({ file_name }: {
     React.useEffect(() => {
         if (editorRef.current === null || selectionDecorationCollection === null) return
             
-        console.log(selectedLines)
 
         const decorations: monaco.editor.IModelDeltaDecoration[] = selectedLines.map(l => l + 1).map((lineNumber) => ({
             range: new monaco.Range(lineNumber, 1, lineNumber, 1),
@@ -246,9 +266,7 @@ function SourceView({ file_name }: {
     ])
 
     function setThisSelection(binaryFilePath: string, addresses: number[]) {
-        console.log(binaryFilePath, addresses, validBinaryFilePaths)
         api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, 'memory_order').then(selections => {
-            console.log(selections)
             dispatch(setSelection(selections))
         })
     }
@@ -295,128 +313,71 @@ function SourceView({ file_name }: {
             setThisSelection(binaryFilePath, addresses)
         })
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection])
+    
+    // update tags when scrolling
+    React.useEffect(() => {
+        if (editorRef.current === null) return
+
+        const disposable = editorRef.current.onDidScrollChange(() => {
+            setTagsNeedUpdate(prev => !prev)
+        })
+
+        return () => {
+            disposable.dispose()
+        }
+    }, [editorRef.current])
 
     // add glyph decorations for line tags
     React.useEffect(() => {
         const glyphMargins = Array.from(document.getElementsByClassName('line-tags') as HTMLCollectionOf<HTMLDivElement>)
-        // line-tags col-1-I col-2-I col-3-X col-4-I col-5-X col-6-X
+        // line-tags v1 i f12 c2
 
         // clear all existing tags
         glyphMargins.forEach((element) => {
-            while (element.firstChild) {
+            while (element.firstChild)
                 element.removeChild(element.firstChild)
-            }
         })
         glyphMargins.forEach((element) => {
-            element.style.width = `${nLineTags * 30}px`
+            element.style.width = `${TAGS.length * TAG_WIDTH * 0.9}px`
+            element.style.display = 'flex'
+            element.style.justifyContent = 'flex-start'
+            element.style.alignItems = 'center'
+            element.style.gap = '5px'
+            element.style.marginLeft = '10px'
             const classNames = element.classList
+            
+            // classNames is like v1 i f12 c2
             classNames.forEach((className) => {
-                if (!className.startsWith('col-')) return
-                const thisTags = Object.values(TAGS_TO_LETTERS).map(v => v.letter).join('')
-                const match = className.match(
-                    new RegExp(String.raw`^col-(\d+)-([${thisTags}]+)$`)
-                )
+                if (!className.match(new RegExp(`^[${TAGS.map(v => v.letter).join('')}]\\d*$`))) return
+                    
+                const thisTagLetter = className[0]
+                const thisTagBinaries = className.slice(1).split('')
 
-                if (match) {
-                    const col = parseInt(match[1])
-                    const tags = match[2].split('')
-                    const box_color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)?.box_color || 'grey')
-                    const text_color = tags.map(t => Object.values(TAGS_TO_LETTERS).find(v => v.letter === t)?.text_color || 'black').join('')
+                const text = document.createElement('div')
+                text.textContent = thisTagLetter
+                text.style.color = '#00000000'
+                text.style.backgroundColor = TAGS.find(tag => tag.letter === thisTagLetter)?.color[thisTagBinaries.length]!
+                text.style.width = `${TAG_WIDTH * 0.8}px`
+                text.style.height = `${15}px`
+                text.style.borderRadius = '5%'
+                text.style.display = 'flex'
+                text.style.alignItems = 'center'
+                text.style.justifyContent = 'center'
+                
+                // Add hover effect to show binary indices
+                text.addEventListener('mouseenter', () => {
+                    text.textContent = thisTagBinaries.join(',')
+                    text.style.color = '#000000'
+                })
 
-                    const text = document.createElement('div')
-                    if (tags.length === 1) {
-                        // Create the tag glyph with rounded corners square and the tag text, the background color is the tag color
-                        text.textContent = tags[0]
-                        text.style.color = text_color
-                        text.style.backgroundColor = box_color[0]
-                        if (tags.some(tag => tag !== '-')) {
-                            text.style.border = '1px solid black'
-                        }
-                    }
-                    else {
-                        text.style.display = 'flex'
-                        text.style.flexDirection = 'row'
-                        text.style.flexWrap = 'wrap'
-                        text.style.maxWidth = '14px'
-                        text.style.height = '14px'
-
-                        // Create the four corner divs
-                        const topLeft = document.createElement('div')
-                        const topRight = document.createElement('div') 
-                        const bottomLeft = document.createElement('div')
-                        const bottomRight = document.createElement('div')
-
-                        // Style each corner div
-                        const cornerDivs = [topLeft, topRight, bottomLeft, bottomRight]
-                        cornerDivs.forEach(div => {
-                            div.style.width = '50%'
-                            div.style.height = '50%'
-                            div.style.border = 'none'
-                            div.style.borderRadius = '20%'
-                            div.style.padding = '0'
-                            div.style.margin = '0'
-                            div.style.backgroundColor = 'lightgray'
-                            div.style.fontSize = '10px'
-                        });
-                        // Place tags based on length
-                        if (tags.length === 2) {
-                            console.log(box_color)
-                            topLeft.textContent = tags[0]
-                            topLeft.style.color = text_color
-                            topLeft.style.backgroundColor = box_color[0]
-
-                            bottomRight.textContent = tags[1]
-                            bottomRight.style.color = text_color
-                            bottomRight.style.backgroundColor = box_color[1]
-                        } else if (tags.length === 3) {
-                            topLeft.textContent = tags[0]
-                            topLeft.style.backgroundColor = box_color[0]
-                            topLeft.style.color = text_color[0]
-                            if (tags[0] !== '-') topLeft.style.border = '1px solid black'
-
-                            topRight.textContent = tags[1]
-                            topRight.style.backgroundColor = box_color[1]
-                            topRight.style.color = text_color[1]
-                            if (tags[1] !== '-') topRight.style.border = '1px solid black'
-
-                            bottomLeft.textContent = tags[2]
-                            bottomLeft.style.backgroundColor = box_color[2]
-                            bottomLeft.style.color = text_color[2]
-                            if (tags[2] !== '-') bottomLeft.style.border = '1px solid black'
-                        } else if (tags.length === 4) {
-                            topLeft.textContent = tags[0]
-                            topLeft.style.backgroundColor = box_color[0]
-                            topLeft.style.color = text_color[0]
-                            if (tags[0] !== '-') topLeft.style.border = '1px solid black'
-
-                            topRight.textContent = tags[1]
-                            topRight.style.backgroundColor = box_color[1]
-                            topRight.style.color = text_color[1]
-                            if (tags[1] !== '-') topRight.style.border = '1px solid black'
-
-                            bottomLeft.textContent = tags[2]
-                            bottomLeft.style.backgroundColor = box_color[2]
-                            bottomLeft.style.color = text_color[2]
-                            if (tags[2] !== '-') bottomLeft.style.border = '1px solid black'
-
-                            bottomRight.textContent = tags[3]
-                            bottomRight.style.backgroundColor = box_color[3]
-                            bottomRight.style.color = text_color[3]
-                            if (tags[3] !== '-') bottomRight.style.border = '1px solid black'
-                        }
-
-                        text.appendChild(topLeft)
-                        text.appendChild(topRight)
-                        text.appendChild(bottomLeft)
-                        text.appendChild(bottomRight)
-                    }
-
-                    element.appendChild(text)
-                }
+                text.addEventListener('mouseleave', () => {
+                    text.textContent = thisTagLetter
+                    text.style.color = '#00000000'
+                })
+                element.appendChild(text)
             })
-
         })
-    }, [lineTags, binaryFilePaths, nLineTags, tagsNeedUpdate])
+    }, [lineTags, binaryFilePaths, tagsNeedUpdate])
 
     return <Suspense fallback={<div>Loading source code...</div>}>
         {/* title row */}
@@ -427,19 +388,19 @@ function SourceView({ file_name }: {
             padding: '10px',
             borderBottom: '1px solid #e0e0e0',
             backgroundColor: 'white',
-            width: nLineTags * 30,
+            width: TAGS.length * TAG_WIDTH,
         }}>
-            {Array.from({ length: nLineTags }, (_, i) => i + 1).map(i =>
-                <div key={i} style={{
+            {TAGS.map(tag =>
+                <div key={tag.letter} style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '20px',
-                    height: '20px',
-                    backgroundColor: 'lightblue',
-                    borderRadius: '50%',
+                    width: TAG_WIDTH,
+                    height: TAG_WIDTH,
+                    backgroundColor: tag.color[1],
+                    borderRadius: '30%',
                     marginRight: '5px',
-                }}>{i}</div>
+                }}><b>{tag.letter.toUpperCase()}</b></div>
             )}
         </div>
         <div className='no-text-selection'>

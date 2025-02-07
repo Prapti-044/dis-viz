@@ -26,6 +26,18 @@ namespace InstructionAPI = Dyninst::InstructionAPI;
 namespace ParseAPI = Dyninst::ParseAPI;
 namespace SymtabAPI = Dyninst::SymtabAPI;
 
+// Map instruction flags to source code flags
+const std::unordered_map<INSTRUCTION_FLAGS, SOURCE_CODE_FLAGS> INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS = {
+  {INST_VECTORIZED, SOURCE_CODE_FLAGS::SOURCE_CODE_VECTORIZED},
+  {INST_MEMORY_READ, SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_READ}, 
+  {INST_MEMORY_WRITE, SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_WRITE},
+  {INST_CALL, SOURCE_CODE_FLAGS::SOURCE_CODE_CALL},
+  {INST_SYSCALL, SOURCE_CODE_FLAGS::SOURCE_CODE_SYSCALL},
+  {INST_FP, SOURCE_CODE_FLAGS::SOURCE_CODE_FP},
+  {INST_HOISTED, SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED}
+};
+
+
 void setInstructionFlags(const InstructionAPI::Instruction &instr,
                    std::unordered_set<INSTRUCTION_FLAGS> &flags) {
   switch (instr.getCategory()) {
@@ -486,7 +498,7 @@ std::tuple<
   unordered_map<string, map<int, vector<unsigned long>>>, // Source Correspondences
   set<string>, // Unique Source Files
   vector<FunctionInfo>, // Function Infos
-  unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>> // Source Code Info { file: { line: { tags } } }
+  unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> // Source Code Info { file: { line: { tags } } }
 > getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
   auto bar = indicators::ProgressBar{
@@ -512,7 +524,7 @@ std::tuple<
   auto instruction_flags = map<Dyninst::Address, std::unordered_set<INSTRUCTION_FLAGS>>();
   auto unique_sourcefiles = set<string>();
   auto curr_block_id = 0;
-  auto sourceCodeInfo = unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>>(); 
+  auto sourceCodeInfo = unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>>(); 
   auto functionInfos = vector<FunctionInfo>();
 
   // create an Instruction decoder which will convert the binary opcodes to strings
@@ -606,10 +618,10 @@ std::tuple<
 
     for(const auto &inlineEntry: inlines) {
       if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
-        sourceCodeInfo[inlineEntry.callsite_file] = std::map<int, std::unordered_set<SourceCodeTags>>();
+        sourceCodeInfo[inlineEntry.callsite_file] = std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
       }
       sourceCodeInfo[inlineEntry.callsite_file][inlineEntry.callsite_line - 1].insert( // convert to 0 based index
-        SourceCodeTags::INLINE_TAG
+        SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE
       );
     }
     
@@ -726,13 +738,16 @@ std::tuple<
       addLoopHeaderInfo(blockInfo, funcLoops);
 
       for (const auto &inst: blockInfo.instructions) {
-        if (inst.flags.find(INST_VECTORIZED) != inst.flags.end()) {
+        
+        for (const auto &inst_flag: inst.flags) {
           for (const auto &correspondence: inst.correspondence) {
             auto sourceFile = correspondence.first;
             for (const auto &line: correspondence.second) {
               if (sourceCodeInfo.find(sourceFile) == sourceCodeInfo.end())
-                sourceCodeInfo[sourceFile] = std::map<int, std::unordered_set<SourceCodeTags>>();
-              sourceCodeInfo[sourceFile][line].insert(SourceCodeTags::VECTORIZED_TAG);
+                sourceCodeInfo[sourceFile] = std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
+              if (auto it = INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.find(inst_flag); it != INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.end()) {
+                sourceCodeInfo[sourceFile][line].insert(it->second);
+              }
             }
           }
         }
@@ -872,7 +887,7 @@ std::tuple<
     auto sourceCodeData = parseSourceCode(sourceFile);
     for (const auto &loop : sourceCodeData.loops) {
       if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
-          source_correspondences[sourceFile].find(loop.line-1) != source_correspondences[sourceFile].end()) {
+          source_correspondences[sourceFile].find(loop.line) != source_correspondences[sourceFile].end()) {
         
         auto loopName = string();
         const auto &addresses = source_correspondences[sourceFile][loop.line-1];
@@ -896,11 +911,11 @@ std::tuple<
           }
         }
         
-        // std::cout << "Loop Line: " << loop.line << " Loop Name: " << loopName << std::endl;
+        std::cout << "Loop Line: " << loop.line << " Loop Name: " << loopName << std::endl;
         
         // Find hoisted instructions
         for (const auto &bodyLine : loop.bodyLines) {
-          // std::cout << "\tBody Line: " << bodyLine << std::endl;
+          std::cout << "\tBody Line: " << bodyLine << std::endl;
           auto bodyLineBlockIt = addressOrderBlocks.end();
           if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
               source_correspondences[sourceFile].find(bodyLine-1) != source_correspondences[sourceFile].end()) {
@@ -913,7 +928,7 @@ std::tuple<
               if (bodyLineBlockIt->loops.size() > 0) {
                 bodyLineLoopName = bodyLineBlockIt->loops.back().name;
               }
-              // std::cout << "\t\tbodyLineBlock: " << bodyLineBlockIt->name << " loopName: " << bodyLineLoopName << std::endl;
+              std::cout << "\t\tbodyLineBlock: " << bodyLineBlockIt->name << " loopName: " << bodyLineLoopName << std::endl;
               if (bodyLineLoopName.empty() || bodyLineLoopName.rfind(loopName, 0) != 0) {
                 auto inst = std::find_if(bodyLineBlockIt->instructions.begin(), bodyLineBlockIt->instructions.end(), [&bodyLineCorrAddress](const InstructionInfo &i) {
                   return i.address == bodyLineCorrAddress;

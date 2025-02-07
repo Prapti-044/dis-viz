@@ -30,9 +30,15 @@ BLOCK_ORDER getBlockOrder(std::string order) {
     return LOOP_ORDER;
 }
 
-auto TAGS_TO_STR = std::unordered_map<SourceCodeTags, std::string>(
-    {{SourceCodeTags::INLINE_TAG, "INLINE"},
-     {SourceCodeTags::VECTORIZED_TAG, "VECTORIZED"}});
+auto TAGS_TO_STR = std::unordered_map<SOURCE_CODE_FLAGS, std::string>(
+    {{SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE, "INLINE"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_VECTORIZED, "VECTORIZED"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_READ, "MEMORY_READ"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_WRITE, "MEMORY_WRITE"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_CALL, "CALL"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_SYSCALL, "SYSCALL"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_FP, "FP"},
+     {SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED, "HOISTED"}});
 
 int main(int argc, char *argv[]) {
   auto WRITE_TO_JSON = false;
@@ -280,7 +286,7 @@ int main(int argc, char *argv[]) {
             std::unordered_map<std::string,
                                std::map<int, std::vector<unsigned long>>>();
         auto allBinarySourceCodeInfo = std::unordered_map<
-            std::string, std::map<int, std::unordered_set<SourceCodeTags>>>();
+            std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>>(); // { binary_path: { line_number: { tags } } }
         for (const auto &binaryPath : binaryPaths) {
           const auto &decodedBinary =
               decodeBinaryCache(binaryPath, WRITE_TO_JSON);
@@ -298,7 +304,7 @@ int main(int argc, char *argv[]) {
                 decodedBinary->sourceCodeInfo[sourceFile];
           else
             allBinarySourceCodeInfo[binaryPath] =
-                std::map<int, std::unordered_set<SourceCodeTags>>();
+                std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
         }
 
         auto lines = json::list();

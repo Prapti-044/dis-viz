@@ -243,7 +243,7 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                 <span className="vectorized-tag">vec</span>
             : <></>}
             {instruction.flags.includes("INST_HOISTED")?
-                <span className="hoisted-tag">hoisted</span>
+                <span className="hoisted-tag">hoist</span>
             : <></>}
             {parsedTokens}
         </code>

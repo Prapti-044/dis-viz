@@ -29,21 +29,8 @@
     border: 1px solid gray;
 }
 
-
-.line-tags {
+.monaco-editor .glyph-margin {
     position: flex;
-    justify-content: flex-end;
-}
-
-.line-tags div {
-    border-radius: 4px;
-    width: 15px;
-    height: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    margin-left: 10px;
+    gap: 5px;
+    padding: 0 5px;
 }

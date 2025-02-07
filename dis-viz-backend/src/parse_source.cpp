@@ -115,7 +115,6 @@ void getLoops(CXCursor cursor, const std::string &filePath, std::vector<LoopData
         return CXChildVisit_Continue;
       },
       &visitorData);
-
 }
 
 SourceCodeData parseSourceCode(const std::string &filePath) {

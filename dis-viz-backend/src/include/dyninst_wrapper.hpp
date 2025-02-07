@@ -112,10 +112,16 @@ struct MinimapInfo {
   std::vector<std::vector<std::string>> block_types;
 };
 
-enum SourceCodeTags {
-  INLINE_TAG,
-  VECTORIZED_TAG
-};
+typedef enum {
+  SOURCE_CODE_INLINE,
+  SOURCE_CODE_VECTORIZED,
+  SOURCE_CODE_MEMORY_READ,
+  SOURCE_CODE_MEMORY_WRITE,
+  SOURCE_CODE_CALL,
+  SOURCE_CODE_SYSCALL,
+  SOURCE_CODE_FP,
+  SOURCE_CODE_HOISTED
+} SOURCE_CODE_FLAGS;
 struct BinaryCacheResult {
   struct {
     std::vector<BlockInfo> memory_order_blocks;
@@ -127,7 +133,7 @@ struct BinaryCacheResult {
   } minimap;
   std::vector<std::string> source_files;
   std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
-  std::unordered_map<std::string, std::map<int, std::unordered_set<SourceCodeTags>>> sourceCodeInfo;
+  std::unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> sourceCodeInfo;
 };
 
 
