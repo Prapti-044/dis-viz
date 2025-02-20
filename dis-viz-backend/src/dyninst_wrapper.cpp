@@ -911,11 +911,11 @@ std::tuple<
           }
         }
         
-        std::cout << "Loop Line: " << loop.line << " Loop Name: " << loopName << std::endl;
+        // std::cout << "Loop Line: " << loop.line << " Loop Name: " << loopName << std::endl;
         
         // Find hoisted instructions
         for (const auto &bodyLine : loop.bodyLines) {
-          std::cout << "\tBody Line: " << bodyLine << std::endl;
+          // std::cout << "\tBody Line: " << bodyLine << std::endl;
           auto bodyLineBlockIt = addressOrderBlocks.end();
           if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
               source_correspondences[sourceFile].find(bodyLine-1) != source_correspondences[sourceFile].end()) {
@@ -928,7 +928,7 @@ std::tuple<
               if (bodyLineBlockIt->loops.size() > 0) {
                 bodyLineLoopName = bodyLineBlockIt->loops.back().name;
               }
-              std::cout << "\t\tbodyLineBlock: " << bodyLineBlockIt->name << " loopName: " << bodyLineLoopName << std::endl;
+              // std::cout << "\t\tbodyLineBlock: " << bodyLineBlockIt->name << " loopName: " << bodyLineLoopName << std::endl;
               if (bodyLineLoopName.empty() || bodyLineLoopName.rfind(loopName, 0) != 0) {
                 auto inst = std::find_if(bodyLineBlockIt->instructions.begin(), bodyLineBlockIt->instructions.end(), [&bodyLineCorrAddress](const InstructionInfo &i) {
                   return i.address == bodyLineCorrAddress;
@@ -1013,6 +1013,8 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
     j["blocks_info"] = convertBinaryCache(binaryCacheResult[binaryPath]);
     
     j["functions"] = convertFunctionInfos(functionInfos);
+
+    j["source_code_info"] = convertSourceCodeInfo(sourceCodeInfo);
     
     o << j.dump() << std::endl;
   }

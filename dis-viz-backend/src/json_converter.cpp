@@ -21,6 +21,50 @@ json convertVariableInfo(const VariableInfo &var) {
   return result;
 }
 
+json convertSourceCodeInfo(const std::unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> &sourceCodeInfo) {
+  auto result = json::list();
+  for (const auto &i : sourceCodeInfo) {
+    auto file = json();
+    file["file"] = i.first;
+    auto lines = json::list();
+    for (const auto &j : i.second) {
+      auto flags = json::list();
+      for (const auto &k : j.second) {
+        switch (k) {
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_FP:
+          flags.push_back("SOURCE_CODE_FP");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_VECTORIZED:
+          flags.push_back("SOURCE_CODE_VECTORIZED");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_READ:
+          flags.push_back("SOURCE_CODE_MEMORY_READ");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_WRITE:
+          flags.push_back("SOURCE_CODE_MEMORY_WRITE");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_CALL:
+          flags.push_back("SOURCE_CODE_CALL");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_SYSCALL:
+          flags.push_back("SOURCE_CODE_SYSCALL");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED:
+          flags.push_back("SOURCE_CODE_HOISTED");
+          break;
+        case SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE:
+          flags.push_back("SOURCE_CODE_INLINE");
+          break;
+        }
+      }
+      lines.push_back(std::move(flags));
+    }
+    file["lines"] = std::move(lines);
+    result.push_back(std::move(file));
+  }
+  return result;
+}
+
 json convertMinimapInfo(const MinimapInfo &minimap) {
   auto result = json();
   result["block_heights"] = minimap.block_heights;
