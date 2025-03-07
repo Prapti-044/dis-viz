@@ -39,15 +39,20 @@
     display: block;
 }
 
+.monaco-editor .right-tags-wrapper {
+    width: 100%;
+    position: relative;
+}
+
 .monaco-editor .right-tags {
     color: black;
     font-family: monospace;
     font-size: 10px;
     white-space: nowrap;
     position: absolute;
-    transform: translateX(400px);
+    right: min(calc(20% + 60px), 260px);
     display: flex;
-    flex-direction: row;
+    flex-direction: row-reverse;
     align-items: center;
     gap: 4px;
 
@@ -59,6 +64,8 @@
         .right-tag {
             display: flex;
             align-items: center;
+            flex-direction: row;
+            height: 14px;
             
             .right-tag-name {
                 margin-right: 4px;
@@ -72,11 +79,11 @@
             }
 
             .right-tag-binary.active {
-                background-color: orange;
+                background-color: rgba(0, 0, 0, 0.486);
             }
 
             .right-tag-binary.inactive {
-                border: 1px solid white;
+                border: 1px solid rgba(0, 0, 0, 0.842);
             }
         }
     }

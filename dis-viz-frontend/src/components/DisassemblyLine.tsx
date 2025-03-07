@@ -7,9 +7,10 @@ import { setSelection, selectBinaryHoverHighlight, setBinaryHoverHighlight, setS
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
-import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
+import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs, SOURCE_TAGS } from '../utils'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
 import * as api from "../api";
+import { INSTRUCTION_TAGS } from '../utils'
 
 
 function isJumpInstruction(instr: string) {
@@ -265,14 +266,15 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                 dispatch(clearBinaryHoverHighlight())
             }}
         >
-
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
-            {enabledTags["VECTORIZED"] && instruction.flags.includes("INST_VECTORIZED")?
-                <span className="vectorized-tag">vec</span>
-            : <></>}
-            {enabledTags["HOISTED"] && instruction.flags.includes("INST_HOISTED")?
-                <span className="hoisted-tag">hoist</span>
-            : <></>}
+            {INSTRUCTION_TAGS.map(tag => (
+                enabledTags[tag.id] && instruction.flags.includes(tag.id) ?
+                    <span key={tag.id} className='disassembly-line-tag' style={{
+                        border: `2px solid ${tag.color}`,
+                        // color: tag.color,
+                    }}>{tag.shortName}</span>
+                : <></>
+            ))}
             {parsedTokens}
         </code>
     </div>

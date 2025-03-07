@@ -1,16 +1,20 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
-import { TAGS } from '../../utils';
+import { SOURCE_TAGS, INSTRUCTION_TAGS } from '../../utils';
 
 interface TagsState {
   enabledTags: { [key: string]: boolean };
 }
 
 const initialState: TagsState = {
-  enabledTags: TAGS.reduce((acc, tag) => ({
-    ...acc,
-    [tag.name]: true
-  }), {})
+  enabledTags: [...SOURCE_TAGS, ...INSTRUCTION_TAGS]
+    .filter((tag, index, self) => 
+      index === self.findIndex(t => t.id === tag.id)
+    )
+    .reduce((acc, tag) => ({
+      ...acc,
+      [tag.id]: true
+    }), {})
 };
 
 export const tagsSlice = createSlice({

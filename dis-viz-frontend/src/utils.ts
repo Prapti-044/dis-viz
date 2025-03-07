@@ -2,46 +2,99 @@ import inteldocs from './inteldocs.json'
 
 export const HIGHLIGHT_COLOR = "#C7DFC5"
 
-export const TAGS = [
+export const SOURCE_TAGS = [
     {
-        name: 'VECTORIZED',
-        letter: 'v',
-        color: ['#FAFAFA', '#69f4f4', '#00ffff'],
+        id: 'INLINE' as const,
+        fullName: 'Inline',
+        shortName: 'inl',
+        color: '#9b7e1d',
     },
     {
-        name: 'INLINE',
-        letter: 'i',
-        color: ['#FAFAFA', '#c49935', '#9b7e1d'],
+        id: 'VECTORIZED' as const,
+        fullName: 'Vectorized',
+        shortName: 'vec',
+        color: '#00ffff',
     },
     {
-        name: 'MEMORY_READ',
-        letter: 'r',
-        color: ['#FAFAFA', '#a38eb3', '#75499c'],
+        id: 'MEMORY_READ' as const,
+        fullName: 'Memory Read',
+        shortName: 'memr',
+        color: '#a38eb3',
     },
     {
-        name: 'MEMORY_WRITE',
-        letter: 'w',
-        color: ['#FAFAFA', '#a3acea', '#576bf0'],
+        id: 'MEMORY_WRITE' as const,
+        fullName: 'Memory Write',
+        shortName: 'memw',
+        color: '#a3acea',
     },
     {
-        name: 'CALL',
-        letter: 'c',
-        color: ['#FAFAFA', '#d494b0', '#c058a1'],
+        id: 'CALL' as const,
+        fullName: 'Call',
+        shortName: 'call',
+        color: '#d494b0',
     },
     {
-        name: 'SYSCALL',
-        letter: 's',
-        color: ['#FAFAFA', '#7c7dbb', '#4d50ad'],
+        id: 'SYSCALL' as const,
+        fullName: 'System Call',
+        shortName: 'sysc',
+        color: '#d494b0',
     },
     {
-        name: 'FP',
-        letter: 'f',
-        color: ['#FAFAFA', '#d88e4d', '#d96d20'],
+        id: 'FP' as const,
+        fullName: 'Floating Point',
+        shortName: 'fp',
+        color: '#d88e4d',
     },
     {
-        name: 'HOISTED',
-        letter: 'h',
-        color: ['#FAFAFA', '#f6d9ce', '#f6d9ce'],
+        id: 'HOISTED' as const,
+        fullName: 'Hoisted',
+        shortName: 'hoist',
+        color: '#f6d9ce',
+    },
+];
+
+export const INSTRUCTION_TAGS = [
+    {
+        id: 'VECTORIZED' as const,
+        fullName: 'Vectorized',
+        shortName: 'vec',
+        color: '#00ffff',
+    },
+    {
+        id: 'MEMORY_READ' as const,
+        fullName: 'Memory Read',
+        shortName: 'memr',
+        color: '#a38eb3',
+    },
+    {
+        id: 'MEMORY_WRITE' as const,
+        fullName: 'Memory Write',
+        shortName: 'memw',
+        color: '#a3acea',
+    },
+    {
+        id: 'CALL' as const,
+        fullName: 'Call',
+        shortName: 'call',
+        color: '#d494b0',
+    },
+    {
+        id: 'SYSCALL' as const,
+        fullName: 'System Call',
+        shortName: 'sysc',
+        color: '#d494b0',
+    },
+    {
+        id: 'FP' as const,
+        fullName: 'Floating Point',
+        shortName: 'fp',
+        color: '#d88e4d',
+    },
+    {
+        id: 'HOISTED' as const,
+        fullName: 'Hoisted',
+        shortName: 'hoist',
+        color: '#f6d9ce',
     },
 ];
 

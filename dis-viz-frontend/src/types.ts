@@ -1,17 +1,18 @@
 import 'reflect-metadata' // Import needed for class-transformer
 import { Expose, Type } from "class-transformer";
-
+import { SOURCE_TAGS, INSTRUCTION_TAGS } from './utils'
 
 export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 
-export type SRC_LINE_TAG = 'VECTORIZED' | 'INLINE' | 'MEMORY_READ' | 'MEMORY_WRITE' | 'CALL' | 'SYSCALL' | 'FP' | 'HOISTED'
+type SourceCodeFlag = (typeof SOURCE_TAGS)[number]['id']
+type InstructionFlag = (typeof INSTRUCTION_TAGS)[number]['id']
 
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: { [binaryFilePath: string]: number[] };
-    @Expose() tags: { [binaryFilePath: string]: SRC_LINE_TAG[] };
+    @Expose() tags: { [binaryFilePath: string]: SourceCodeFlag[] };
 
-    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: SRC_LINE_TAG[] }) {
+    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: SourceCodeFlag[] }) {
         this.line = line
         this.addresses = addresses
         this.tags = tags
@@ -25,15 +26,6 @@ export class SourceFile {
         this.lines = lines
     }
 }
-
-export type InstructionFlag = 
-    "INST_VECTORIZED" |
-    "INST_MEMORY_READ" |
-    "INST_MEMORY_WRITE" |
-    "INST_CALL" |
-    "INST_SYSCALL" |
-    "INST_FP" |
-    "INST_HOISTED"
 
 export class Instruction {
     @Expose() instruction: string

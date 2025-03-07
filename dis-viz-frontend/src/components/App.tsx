@@ -15,7 +15,7 @@ import { toast } from 'react-toastify';
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { selectTagEnabled, toggleTag, selectAllTagStates } from '../features/tags/tagsSlice';
-import { TAGS } from '../utils';
+import { SOURCE_TAGS, INSTRUCTION_TAGS } from '../utils';
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
@@ -279,19 +279,23 @@ const App = () => {
           <MenuItem>Print...</MenuItem>
         </Menu>
         <div className="file-menu-tags">
-          {TAGS.map(tag => (
-            <label key={tag.letter} className="file-menu-tag" style={{
-              border: `2px solid ${tag.color[1]}`,
-              color: tag.color[1],
-            }}>
-              <input
-                type="checkbox"
-                checked={enabledTags[tag.name]}
-                onChange={() => dispatch(toggleTag(tag.name))}
-              />
-              <span>{tag.name}</span>
-            </label>
-          ))}
+          {[...SOURCE_TAGS, ...INSTRUCTION_TAGS]
+            .filter((tag, index, self) => 
+              index === self.findIndex(t => t.id === tag.id)
+            )
+            .map(tag => (
+              <label key={tag.id} className="file-menu-tag" style={{
+                border: `2px solid ${tag.color[1]}`,
+                color: tag.color,
+              }}>
+                <input
+                  type="checkbox"
+                  checked={enabledTags[tag.id]}
+                  onChange={() => dispatch(toggleTag(tag.id))}
+                />
+                <span>{tag.fullName}</span>
+              </label>
+            ))}
         </div>
       </div>
       <DockLayout

@@ -6,7 +6,7 @@ import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
-import { HIGHLIGHT_COLOR, TAGS } from '../utils'
+import { HIGHLIGHT_COLOR, SOURCE_TAGS } from '../utils'
 import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
@@ -38,7 +38,6 @@ function SourceView({ file_name }: {
 
     const monacoOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
         lineNumbers: "on",
-        // lineNumbersMinChars: TAGS.length * TAG_WIDTH * 0.115, // required for line tags glyph on left
         lineNumbersMinChars: 1,
         glyphMargin: true, // gap before line numbers
         lineDecorationsWidth: 1 + "ch",
@@ -105,13 +104,13 @@ function SourceView({ file_name }: {
                 tmpSourceCode += line
             })
             const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-            const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: TAGS.length }, () => [] as number[])) // [line][tag][binary]
+            const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
             validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
                 tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
 
                 sourceFile.lines.forEach((line, lineI) => {
                     line.tags[binaryFilePath].forEach(tag => {
-                        tmpLineTags[lineI][TAGS.findIndex(t => t.name === tag)].push(binaryI)
+                        tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
                     })
                 })
             })
@@ -154,7 +153,7 @@ function SourceView({ file_name }: {
             // Add content widgets for tags
             lineTags.forEach((tags, line) => {
                 // Only create widget if there are enabled tags
-                if (tags.every(binaries => binaries.length === 0 || !enabledTags[TAGS[tags.indexOf(binaries)].name])) {
+                if (tags.every(binaries => binaries.length === 0 || !enabledTags[SOURCE_TAGS[tags.indexOf(binaries)].id])) {
                     return;
                 }
 
@@ -170,29 +169,31 @@ function SourceView({ file_name }: {
                     },
                     getDomNode: function () {
                         const container = document.createElement('div');
+                        container.style.width = '100%';  // Make container full width
                         const root = ReactDOM.createRoot(container);
                         root.render(
-                            <div className="right-tags" style={{ display: 'flex', flexDirection: 'row', gap: '4px' }}>
-                                {tags.map((binaries, tagIndex) =>
-                                    binaries.length > 0 && enabledTags[TAGS[tagIndex].name] && (
-                                        <div key={tagIndex + line.toString()} className="right-tags-container" 
-                                            style={{
-                                                border: `2px solid ${TAGS[tagIndex].color[1]}`,
-                                                color: TAGS[tagIndex].color[1],
-                                            }}>
-                                            <div className="right-tag">
-                                                <span className="right-tag-name">{TAGS[tagIndex].name.toUpperCase()}</span>
-                                                {validBinaryFilePaths.length > 1 && validBinaryFilePaths.map((binaryPath, binaryIndex) => (
-                                                    <div
-                                                        className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
-                                                        key={`${line}-${tagIndex}-${binaryIndex}`}
-                                                        title={binaryPath.split('/').pop()}
-                                                    />
-                                                ))}
+                            <div className="right-tags-wrapper">
+                                <div className="right-tags">
+                                    {tags.map((binaries, tagIndex) =>
+                                        binaries.length > 0 && enabledTags[SOURCE_TAGS[tagIndex].id] && (
+                                            <div key={tagIndex + line.toString()} className="right-tags-container" 
+                                                style={{
+                                                    border: `2px solid ${SOURCE_TAGS[tagIndex].color}`,
+                                                }}>
+                                                <div className="right-tag">
+                                                    <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
+                                                    {validBinaryFilePaths.length > 1 && validBinaryFilePaths.map((binaryPath, binaryIndex) => (
+                                                        <div
+                                                            className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
+                                                            key={`${line}-${tagIndex}-${binaryIndex}`}
+                                                            title={binaryPath.split('/').pop()}
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
-                                    )
-                                )}
+                                        )
+                                    )}
+                                </div>
                             </div>
                         );
                         return container;
@@ -257,7 +258,7 @@ function SourceView({ file_name }: {
             const tagClasses = ['line-tags']
 
             tags.forEach((binaries, i) => {
-                const tagLetter = TAGS[i].letter
+                const tagLetter = SOURCE_TAGS[i].shortName
                 tagClasses.push(`${tagLetter}${binaries.join('')}`);
             })
 

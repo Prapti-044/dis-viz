@@ -30,7 +30,7 @@ BLOCK_ORDER getBlockOrder(std::string order) {
     return LOOP_ORDER;
 }
 
-auto TAGS_TO_STR = std::unordered_map<SOURCE_CODE_FLAGS, std::string>(
+auto SOURCE_TAGS_TO_STR = std::unordered_map<SOURCE_CODE_FLAGS, std::string>(
     {{SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE, "INLINE"},
      {SOURCE_CODE_FLAGS::SOURCE_CODE_VECTORIZED, "VECTORIZED"},
      {SOURCE_CODE_FLAGS::SOURCE_CODE_MEMORY_READ, "MEMORY_READ"},
@@ -332,7 +332,7 @@ int main(int argc, char *argv[]) {
                 allBinarySourceCodeInfo[binaryPath].end()) {
               for (const auto &tag :
                    allBinarySourceCodeInfo[binaryPath][lineNo]) {
-                tagsForBinary.push_back(TAGS_TO_STR[tag]);
+                tagsForBinary.push_back(SOURCE_TAGS_TO_STR[tag]);
               }
             }
             tags[binaryPath] = std::move(tagsForBinary);

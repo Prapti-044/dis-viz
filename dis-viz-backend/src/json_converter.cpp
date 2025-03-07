@@ -85,6 +85,16 @@ json convertMinimapInfo(const MinimapInfo &minimap) {
   return result;
 }
 
+auto INSTRUCTION_TAGS_TO_STR = std::unordered_map<INSTRUCTION_FLAGS, std::string>(
+    {{INSTRUCTION_FLAGS::INST_VECTORIZED, "VECTORIZED"},
+     {INSTRUCTION_FLAGS::INST_MEMORY_READ, "MEMORY_READ"},
+     {INSTRUCTION_FLAGS::INST_MEMORY_WRITE, "MEMORY_WRITE"},
+     {INSTRUCTION_FLAGS::INST_CALL, "CALL"},
+     {INSTRUCTION_FLAGS::INST_SYSCALL, "SYSCALL"},
+     {INSTRUCTION_FLAGS::INST_FP, "FP"},
+     {INSTRUCTION_FLAGS::INST_HOISTED, "HOISTED"}});
+
+
 json convertInstructionInfo(const InstructionInfo &instruction) {
   auto result = json();
   result["address"] = instruction.address;
@@ -105,29 +115,7 @@ json convertInstructionInfo(const InstructionInfo &instruction) {
   }
   auto flags = std::vector<std::string>();
   for (const auto &flag : instruction.flags) {
-    switch (flag) {
-    case INST_VECTORIZED:
-      flags.push_back("INST_VECTORIZED");
-      break;
-    case INST_MEMORY_READ:
-      flags.push_back("INST_MEMORY_READ");
-      break;
-    case INST_MEMORY_WRITE:
-      flags.push_back("INST_MEMORY_WRITE");
-      break;
-    case INST_CALL:
-      flags.push_back("INST_CALL");
-      break;
-    case INST_SYSCALL:
-      flags.push_back("INST_SYSCALL");
-      break;
-    case INST_FP:
-      flags.push_back("INST_FP");
-      break;
-    case INST_HOISTED:
-      flags.push_back("INST_HOISTED");
-      break;
-    }
+    flags.push_back(INSTRUCTION_TAGS_TO_STR[flag]);
   }
   result["flags"] = flags;
 
