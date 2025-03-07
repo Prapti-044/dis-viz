@@ -1,6 +1,6 @@
 import React  from 'react';
 
-import { selectSelection } from '../features/selections/selectionsSlice'
+import { selectBinarySelection, selectBinaryHoverHighlight } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as api from '../api'
@@ -81,12 +81,12 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
     removeSelf: () => void,
     defaultBinaryFilePath?: string
 }) {
-    const selections = useAppSelector(selectSelection)
+    const selections = useAppSelector(selectBinarySelection)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
     const [binaryFilePath, setBinaryFilePath] = React.useState(defaultBinaryFilePath ?? validBinaryFilePaths[0])
     if (!validBinaryFilePaths.includes(binaryFilePath)) removeSelf()
-    const thisBinarySelection = selections.binary_selection.find(selection => selection.binary_file === binaryFilePath)?.addresses
+    const thisBinarySelection = selections.find(selection => selection.binary_file === binaryFilePath)?.addresses
 
     const [blockOrder, setBlockOrder] = React.useState<BLOCK_ORDERS>('memory_order')
     const [shouldScroll, setShouldScroll] = React.useState({

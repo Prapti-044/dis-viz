@@ -1,6 +1,6 @@
 import React from 'react'
 import { useAppSelector } from '../app/hooks';
-import { selectSelection } from '../features/selections/selectionsSlice';
+import { selectSourceSelection } from '../features/selections/selectionsSlice';
 import '../styles/sourcefiletree.css'
 import CSS from 'csstype';
 import { HIGHLIGHT_COLOR } from '../utils';
@@ -17,7 +17,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
     sourceViewData: { file_name: string, status: "opened" | "closed" }[],
     setSourceViewData: (_: { file_name: string, status: "opened" | "closed" }[]) => void,
 }) {
-    const selectedFiles = useAppSelector(selectSelection).source_selection.map(file => file.source_file)
+    const selectedFiles = useAppSelector(selectSourceSelection).map(file => file.source_file)
     
     const clickedOnSource = (e: React.MouseEvent<HTMLLIElement>) => {
         const clickedSourceFile = e.currentTarget.getAttribute('data-source')!

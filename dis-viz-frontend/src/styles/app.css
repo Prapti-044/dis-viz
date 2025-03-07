@@ -1,0 +1,39 @@
+.file-menus {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    height: 32px;
+}
+
+
+.add-disassembly-view-button {
+    background: none;
+    color: black;
+    cursor: pointer;
+}
+
+.file-menu-tags {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    height: 100%;
+    align-items: center;
+    padding-right: 20px;
+}
+
+.file-menu-tag {
+    display: flex;
+    align-items: center;
+    padding: 2px 8px;
+    gap: 4px;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.file-menu-tag input {
+    cursor: pointer;
+    margin: 0;
+}
+

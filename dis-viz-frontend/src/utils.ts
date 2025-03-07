@@ -2,6 +2,49 @@ import inteldocs from './inteldocs.json'
 
 export const HIGHLIGHT_COLOR = "#C7DFC5"
 
+export const TAGS = [
+    {
+        name: 'VECTORIZED',
+        letter: 'v',
+        color: ['#FAFAFA', '#69f4f4', '#00ffff'],
+    },
+    {
+        name: 'INLINE',
+        letter: 'i',
+        color: ['#FAFAFA', '#c49935', '#9b7e1d'],
+    },
+    {
+        name: 'MEMORY_READ',
+        letter: 'r',
+        color: ['#FAFAFA', '#a38eb3', '#75499c'],
+    },
+    {
+        name: 'MEMORY_WRITE',
+        letter: 'w',
+        color: ['#FAFAFA', '#a3acea', '#576bf0'],
+    },
+    {
+        name: 'CALL',
+        letter: 'c',
+        color: ['#FAFAFA', '#d494b0', '#c058a1'],
+    },
+    {
+        name: 'SYSCALL',
+        letter: 's',
+        color: ['#FAFAFA', '#7c7dbb', '#4d50ad'],
+    },
+    {
+        name: 'FP',
+        letter: 'f',
+        color: ['#FAFAFA', '#d88e4d', '#d96d20'],
+    },
+    {
+        name: 'HOISTED',
+        letter: 'h',
+        color: ['#FAFAFA', '#f6d9ce', '#f6d9ce'],
+    },
+];
+
 export const MAX_FN_SIZE = 32
 export function shortenName(name: string, len: number): string {
   console.assert(len >= 20, "len should be larger than 20")

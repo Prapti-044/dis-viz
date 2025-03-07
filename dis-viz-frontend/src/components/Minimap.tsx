@@ -1,6 +1,6 @@
 import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
-import { selectSelection, setSelection } from '../features/selections/selectionsSlice'
+import { selectBinarySelection, setSelection } from '../features/selections/selectionsSlice'
 import { HIGHLIGHT_COLOR, hexToHSL } from '../utils'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
@@ -40,7 +40,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
 }) {
     const dispatch = useAppDispatch();
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
-    const _selection = useAppSelector(selectSelection).binary_selection.filter(selection => selection.binary_file === binaryFilePath)[0]
+    const _selection = useAppSelector(selectBinarySelection).filter(selection => selection.binary_file === binaryFilePath)[0]
     const selection = _selection ? _selection.addresses : []
     
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)

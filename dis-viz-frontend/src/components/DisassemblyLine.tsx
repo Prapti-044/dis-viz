@@ -3,11 +3,12 @@ import '../styles/disassemblyview.css'
 
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { setSelection } from '../features/selections/selectionsSlice';
+import { setSelection, selectBinaryHoverHighlight, setBinaryHoverHighlight, setSourceHoverHighlight, clearSourceHoverHighlight, clearBinaryHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
+import { selectAllTagStates } from '../features/tags/tagsSlice'
 import * as api from "../api";
 
 
@@ -42,6 +43,8 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
     
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter(path => path !== "")
+
+    const enabledTags = useAppSelector(selectAllTagStates);
 
     let instruction_address = instruction.address.toString(16).toUpperCase();
     while (instruction_address.length < 4)
@@ -210,24 +213,46 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
     const parsedTokens = parseInstruction(instruction, block)
     
     function handleMouseOver(instruction: Instruction) {
-        const source_files = []
-        for (const [source_file, lines] of Object.entries(instruction.correspondence)) {
-            source_files.push({
-                source_file: source_file,
-                lines: lines
-            })
+        if (!instruction.correspondence || Object.keys(instruction.correspondence).length === 0) {
+            // Clear hover highlights when no correspondence exists
+            dispatch(clearSourceHoverHighlight())
+            dispatch(clearBinaryHoverHighlight())
+            return
         }
-        // dispatch(setMouseHighlight({
-        //     addresses: { [binaryFilePath]: [instruction.address] }, 
-        //     source_selection: source_files
-        // }))
+
+        // Update source hover highlight
+        const sourceFiles = Object.entries(instruction.correspondence).map(([source_file, lines]) => ({
+            source_file,
+            lines
+        }))
+        
+        if (sourceFiles.length > 0) {
+            dispatch(setSourceHoverHighlight({
+                source_file: sourceFiles[0].source_file,
+                source_lines: sourceFiles[0].lines
+            }))
+        }
+
+        // Update binary hover highlight
+        dispatch(setBinaryHoverHighlight([{
+            binary_file: binaryFilePath,
+            addresses: [instruction.address]
+        }]))
     }
+
+    // Add selector for hover state
+    const binaryHoverHighlight = useAppSelector(selectBinaryHoverHighlight);
+    const isMouseHovered = React.useMemo(() => {
+        return binaryHoverHighlight?.some(highlight => 
+            highlight.binary_file === binaryFilePath && 
+            highlight.addresses.includes(instruction.address)
+        );
+    }, [binaryHoverHighlight, binaryFilePath, instruction.address]);
 
     return <div
         key={disLineToId(disId, instruction.address)}
         id={disLineToId(disId, instruction.address)}
-        // className={"assemblycode" + (isMouseHovered ? " hover":"")}
-        className={"assemblycode"}
+        className={"assemblycode" + (isMouseHovered ? " hover" : "")}
     >
         {isHidable ? <span className="hidablegutter"></span> : <></>}
         <code
@@ -235,14 +260,17 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             onMouseDown={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseDown(instruction.address) } : () => { }}
             onMouseOver={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseOver(instruction.address); handleMouseOver(instruction) } : () => { }}
             onMouseUp={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseUp(instruction.address) } : () => { }}
+            onMouseLeave={() => {
+                dispatch(clearSourceHoverHighlight())
+                dispatch(clearBinaryHoverHighlight())
+            }}
         >
 
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
-            
-            {instruction.flags.includes("INST_VECTORIZED")?
+            {enabledTags["VECTORIZED"] && instruction.flags.includes("INST_VECTORIZED")?
                 <span className="vectorized-tag">vec</span>
             : <></>}
-            {instruction.flags.includes("INST_HOISTED")?
+            {enabledTags["HOISTED"] && instruction.flags.includes("INST_HOISTED")?
                 <span className="hoisted-tag">hoist</span>
             : <></>}
             {parsedTokens}

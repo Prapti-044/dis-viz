@@ -14,10 +14,14 @@ import { toast } from 'react-toastify';
 
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
+import { selectTagEnabled, toggleTag, selectAllTagStates } from '../features/tags/tagsSlice';
+import { TAGS } from '../utils';
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
+
+import '../styles/app.css';
 
 const App = () => {
   const dockRef = React.useRef<DockLayout>(null)
@@ -29,6 +33,8 @@ const App = () => {
   }[]>([])
   
   const binaryFilePathsRef = React.useRef(binaryFilePaths);
+  const dispatch = useAppDispatch();
+  const enabledTags = useAppSelector(selectAllTagStates);
 
   React.useEffect(() => {
     binaryFilePathsRef.current = binaryFilePaths;
@@ -115,14 +121,9 @@ const App = () => {
     if (disassemblyViewPanel === undefined) return
     disassemblyViewPanel.panelLock!.panelExtra = (panelData: PanelData) => (
       <button
+        className="add-disassembly-view-button"
         onClick={onAddDisassemblyView}
-        style={{
-          background: 'none',
-          color: 'black',
-          cursor: 'pointer'
-        }}>
-        +
-      </button>
+      > + </button>
     )
   }, [binaryFilePaths, onAddDisassemblyView])
 
@@ -217,11 +218,8 @@ const App = () => {
               panelExtra: (panelData) => (
                 <button
                   onClick={onAddDisassemblyView}
-                  style={{
-                    background: 'none',
-                    color: 'black',
-                    cursor: 'pointer'
-                  }}>
+                  className="add-disassembly-view-button"
+                >
                 +
                 </button>
               )
@@ -265,20 +263,37 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <Menu menuButton={<MenuButton>File</MenuButton>}>
-        <MenuItem>New File</MenuItem>
-        <SubMenu label="Edit">
-          <MenuItem>Cut</MenuItem>
-          <MenuItem>Copy</MenuItem>
-          <MenuItem>Paste</MenuItem>
-          <SubMenu label="Find">
-            <MenuItem>Find...</MenuItem>
-            <MenuItem>Find Next</MenuItem>
-            <MenuItem>Find Previous</MenuItem>
+      <div className="file-menus">
+        <Menu menuButton={<MenuButton>File</MenuButton>}>
+          <MenuItem>New File</MenuItem>
+          <SubMenu label="Edit">
+            <MenuItem>Cut</MenuItem>
+            <MenuItem>Copy</MenuItem>
+            <MenuItem>Paste</MenuItem>
+            <SubMenu label="Find">
+              <MenuItem>Find...</MenuItem>
+              <MenuItem>Find Next</MenuItem>
+              <MenuItem>Find Previous</MenuItem>
+            </SubMenu>
           </SubMenu>
-        </SubMenu>
-        <MenuItem>Print...</MenuItem>
-      </Menu>
+          <MenuItem>Print...</MenuItem>
+        </Menu>
+        <div className="file-menu-tags">
+          {TAGS.map(tag => (
+            <label key={tag.letter} className="file-menu-tag" style={{
+              border: `2px solid ${tag.color[1]}`,
+              color: tag.color[1],
+            }}>
+              <input
+                type="checkbox"
+                checked={enabledTags[tag.name]}
+                onChange={() => dispatch(toggleTag(tag.name))}
+              />
+              <span>{tag.name}</span>
+            </label>
+          ))}
+        </div>
+      </div>
       <DockLayout
         ref={dockRef}
         defaultLayout={layout}

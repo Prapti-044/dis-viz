@@ -34,3 +34,50 @@
     gap: 5px;
     padding: 0 5px;
 }
+
+.monaco-editor .decorationsOverviewRuler {
+    display: block;
+}
+
+.monaco-editor .right-tags {
+    color: black;
+    font-family: monospace;
+    font-size: 10px;
+    white-space: nowrap;
+    position: absolute;
+    transform: translateX(400px);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 4px;
+
+    .right-tags-container {
+        display: flex;
+        border-radius: 4px;
+        padding: 1px 4px;
+        
+        .right-tag {
+            display: flex;
+            align-items: center;
+            
+            .right-tag-name {
+                margin-right: 4px;
+            }
+            
+            .right-tag-binary {
+                width: 10px;
+                height: 10px;
+                border-radius: 50%;
+                margin-right: 4px;
+            }
+
+            .right-tag-binary.active {
+                background-color: orange;
+            }
+
+            .right-tag-binary.inactive {
+                border: 1px solid white;
+            }
+        }
+    }
+}
