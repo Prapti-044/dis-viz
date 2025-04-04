@@ -18,6 +18,7 @@
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
 #include <vector>
 
+#include "InstructionCategories.h"
 #include "include/parse_source.hpp"
 
 using std::set, std::vector, std::string, std::map, std::unordered_map, std::ifstream, std::stringstream, std::unique_ptr;
@@ -52,6 +53,9 @@ void setInstructionFlags(const InstructionAPI::Instruction &instr,
     case InstructionAPI::c_SysEnterInsn:
     case InstructionAPI::c_SyscallInsn:
       flags.insert(INST_SYSCALL);
+      break;
+    case InstructionAPI::c_BranchInsn:
+      flags.insert(INST_BRANCH);
       break;
     default:
       break;
@@ -492,13 +496,24 @@ void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
   }
 }
 
+unsigned long getNumberOfLines(const string &file) {
+  std::ifstream fileStream(file);
+  std::string line;
+  int lineCount = 0;
+  while (std::getline(fileStream, line)) {
+    lineCount++;
+  }
+  return lineCount;
+}
+
+
 std::tuple<
   vector<BlockInfo>, // Memory Order Blocks
   vector<BlockInfo>, // Loop Order Blocks
   unordered_map<string, map<int, vector<unsigned long>>>, // Source Correspondences
   set<string>, // Unique Source Files
   vector<FunctionInfo>, // Function Infos
-  unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> // Source Code Info { file: { line: { tags } } }
+  unordered_map<string, SourceCodeInfo> // Source Code Info { file: { line: { tags }, total_lines: int } }
 > getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
   auto bar = indicators::ProgressBar{
@@ -524,7 +539,7 @@ std::tuple<
   auto instruction_flags = map<Dyninst::Address, std::unordered_set<INSTRUCTION_FLAGS>>();
   auto unique_sourcefiles = set<string>();
   auto curr_block_id = 0;
-  auto sourceCodeInfo = unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>>(); 
+  auto sourceCodeInfo = unordered_map<std::string, SourceCodeInfo>(); 
   auto functionInfos = vector<FunctionInfo>();
 
   // create an Instruction decoder which will convert the binary opcodes to strings
@@ -618,11 +633,14 @@ std::tuple<
 
     for(const auto &inlineEntry: inlines) {
       if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
-        sourceCodeInfo[inlineEntry.callsite_file] = std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
+
+        sourceCodeInfo[inlineEntry.callsite_file] = SourceCodeInfo{
+          inlineEntry.callsite_file,
+          static_cast<int>(getNumberOfLines(inlineEntry.callsite_file)),
+          std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
+        };
       }
-      sourceCodeInfo[inlineEntry.callsite_file][inlineEntry.callsite_line - 1].insert( // convert to 0 based index
-        SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE
-      );
+      sourceCodeInfo[inlineEntry.callsite_file].lines[inlineEntry.callsite_line - 1].insert(SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE);
     }
     
     // Calls
@@ -744,9 +762,13 @@ std::tuple<
             auto sourceFile = correspondence.first;
             for (const auto &line: correspondence.second) {
               if (sourceCodeInfo.find(sourceFile) == sourceCodeInfo.end())
-                sourceCodeInfo[sourceFile] = std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
+                sourceCodeInfo[sourceFile] = SourceCodeInfo{
+                  sourceFile,
+                  static_cast<int>(getNumberOfLines(sourceFile)),
+                  std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
+                };
               if (auto it = INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.find(inst_flag); it != INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.end()) {
-                sourceCodeInfo[sourceFile][line].insert(it->second);
+                sourceCodeInfo[sourceFile].lines[line].insert(it->second);
               }
             }
           }
@@ -756,6 +778,24 @@ std::tuple<
       funcBlocks.push_back(std::move(blockInfo));
 
     }
+    
+    // Populate sourceCodeInfo with number of lines
+    for (const auto &sourceFile : unique_sourcefiles) {
+      std::ifstream file(sourceFile);
+      std::string line;
+      int lineCount = 0;
+      while (std::getline(file, line)) {
+        lineCount++;
+      }
+      if (sourceCodeInfo.find(sourceFile) == sourceCodeInfo.end()) {
+        sourceCodeInfo[sourceFile] = SourceCodeInfo{
+          sourceFile,
+          lineCount,
+          std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
+        };
+      }
+    }
+
     int maxLoopCount = -1;
     for (const auto &loop : funcLoops) {
       auto loop_count = unordered_map<string, int>();

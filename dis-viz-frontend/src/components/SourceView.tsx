@@ -181,16 +181,21 @@ function SourceView({ file_name }: {
                                                     border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
                                                     color: SOURCE_TAGS[tagIndex].textColor,
                                                     backgroundColor: SOURCE_TAGS[tagIndex].color,
+                                                    fontFamily: 'Consolas',
                                                 }}>
                                                 <div className="right-tag">
                                                     <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
-                                                    {validBinaryFilePaths.length > 1 && validBinaryFilePaths.map((binaryPath, binaryIndex) => (
-                                                        <div
-                                                            className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
-                                                            key={`${line}-${tagIndex}-${binaryIndex}`}
-                                                            title={binaryPath.split('/').pop()}
-                                                        />
-                                                    ))}
+                                                    {validBinaryFilePaths.length > 1 && (
+                                                        <div className="right-tag-binaries">
+                                                            {validBinaryFilePaths.length > 1 && validBinaryFilePaths.map((binaryPath, binaryIndex) => (
+                                                                <div
+                                                                    className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
+                                                                    key={`${line}-${tagIndex}-${binaryIndex}`}
+                                                                    title={binaryPath.split('/').pop()}
+                                                                />
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         )

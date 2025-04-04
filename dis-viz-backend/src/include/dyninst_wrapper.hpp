@@ -14,6 +14,7 @@ typedef enum {
   INST_MEMORY_WRITE,
   INST_CALL,
   INST_SYSCALL,
+  INST_BRANCH,
   INST_FP,
   INST_HOISTED
 } INSTRUCTION_FLAGS;
@@ -122,6 +123,13 @@ typedef enum {
   SOURCE_CODE_FP,
   SOURCE_CODE_HOISTED
 } SOURCE_CODE_FLAGS;
+
+struct SourceCodeInfo {
+  std::string file;
+  int total_lines;
+  std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>> lines;
+};
+
 struct BinaryCacheResult {
   struct {
     std::vector<BlockInfo> memory_order_blocks;
@@ -133,7 +141,7 @@ struct BinaryCacheResult {
   } minimap;
   std::vector<std::string> source_files;
   std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
-  std::unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> sourceCodeInfo;
+  std::unordered_map<std::string, SourceCodeInfo> sourceCodeInfo;
 };
 
 

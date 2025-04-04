@@ -278,8 +278,10 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                 enabledTags[tag.id] && instruction.flags.includes(tag.id) ?
                     <span key={tag.id+instruction_address} className='disassembly-line-tag' style={{
                         border: `2px solid ${tag.borderColor}`,
-                        backgroundColor: tag.color,
                         color: tag.textColor,
+                        backgroundColor: tag.color,
+                        fontFamily: 'Roboto Condensed',
+                        padding: '9px 4px',
                     }}>{tag.shortName}</span>
                 : <></>
             ))}

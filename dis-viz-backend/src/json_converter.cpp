@@ -21,13 +21,14 @@ json convertVariableInfo(const VariableInfo &var) {
   return result;
 }
 
-json convertSourceCodeInfo(const std::unordered_map<std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>> &sourceCodeInfo) {
+json convertSourceCodeInfo(const std::unordered_map<std::string, SourceCodeInfo> &sourceCodeInfo) {
   auto result = json::list();
   for (const auto &i : sourceCodeInfo) {
     auto file = json();
     file["file"] = i.first;
+    file["total_lines"] = i.second.total_lines;
     auto lines = json::list();
-    for (const auto &j : i.second) {
+    for (const auto &j : i.second.lines) {
       auto flags = json::list();
       for (const auto &k : j.second) {
         switch (k) {
@@ -57,7 +58,7 @@ json convertSourceCodeInfo(const std::unordered_map<std::string, std::map<int, s
           break;
         }
       }
-      lines.push_back(std::move(flags));
+      lines.push_back({{"line", j.first}, {"flags", std::move(flags)}});
     }
     file["lines"] = std::move(lines);
     result.push_back(std::move(file));
@@ -92,7 +93,8 @@ auto INSTRUCTION_TAGS_TO_STR = std::unordered_map<INSTRUCTION_FLAGS, std::string
      {INSTRUCTION_FLAGS::INST_CALL, "CALL"},
      {INSTRUCTION_FLAGS::INST_SYSCALL, "SYSCALL"},
      {INSTRUCTION_FLAGS::INST_FP, "FP"},
-     {INSTRUCTION_FLAGS::INST_HOISTED, "HOISTED"}});
+     {INSTRUCTION_FLAGS::INST_HOISTED, "HOISTED"},
+     {INSTRUCTION_FLAGS::INST_BRANCH, "BRANCH"}});
 
 
 json convertInstructionInfo(const InstructionInfo &instruction) {

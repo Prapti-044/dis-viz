@@ -301,7 +301,7 @@ int main(int argc, char *argv[]) {
           if (decodedBinary->sourceCodeInfo.find(sourceFile) !=
               decodedBinary->sourceCodeInfo.end())
             allBinarySourceCodeInfo[binaryPath] =
-                decodedBinary->sourceCodeInfo[sourceFile];
+                decodedBinary->sourceCodeInfo[sourceFile].lines;
           else
             allBinarySourceCodeInfo[binaryPath] =
                 std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>();
