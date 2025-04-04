@@ -249,6 +249,13 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             highlight.addresses.includes(instruction.address)
         );
     }, [binaryHoverHighlight, binaryFilePath, instruction.address]);
+    
+    INSTRUCTION_TAGS.forEach(tag => {
+        console.log("For tag: ", tag.id, " enabled: ", enabledTags[tag.id], " instruction flags: ", instruction.flags)
+        if (enabledTags[tag.id] && instruction.flags.includes(tag.id)) {
+            console.log("For instruction: ", instruction.instruction, " tag: ", tag.id)
+        }
+    })
 
     return <div
         key={disLineToId(disId, instruction.address)}
@@ -269,9 +276,10 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
             {INSTRUCTION_TAGS.map(tag => (
                 enabledTags[tag.id] && instruction.flags.includes(tag.id) ?
-                    <span key={tag.id} className='disassembly-line-tag' style={{
-                        border: `2px solid ${tag.color}`,
-                        // color: tag.color,
+                    <span key={tag.id+instruction_address} className='disassembly-line-tag' style={{
+                        border: `2px solid ${tag.borderColor}`,
+                        backgroundColor: tag.color,
+                        color: tag.textColor,
                     }}>{tag.shortName}</span>
                 : <></>
             ))}

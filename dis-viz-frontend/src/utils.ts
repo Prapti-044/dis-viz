@@ -3,99 +3,137 @@ import inteldocs from './inteldocs.json'
 export const HIGHLIGHT_COLOR = "#C7DFC5"
 
 export const SOURCE_TAGS = [
-    {
-        id: 'INLINE' as const,
-        fullName: 'Inline',
-        shortName: 'inl',
-        color: '#9b7e1d',
-    },
-    {
-        id: 'VECTORIZED' as const,
-        fullName: 'Vectorized',
-        shortName: 'vec',
-        color: '#00ffff',
-    },
-    {
-        id: 'MEMORY_READ' as const,
-        fullName: 'Memory Read',
-        shortName: 'memr',
-        color: '#a38eb3',
-    },
-    {
-        id: 'MEMORY_WRITE' as const,
-        fullName: 'Memory Write',
-        shortName: 'memw',
-        color: '#a3acea',
-    },
-    {
-        id: 'CALL' as const,
-        fullName: 'Call',
-        shortName: 'call',
-        color: '#d494b0',
-    },
-    {
-        id: 'SYSCALL' as const,
-        fullName: 'System Call',
-        shortName: 'sysc',
-        color: '#d494b0',
-    },
-    {
-        id: 'FP' as const,
-        fullName: 'Floating Point',
-        shortName: 'fp',
-        color: '#d88e4d',
-    },
-    {
-        id: 'HOISTED' as const,
-        fullName: 'Hoisted',
-        shortName: 'hoist',
-        color: '#f6d9ce',
-    },
+  {
+    id: 'INLINE' as const,
+    fullName: 'Inline',
+    shortName: 'inl',
+    color: '#ceddfd', //'#bc80bd',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'VECTORIZED' as const,
+    fullName: 'Vectorized',
+    shortName: 'vec',
+    color: '#a1a6f5',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'MEMORY_READ' as const,
+    fullName: 'Memory Read',
+    shortName: 'memr',
+    color: '#e9c1fb',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'MEMORY_WRITE' as const,
+    fullName: 'Memory Write',
+    shortName: 'memw',
+    color: '#d19ce3',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'CALL' as const,
+    fullName: 'Call',
+    shortName: 'call',
+    color: '#f2a8e9',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'SYSCALL' as const,
+    fullName: 'System Call',
+    shortName: 'sysc',
+    color: '#baa286',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'FP' as const,
+    fullName: 'Floating Point',
+    shortName: 'fp',
+    color: '#83ef9c',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'HOISTED' as const,
+    fullName: 'Hoisted',
+    shortName: 'hoist',
+    color: '#9b9c07',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
 ];
 
 export const INSTRUCTION_TAGS = [
-    {
-        id: 'VECTORIZED' as const,
-        fullName: 'Vectorized',
-        shortName: 'vec',
-        color: '#00ffff',
-    },
-    {
-        id: 'MEMORY_READ' as const,
-        fullName: 'Memory Read',
-        shortName: 'memr',
-        color: '#a38eb3',
-    },
-    {
-        id: 'MEMORY_WRITE' as const,
-        fullName: 'Memory Write',
-        shortName: 'memw',
-        color: '#a3acea',
-    },
-    {
-        id: 'CALL' as const,
-        fullName: 'Call',
-        shortName: 'call',
-        color: '#d494b0',
-    },
-    {
-        id: 'SYSCALL' as const,
-        fullName: 'System Call',
-        shortName: 'sysc',
-        color: '#d494b0',
-    },
-    {
-        id: 'FP' as const,
-        fullName: 'Floating Point',
-        shortName: 'fp',
-        color: '#d88e4d',
-    },
-    {
-        id: 'HOISTED' as const,
-        fullName: 'Hoisted',
-        shortName: 'hoist',
-        color: '#f6d9ce',
-    },
+  {
+    id: 'INLINE' as const,
+    fullName: 'Inline',
+    shortName: 'inl',
+    color: '#ceddfd', //'#bc80bd',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'VECTORIZED' as const,
+    fullName: 'Vectorized',
+    shortName: 'vec',
+    color: '#a1a6f5',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'MEMORY_READ' as const,
+    fullName: 'Memory Read',
+    shortName: 'memr',
+    color: '#e9c1fb',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'MEMORY_WRITE' as const,
+    fullName: 'Memory Write',
+    shortName: 'memw',
+    color: '#d19ce3',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'CALL' as const,
+    fullName: 'Call',
+    shortName: 'call',
+    color: '#f2a8e9',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'SYSCALL' as const,
+    fullName: 'System Call',
+    shortName: 'sysc',
+    color: '#baa286',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+  },
+  {
+    id: 'FP' as const,
+    fullName: 'Floating Point',
+    shortName: 'fp',
+    color: '#d88e4d',
+    borderColor: '#d88e4d',
+    textColor: 'black',
+  },
+  {
+    id: 'HOISTED' as const,
+    fullName: 'Hoisted',
+    shortName: 'hoist',
+    color: '#f6d9ce',
+    borderColor: '#f6d9ce',
+    textColor: 'black',
+  },
 ];
 
 export const MAX_FN_SIZE = 32
@@ -103,7 +141,7 @@ export function shortenName(name: string, len: number): string {
   console.assert(len >= 20, "len should be larger than 20")
   const suffix = name.split(": ")[1]
   name = name.split(": ")[0]
-  return (name.length<=len ? name : name.slice(0, 10) + '...' + name.slice(-10)) + ":" + suffix;
+  return (name.length <= len ? name : name.slice(0, 10) + '...' + name.slice(-10)) + ":" + suffix;
 }
 
 export function hexToHSL(H: string) {
@@ -122,12 +160,12 @@ export function hexToHSL(H: string) {
   r /= 255;
   g /= 255;
   b /= 255;
-  let cmin = Math.min(r,g,b),
-      cmax = Math.max(r,g,b),
-      delta = cmax - cmin,
-      h = 0,
-      s = 0,
-      l = 0;
+  let cmin = Math.min(r, g, b),
+    cmax = Math.max(r, g, b),
+    delta = cmax - cmin,
+    h = 0,
+    s = 0,
+    l = 0;
 
   if (delta === 0)
     h = 0;
@@ -163,8 +201,8 @@ export function isHex(value: string) {
 
 export function toHex(value: string) {
   let parsedValue = value.slice()
-  if (parsedValue.startsWith('0x')) 
-  parsedValue = parsedValue.slice(2)
+  if (parsedValue.startsWith('0x'))
+    parsedValue = parsedValue.slice(2)
 
   return parseInt(parsedValue, 16)
 }

@@ -178,7 +178,9 @@ function SourceView({ file_name }: {
                                         binaries.length > 0 && enabledTags[SOURCE_TAGS[tagIndex].id] && (
                                             <div key={tagIndex + line.toString()} className="right-tags-container" 
                                                 style={{
-                                                    border: `2px solid ${SOURCE_TAGS[tagIndex].color}`,
+                                                    border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
+                                                    color: SOURCE_TAGS[tagIndex].textColor,
+                                                    backgroundColor: SOURCE_TAGS[tagIndex].color,
                                                 }}>
                                                 <div className="right-tag">
                                                     <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
