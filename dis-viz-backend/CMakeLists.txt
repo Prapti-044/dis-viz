@@ -34,7 +34,7 @@ if(DEFINED ${DYNINST_LOCATION})
 else()
     ExternalProject_Add(dyninst
         GIT_REPOSITORY https://github.com/dyninst/dyninst
-        GIT_TAG 2b70b8d4a1e58540cea7c72370af363a1b7259c6
+        GIT_TAG 7dd349f4c60b717ac1134b91374ee729be319180
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DCMAKE_BUILD_TYPE=Release
     )
 endif()
@@ -75,7 +75,9 @@ target_include_directories(${PROJECT_NAME} PRIVATE ${CLANG_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CLANG_LIBRARY})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
-    symtabAPI parseAPI instructionAPI dynElf elf common dynDwarf 
+    symtabAPI parseAPI instructionAPI
+    # dynElf dynDwarf 
+    elf common 
     ${Boost_LIBRARIES}
 )
 

@@ -18,7 +18,6 @@
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
 #include <vector>
 
-#include "InstructionCategories.h"
 #include "include/parse_source.hpp"
 
 using std::set, std::vector, std::string, std::map, std::unordered_map, std::ifstream, std::stringstream, std::unique_ptr;
@@ -261,7 +260,7 @@ bool matchOperands(const vector<signed int> &readSet,
 
 string block_to_name(const ParseAPI::Function *fn, const ParseAPI::Block *block,
                      const int cur_id) {
-  return print_clean_string(fn->name() + ": B" + Dyninst::itos(cur_id));
+  return print_clean_string(fn->name() + ": B" + std::to_string(cur_id));
 }
 
 vector<VariableInfo> getInstructionVariables(
@@ -576,10 +575,10 @@ std::tuple<
       auto icur = block->start();
       auto iend = block->last();
       while (icur <= iend) {
-        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
-        symtab->getSourceLines(cur_lines, icur);
+        // auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
+        auto cur_lines = symtab->getSourceLines(icur);
         // if (cur_lines.empty()) continue;
-        for(auto &fl : cur_lines) unique_sourcefiles.insert(fl->getFile());
+        for(auto &fl : cur_lines) unique_sourcefiles.insert(fl.getFile());
 
         auto raw_insnptr =
             (const unsigned char *)f->isrc()->getPtrToInstruction(icur);
@@ -731,13 +730,14 @@ std::tuple<
 
       for (const auto &instr : insns) {
         // Correspondences
-        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
-        symtab->getSourceLines(cur_lines, instr.first); // getSourceLines should give multiple source lines per instruction.
+        // auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
+        // symtab->getSourceLines(cur_lines, instr.first); // getSourceLines should give multiple source lines per instruction.
+        auto cur_lines = symtab->getSourceLines(instr.first);
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
-          const auto lineNumber = li->getLine() - 1; // converted to 0 based index
-          correspondences[print_clean_string(li->getFile())].push_back(lineNumber);
-          source_correspondences[print_clean_string(li->getFile())][lineNumber].push_back(instr.first);
+          const auto lineNumber = li.getLine() - 1; // converted to 0 based index
+          correspondences[print_clean_string(li.getFile())].push_back(lineNumber);
+          source_correspondences[print_clean_string(li.getFile())][lineNumber].push_back(instr.first);
         }
 
         blockInfo.instructions.push_back({
