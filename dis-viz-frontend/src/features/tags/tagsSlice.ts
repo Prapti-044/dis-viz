@@ -13,7 +13,7 @@ const initialState: TagsState = {
     )
     .reduce((acc, tag) => ({
       ...acc,
-      [tag.id]: true
+      [tag.id]: tag.defaultEnabled
     }), {})
 };
 

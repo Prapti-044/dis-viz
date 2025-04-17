@@ -10,6 +10,7 @@ export const SOURCE_TAGS = [
     color: '#f3c2bb', //'#bc80bd',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true, 
   },
   {
     id: 'VECTORIZED' as const,
@@ -18,6 +19,7 @@ export const SOURCE_TAGS = [
     color: '#d0a291',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'MEMORY_READ' as const,
@@ -26,6 +28,7 @@ export const SOURCE_TAGS = [
     color: '#de9f9d',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'MEMORY_WRITE' as const,
@@ -34,6 +37,7 @@ export const SOURCE_TAGS = [
     color: '#f0cfb4',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'CALL' as const,
@@ -42,6 +46,7 @@ export const SOURCE_TAGS = [
     color: '#f1dace',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'SYSCALL' as const,
@@ -50,6 +55,7 @@ export const SOURCE_TAGS = [
     color: '#baa286',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'FP' as const,
@@ -58,6 +64,7 @@ export const SOURCE_TAGS = [
     color: '#f7c9e0',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'HOISTED' as const,
@@ -66,6 +73,7 @@ export const SOURCE_TAGS = [
     color: '#bc80bd',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
 ];
 
@@ -77,6 +85,7 @@ export const INSTRUCTION_TAGS = [
     color: '#f3c2bb', //'#bc80bd',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'VECTORIZED' as const,
@@ -85,6 +94,7 @@ export const INSTRUCTION_TAGS = [
     color: '#d0a291',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'MEMORY_READ' as const,
@@ -93,6 +103,7 @@ export const INSTRUCTION_TAGS = [
     color: '#de9f9d',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'MEMORY_WRITE' as const,
@@ -101,6 +112,7 @@ export const INSTRUCTION_TAGS = [
     color: '#f0cfb4',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'CALL' as const,
@@ -109,6 +121,7 @@ export const INSTRUCTION_TAGS = [
     color: '#f1dace',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'SYSCALL' as const,
@@ -117,6 +130,7 @@ export const INSTRUCTION_TAGS = [
     color: '#baa286',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'FP' as const,
@@ -125,6 +139,7 @@ export const INSTRUCTION_TAGS = [
     color: '#f7c9e0',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'HOISTED' as const,
@@ -133,6 +148,7 @@ export const INSTRUCTION_TAGS = [
     color: '#bc80bd',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: true,
   },
   {
     id: 'BRANCH' as const,
@@ -141,6 +157,7 @@ export const INSTRUCTION_TAGS = [
     color: 'red',
     borderColor: '#FFFFFF',
     textColor: 'black',
+    defaultEnabled: false,
   },
 ];
 
