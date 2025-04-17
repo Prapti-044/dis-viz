@@ -755,8 +755,8 @@ std::tuple<
       blockInfo.nInstructions = blockInfo.instructions.size();
       addLoopHeaderInfo(blockInfo, funcLoops);
 
+      // Populate sourceCodeInfo
       for (const auto &inst: blockInfo.instructions) {
-        
         for (const auto &inst_flag: inst.flags) {
           for (const auto &correspondence: inst.correspondence) {
             auto sourceFile = correspondence.first;
@@ -776,7 +776,6 @@ std::tuple<
       }
 
       funcBlocks.push_back(std::move(blockInfo));
-
     }
     
     // Populate sourceCodeInfo with number of lines
@@ -971,6 +970,10 @@ std::tuple<
                 });
                 if (inst != bodyLineBlockIt->instructions.end()) {
                   inst->flags.insert(INST_HOISTED);
+                  // Add HOISTED flag to the source code line
+                  if (sourceCodeInfo.find(sourceFile) != sourceCodeInfo.end()) {
+                    sourceCodeInfo[sourceFile].lines[bodyLine-1].insert(SOURCE_CODE_HOISTED);
+                  }
                 }
               }
             }

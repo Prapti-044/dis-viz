@@ -12,7 +12,6 @@ import * as monaco from 'monaco-editor'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
 loader.config({ monaco });
 
-const TAG_WIDTH = 20
 function SourceView({ file_name }: {
     file_name: string,
 }) {
@@ -22,7 +21,6 @@ function SourceView({ file_name }: {
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter(f => f !== '')
     const mouseHighlight = useAppSelector(selectSourceHoverHighlight)
-    // const [tagsNeedUpdate, setTagsNeedUpdate] = React.useState(false) // required for line tags glyph on left
 
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
@@ -185,14 +183,26 @@ function SourceView({ file_name }: {
                                                 }}>
                                                 <div className="right-tag">
                                                     <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
-                                                    {validBinaryFilePaths.length > 1 && (
+                                                    {validBinaryFilePaths.length > 1 && tags[tagIndex].length !== validBinaryFilePaths.length && (
                                                         <div className="right-tag-binaries">
-                                                            {validBinaryFilePaths.length > 1 && validBinaryFilePaths.map((binaryPath, binaryIndex) => (
+                                                            {validBinaryFilePaths.map((binaryPath, binaryIndex) => (
                                                                 <div
                                                                     className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
                                                                     key={`${line}-${tagIndex}-${binaryIndex}`}
                                                                     title={binaryPath.split('/').pop()}
                                                                 />
+                                                                // <div
+                                                                //     key={`${line}-${tagIndex}-${binaryIndex}`}
+                                                                //     title={binaryPath.split('/').pop()}
+                                                                //     style={{
+                                                                //         fontSize: '18px',
+                                                                //     }}
+                                                                // >
+                                                                //     {binaries.includes(binaryIndex) ? 
+                                                                //         <strong>,</strong> : 
+                                                                //         <span>.</span>
+                                                                //     }
+                                                                // </div>
                                                             ))}
                                                         </div>
                                                     )}

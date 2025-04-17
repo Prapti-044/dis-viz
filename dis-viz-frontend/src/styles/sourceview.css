@@ -50,15 +50,15 @@
     font-size: 10px;
     white-space: nowrap;
     position: absolute;
-    right: min(calc(20% + 60px), 260px);
+    right: min(calc(20% + 60px), 290px);
     display: flex;
     flex-direction: row-reverse;
     align-items: center;
     gap: 4px;
 
+
     .right-tags-container {
         display: flex;
-        border-radius: 4px;
         padding: 1px 4px;
         
         .right-tag {
@@ -66,6 +66,7 @@
             align-items: center;
             flex-direction: row;
             height: 14px;
+            font-size: 12px;
             
             .right-tag-binaries {
                 margin-left: 4px;
@@ -76,17 +77,15 @@
             }
             
             .right-tag-binary {
-                width: 10px;
+                width: 2px;
                 height: 10px;
-                border-radius: 50%;
+                /* border-radius: 50%; */
+                border: 1px solid rgba(44, 44, 44, 0.2);
             }
             
             .right-tag-binary.active {
                 background-color: rgba(0, 0, 0, 0.486);
-            }
-
-            .right-tag-binary.inactive {
-                border: 1px solid rgba(0, 0, 0, 0.842);
+                border: 1px solid black;
             }
         }
     }
