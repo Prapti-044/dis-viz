@@ -175,7 +175,7 @@ export async function getBinaryList(): Promise<{
     return result.binarylist;
 }
 
-export async function getSourceAndBinaryCorrespondencesFromSelection(binary_file: string, addresses: number[], other_binary_files: string[], order: BLOCK_ORDERS): Promise<Selection> {
+export async function getSelectionFromBinary_indirect(binary_file: string, addresses: number[], other_binary_files: string[], order: BLOCK_ORDERS): Promise<Selection> {
     const response = await fetch(
         apiURL + "getsourceandbinarycorrespondencesfromselection/" + order, {
             method: 'POST',
@@ -183,6 +183,34 @@ export async function getSourceAndBinaryCorrespondencesFromSelection(binary_file
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({binary_file: binary_file, addresses: addresses, other_binary_files: other_binary_files}),
+        }
+    );
+    const result = await response.json();
+    return result;
+}
+
+export async function getSourceFromBinary(binary_file: string, address: number): Promise<{
+    [source_file: string]: number[] // { source_file: [line_no] }
+}> {
+    const response = await fetch(
+        apiURL + "getbinaryaddresscorrespondence", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', },
+            body: JSON.stringify({binary_file: binary_file, address: address}),
+        }
+    );
+    const result = await response.json();
+    return result;
+}
+
+export async function getSourceLinesFromBinary(binary_paths: string[], source_file: string, line_no: number): Promise<{
+    [binary_path: string]: number[] // { binary_path: [addresses] }
+}> {
+    const response = await fetch(
+        apiURL + "getsourcelinecorrespondence", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', },
+            body: JSON.stringify({binary_paths: binary_paths, source_file: source_file, line_no: line_no}),
         }
     );
     const result = await response.json();

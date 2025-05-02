@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import '../styles/sourceview.css'
-import { setSelection, clearSourceHoverHighlight, clearBinaryHoverHighlight, setSourceHoverHighlight, setBinaryHoverHighlight } from '../features/selections/selectionsSlice'
+import { setSelection, clearHoverHighlight, setHoverHighlight, clearSelection, BinarySelection } from '../features/selections/selectionsSlice'
 import * as api from '../api'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice'
@@ -331,12 +331,15 @@ function SourceView({ file_name }: {
                     position: monaco.editor.MinimapPosition.Inline,
                 },
                 zIndex: 2,
+                linesDecorationsClassName: 'selection-line-button',
+                beforeContentClassName: 'selection-button-container',
             },
         }))
 
         // mouse highlight
-        const linesToHighlight = mouseHighlight?.source_lines.map(line => line + 1) // make it 1-based
-        if (mouseHighlight && mouseHighlight.source_file === file_name && linesToHighlight.length > 0) {
+        const linesToHighlight = mouseHighlight.find(highlight => highlight.source_file === file_name)?.source_lines.map(line => line + 1) || [] // make it 1-based
+
+        if (linesToHighlight.length > 0) {
             // Create decorations for the specified lines
             decorations.push(...linesToHighlight.map((lineNumber) => ({
                 range: new monaco.Range(lineNumber, 1, lineNumber, 1),
@@ -358,12 +361,6 @@ function SourceView({ file_name }: {
         selectionDecorationCollection.set(decorations)
     }, [selectedLines, file_name, editorRefUpdated, selectionDecorationCollection, mouseHighlight])
 
-    function setThisSelection(binaryFilePath: string, addresses: number[]) {
-        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, 'memory_order').then(selections => {
-            dispatch(setSelection(selections))
-        })
-    }
-
     // add decorations for hovered lines
     React.useEffect(() => {
         if (editorRef.current === null || correspondenceDecorationCollection === null || Object.keys(correspondences).length === 0) return
@@ -371,59 +368,91 @@ function SourceView({ file_name }: {
         editorRef.current.onMouseMove((e) => {
             if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) {
                 // Clear hover highlights when mouse is not over text
-                dispatch(clearSourceHoverHighlight())
-                dispatch(clearBinaryHoverHighlight())
+                dispatch(clearHoverHighlight())
                 return
             }
             
             const lineNumber = e.target.position.lineNumber - 1
-            const addresses: { [binaryFilePath: string]: number[] } = {}
+            const addresses: BinarySelection[] = []
             validBinaryFilePaths.forEach((binaryFilePath) => {
-                addresses[binaryFilePath] = correspondences[binaryFilePath][lineNumber]
+                if (correspondences[binaryFilePath][lineNumber].length > 0) {
+                    addresses.push({
+                        binary_file: binaryFilePath,
+                        addresses: correspondences[binaryFilePath][lineNumber]
+                    })
+                }
             })
             
             // Only update if there are addresses to highlight
-            if (Object.values(addresses).every(addresses => addresses.length === 0)) {
-                dispatch(clearSourceHoverHighlight())
-                dispatch(clearBinaryHoverHighlight())
+            if (addresses.length === 0) {
+                dispatch(clearHoverHighlight())
                 return
             }
 
             // Update source hover highlight
-            dispatch(setSourceHoverHighlight({
-                source_file: file_name,
-                source_lines: [lineNumber]
+            dispatch(setHoverHighlight({
+                source_hover_highlight: [{
+                    source_file: file_name,
+                    source_lines: [lineNumber]
+                }],
+                binary_hover_highlight: addresses
             }))
-            
-            // Update binary hover highlight for all binary files
-            dispatch(setBinaryHoverHighlight(Object.entries(addresses)
-                .filter(([_, addrs]) => addrs.length > 0)
-                .map(([binaryFilePath, addrs]) => ({
-                    binary_file: binaryFilePath,
-                    addresses: addrs
-                }))))
+        })
+        
+        editorRef.current.onDidChangeCursorPosition((e) => {
+            const selection = editorRef.current!.getPosition()?.lineNumber
+            if (!selection || Object.keys(correspondences).length === 0) return
+            const lineNumber = selection - 1
+
+            const addresses: BinarySelection[] = []
+            validBinaryFilePaths.forEach((binaryFilePath) => {
+                if (correspondences[binaryFilePath][lineNumber].length > 0) {
+                    addresses.push({
+                        binary_file: binaryFilePath,
+                        addresses: correspondences[binaryFilePath][lineNumber]
+                    })
+                }
+            })
+            dispatch(setSelection({
+                source_selection: [{
+                    source_file: file_name,
+                    source_lines: [lineNumber]
+                }],
+                binary_selection: addresses
+            }))
         })
 
-        editorRef.current.onDidChangeCursorSelection((e) => {
-            const selection = editorRef.current!.getSelection()
-            if (selection === null || selection.startLineNumber > sourceCode.split('\n').length - 1) return
-            if (Object.keys(correspondences).length === 0) return
-            const startLine = selection.selectionStartLineNumber - 1
-            const endLine = selection.endLineNumber - 1
-            const finalSelection = {
-                start: Math.min(startLine, endLine),
-                end: Math.max(startLine, endLine),
-            }
-
+        // Handle the click on the selection line button
+        function handleSelectionButtonClick(lineNumber: number, file: string, element: HTMLElement | null) {
             const binaryFilePath = validBinaryFilePaths[0]
-            const addresses: number[] = []
-            for (let i = finalSelection.start; i <= finalSelection.end; i++) {
-                correspondences[binaryFilePath][i].forEach(address => {
-                    addresses.push(address)
-                })
+            api.getSelectionFromBinary_indirect(binaryFilePath, correspondences[binaryFilePath][lineNumber], validBinaryFilePaths, 'memory_order').then(selections => {
+                dispatch(setSelection(selections))
+            })
+            
+            // Add clicked class to the button element
+            if (element) {
+                if (element.classList.contains('selection-button-container')) {
+                    element.classList.add('clicked');
+                } else if (element.parentElement?.classList.contains('selection-button-container')) {
+                    element.parentElement.classList.add('clicked');
+                }
             }
-            setThisSelection(binaryFilePath, addresses)
-        })
+        }
+
+        // Add click handler for selection buttons
+        const disposable = editorRef.current.onMouseDown((e) => {
+            if (e.target.element?.classList.contains('selection-button-container') || 
+                e.target.element?.parentElement?.classList.contains('selection-button-container')) {
+                const lineNumber = e.target.position?.lineNumber;
+                if (lineNumber) {
+                    handleSelectionButtonClick(lineNumber - 1, file_name, e.target.element);
+                }
+            }
+        });
+
+        return () => {
+            disposable.dispose();
+        };
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection, tagsDecorationCollection])
 
     return <Suspense fallback={<div>Loading source code...</div>}>

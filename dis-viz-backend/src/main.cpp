@@ -286,7 +286,11 @@ int main(int argc, char *argv[]) {
             std::unordered_map<std::string,
                                std::map<int, std::vector<unsigned long>>>();
         auto allBinarySourceCodeInfo = std::unordered_map<
-            std::string, std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>>(); // { binary_path: { line_number: { tags } } }
+            std::string,
+            std::map<int, std::unordered_set<
+                              SOURCE_CODE_FLAGS>>>(); // { binary_path: {
+                                                      // line_number: { tags } }
+                                                      // }
         for (const auto &binaryPath : binaryPaths) {
           const auto &decodedBinary =
               decodeBinaryCache(binaryPath, WRITE_TO_JSON);
@@ -342,7 +346,7 @@ int main(int argc, char *argv[]) {
                            {"addresses", addresses},
                            {"tags", tags}});
         }
-        
+
         // parse the AST of source code
         auto sourceCodeData = parseSourceCode(sourceFile);
 
@@ -351,8 +355,6 @@ int main(int argc, char *argv[]) {
         });
         return payload;
       });
-  
-  
 
   CROW_ROUTE(app, "/api/downloaddisassembly")
       .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
@@ -362,13 +364,13 @@ int main(int argc, char *argv[]) {
 
         auto disassembly = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
         std::stringstream output;
-        for (const auto& block : disassembly->disassembly.memory_order_blocks) {
-            for (const auto& instruction : block.instructions) {
-                if (includeAddresses) {
-                    output << "0x" << std::hex << instruction.address << ": ";
-                }
-                output << instruction.instruction << "\n";
+        for (const auto &block : disassembly->disassembly.memory_order_blocks) {
+          for (const auto &instruction : block.instructions) {
+            if (includeAddresses) {
+              output << "0x" << std::hex << instruction.address << ": ";
             }
+            output << instruction.instruction << "\n";
+          }
         }
 
         crow::response res;
@@ -466,10 +468,83 @@ int main(int argc, char *argv[]) {
       return crow::response(crow::NOT_FOUND);
     }
   });
+  
 
-  // TODO
-  CROW_ROUTE(app, "/api/getsourceandbinarycorrespondencesfromselection/<string>")
-      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req, std::string order) {
+  CROW_ROUTE(app, "/api/getsourcelinecorrespondence")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
+        auto reqBody = crow::json::load(req.body);
+        auto binaryPaths = std::vector<std::string>();
+        for (const auto &binaryPath : reqBody["binary_paths"]) {
+          binaryPaths.push_back(binaryPath.s());
+        }
+        auto sourceFile = reqBody["source_file"].s();
+        auto lineNo = reqBody["line_no"].i();
+        
+        auto correspondences = std::unordered_map<std::string, std::vector<unsigned long>>(); // { binary_path: [addresses] }
+
+        for (const auto &binaryPath : binaryPaths) {
+          auto decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
+
+          if (decodedBinary->correspondences.find(sourceFile) != decodedBinary->correspondences.end())
+            correspondences[binaryPath] = decodedBinary->correspondences[sourceFile][lineNo];
+          else
+            correspondences[binaryPath] = std::vector<unsigned long>();
+        }
+        
+        auto returnJson = json({});
+        for (const auto &[binaryPath, addresses] : correspondences) {
+          returnJson[binaryPath] = json::list(addresses.begin(), addresses.end());
+        }
+
+        return json(returnJson);
+      });
+  
+  CROW_ROUTE(app, "/api/getbinaryaddresscorrespondence")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req) {
+        auto reqBody = crow::json::load(req.body);
+        auto binaryPath = reqBody["binary_file"].s();
+        auto address = reqBody["address"].i();
+        
+        auto correspondences = std::unordered_map<std::string, std::vector<unsigned long>>(); // { source_file: [line_no] }
+
+        auto decodedBinary = decodeBinaryCache(binaryPath, WRITE_TO_JSON);
+        
+        std::vector<BlockInfo> *assembly;
+        assembly = &decodeBinaryCache(binaryPath, WRITE_TO_JSON)->disassembly.memory_order_blocks;
+        
+        auto found = false;
+        for (const auto &block : *assembly) {
+          if(block.startAddress > address || block.endAddress < address) continue;
+          for (const auto &instruction : block.instructions) {
+            if (instruction.address == address) {
+              for (const auto &[source_file, lines] : instruction.correspondence) {
+                for (const auto &line : lines) {
+                  correspondences[source_file].push_back(line);
+                }
+              }
+              found = true;
+              break;
+            }
+          }
+          if(found) break;
+        }
+
+        
+        auto returnJson = json({});
+        for (const auto &[source_file, lines] : correspondences) {
+          returnJson[source_file] = json::list(lines.begin(), lines.end());
+        }
+
+        return json(returnJson);
+      });
+
+    
+
+    
+  CROW_ROUTE(app,
+             "/api/getsourceandbinarycorrespondencesfromselection/<string>")
+      .methods("POST"_method)([&WRITE_TO_JSON](const crow::request &req,
+                                               std::string order) {
         auto reqBody = crow::json::load(req.body);
         auto binaryPath = reqBody["binary_file"].s();
         auto addresses = std::vector<int>();
@@ -479,7 +554,7 @@ int main(int argc, char *argv[]) {
         for (const auto &binaryPath : reqBody["other_binary_files"]) {
           otherBinaryPaths.push_back(binaryPath.s());
         }
-        
+
         struct SourceSelection {
           std::string source_file;
           std::unordered_set<int> source_lines;
@@ -498,22 +573,23 @@ int main(int argc, char *argv[]) {
         else
           assembly = &decodeBinaryCache(binaryPath, WRITE_TO_JSON)
                           ->disassembly.loop_order_blocks;
-        
+
         for (const auto &block : *assembly) {
           for (const auto &address : addresses) {
             if (block.startAddress <= address && block.endAddress >= address) {
               for (const auto &ins : block.instructions) {
                 if (ins.address == address) {
                   for (const auto &[source_file, lines] : ins.correspondence) {
-                    auto it = std::find_if(source_selection.begin(), source_selection.end(),
-                                           [&source_file](const SourceSelection &selection) {
-                                             return selection.source_file == source_file;
-                                           });
+                    auto it = std::find_if(
+                        source_selection.begin(), source_selection.end(),
+                        [&source_file](const SourceSelection &selection) {
+                          return selection.source_file == source_file;
+                        });
                     if (it != source_selection.end()) {
                       it->source_lines.insert(lines.begin(), lines.end());
-                    }
-                    else {
-                      std::unordered_set<int> source_lines(lines.begin(), lines.end());
+                    } else {
+                      std::unordered_set<int> source_lines(lines.begin(),
+                                                           lines.end());
                       source_selection.push_back({source_file, source_lines});
                     }
                   }
@@ -522,7 +598,7 @@ int main(int argc, char *argv[]) {
             }
           }
         }
-        
+
         for (const auto &binaryPath : otherBinaryPaths) {
           const auto &decodedBinary =
               decodeBinaryCache(binaryPath, WRITE_TO_JSON);
@@ -530,18 +606,26 @@ int main(int argc, char *argv[]) {
           for (const auto &[source_file, lines] : source_selection) {
             if (decodedBinary->correspondences.find(source_file) !=
                 decodedBinary->correspondences.end()) {
-              const auto thisBinarySourceCorrespondences = &decodedBinary->correspondences[source_file];
+              const auto thisBinarySourceCorrespondences =
+                  &decodedBinary->correspondences[source_file];
               for (const auto &line : lines) {
-                if (thisBinarySourceCorrespondences->find(line) != thisBinarySourceCorrespondences->end()) {
-                  auto thisBinarySourceAddress = thisBinarySourceCorrespondences->at(line);
-                  auto it = std::find_if(other_binary_selection.begin(), other_binary_selection.end(),
-                                         [&binaryPath](const BinarySelection &selection) {
-                                           return selection.binary_file == binaryPath;
-                                         });
+                if (thisBinarySourceCorrespondences->find(line) !=
+                    thisBinarySourceCorrespondences->end()) {
+                  auto thisBinarySourceAddress =
+                      thisBinarySourceCorrespondences->at(line);
+                  auto it = std::find_if(
+                      other_binary_selection.begin(),
+                      other_binary_selection.end(),
+                      [&binaryPath](const BinarySelection &selection) {
+                        return selection.binary_file == binaryPath;
+                      });
                   if (it != other_binary_selection.end()) {
-                    it->addresses.insert(thisBinarySourceAddress.begin(), thisBinarySourceAddress.end());
+                    it->addresses.insert(thisBinarySourceAddress.begin(),
+                                         thisBinarySourceAddress.end());
                   } else {
-                    std::unordered_set<long> addresses(thisBinarySourceAddress.begin(), thisBinarySourceAddress.end());
+                    std::unordered_set<long> addresses(
+                        thisBinarySourceAddress.begin(),
+                        thisBinarySourceAddress.end());
                     other_binary_selection.push_back({binaryPath, addresses});
                   }
                 }
@@ -550,34 +634,32 @@ int main(int argc, char *argv[]) {
           }
         }
 
-      auto source_selection_list = json::list();
-      for (const auto &selection : source_selection) {
-        json source_entry;
-        source_entry["source_file"] = selection.source_file;
-        source_entry["source_lines"] = json::list(selection.source_lines.begin(), selection.source_lines.end());
-        source_selection_list.push_back(source_entry);
-      }
+        auto source_selection_list = json::list();
+        for (const auto &selection : source_selection) {
+          json source_entry;
+          source_entry["source_file"] = selection.source_file;
+          source_entry["source_lines"] = json::list(
+              selection.source_lines.begin(), selection.source_lines.end());
+          source_selection_list.push_back(source_entry);
+        }
 
-      auto binary_selection_list = json::list();
-      for (const auto &selection : other_binary_selection) {
-        auto binary_entry_file = selection.binary_file;
-        auto binary_entry_addresses = json::list(selection.addresses.begin(), selection.addresses.end());
-        binary_selection_list.push_back({
-          {"binary_file", binary_entry_file},
-          {"addresses", binary_entry_addresses}
-        });
-      }
+        auto binary_selection_list = json::list();
+        for (const auto &selection : other_binary_selection) {
+          auto binary_entry_file = selection.binary_file;
+          auto binary_entry_addresses = json::list(selection.addresses.begin(),
+                                                   selection.addresses.end());
+          binary_selection_list.push_back(
+              {{"binary_file", binary_entry_file},
+               {"addresses", binary_entry_addresses}});
+        }
 
-      binary_selection_list.push_back({
-        {"binary_file", std::string(binaryPath)},
-        {"addresses", json::list(addresses.begin(), addresses.end())}
+        binary_selection_list.push_back(
+            {{"binary_file", std::string(binaryPath)},
+             {"addresses", json::list(addresses.begin(), addresses.end())}});
+
+        return json({{"source_selection", source_selection_list},
+                     {"binary_selection", binary_selection_list}});
       });
-
-      return json({
-        {"source_selection", source_selection_list},
-        {"binary_selection", binary_selection_list}
-      });
-  });
 
   // Preload all binary cache
   // decodeBinaryCache("/api/home/insane/prapti/RAJAPerf/build_ubuntu-gcc-12/bin/raja-perf.exe",

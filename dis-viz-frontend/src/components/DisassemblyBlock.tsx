@@ -30,63 +30,14 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     drawPseudo: 'full'|'none'|'short',
     blockOrder: BLOCK_ORDERS,
 }) {
-    const [isSelecting, setIsSelecting] = React.useState(false);
-    const [onGoingSelection, setOnGoingSelection] = React.useState<DisassemblyLineSelection|null>(null)
     const dispatch = useAppDispatch();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
     const pageIdx = pages.findIndex(page => page.start_address <= block.start_address && block.start_address <= page.end_address)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "")
     
-
-    
-    const onMouseDown = (lineNum: number) => {
-        setIsSelecting(true);
-        setOnGoingSelection({
-            start_address: lineNum,
-            end_address: lineNum
-        })
-    }
-
-    const onMouseOver = (lineNum: number) => {
-        if(isSelecting) {
-            setOnGoingSelection({
-                ...onGoingSelection!,
-                end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum
-            })
-        }
-    }
-
-    const onMouseUp = (lineNum: number) => {
-        setIsSelecting(false);
-        const finalSelection = {
-            ...onGoingSelection!,
-            end_address: lineNum<onGoingSelection!.start_address?onGoingSelection!.start_address:lineNum,
-        }
-        setOnGoingSelection(finalSelection)
-
-        const selectedDisassemblyLines = pages
-            // Filtering by page will not work for Loop Order, because page WILL have blocks in different order than memory address
-            // .filter(page => (
-            //     (page.start_address <= finalSelection.start_address && finalSelection.start_address <= page.end_address && page.end_address >= finalSelection.start_address) ||
-            //     (page.start_address >= finalSelection.start_address && page.start_address <= finalSelection.end_address)
-            // ))
-            .map(page => page.blocks)
-            .flat()
-            .filter(block => (
-                (block.start_address <= finalSelection.start_address && finalSelection.start_address <= block.end_address && block.end_address >= finalSelection.start_address) ||
-                (block.start_address >= finalSelection.start_address && block.start_address <= finalSelection.end_address)
-            ))
-            .map(block => block.instructions)
-            .flat()
-            .filter(instruction => finalSelection.start_address <= instruction.address && instruction.address <= finalSelection.end_address)
-            .map(instruction => instruction.address)
-
-        setThisSelection(selectedDisassemblyLines)
-    }
-    
     function setThisSelection(addresses: number[]) {
-        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
+        api.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
             dispatch(setSelection(selections))            
         })
     }
@@ -208,11 +159,8 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                                         binaryFilePath={binaryFilePath}
                                         block={block}
                                         isHighlighted={addressSelection[j]}
-                                        mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                                         key={i.toString() + j.toString()}
                                         instruction={ins}
-                                        isSelecting={isSelecting}
-                                        onGoingSelection={onGoingSelection}
                                         color={HIGHLIGHT_COLOR}
                                         disId={id}
                                         isHidable={isHidable}
@@ -228,11 +176,8 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
                         binaryFilePath={binaryFilePath}
                         block={block}
                         isHighlighted={addressSelection[j]}
-                        mouseEvents={{ onMouseDown, onMouseOver, onMouseUp }}
                         key={i.toString() + j.toString()}
                         instruction={ins}
-                        isSelecting={isSelecting}
-                        onGoingSelection={onGoingSelection}
                         color={HIGHLIGHT_COLOR}
                         disId={id}
                         isHidable={isHidable}

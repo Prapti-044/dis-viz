@@ -208,7 +208,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
     
     
     function setThisSelection(addresses: number[]) {
-        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, order).then(selections => {
+        api.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, order).then(selections => {
             dispatch(setSelection(selections))            
         })
     }

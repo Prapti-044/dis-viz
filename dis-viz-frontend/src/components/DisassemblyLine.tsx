@@ -3,7 +3,7 @@ import '../styles/disassemblyview.css'
 
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { setSelection, selectBinaryHoverHighlight, setBinaryHoverHighlight, setSourceHoverHighlight, clearSourceHoverHighlight, clearBinaryHoverHighlight } from '../features/selections/selectionsSlice';
+import { setSelection, selectBinaryHoverHighlight, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
@@ -19,18 +19,11 @@ function isJumpInstruction(instr: string) {
     return false;
 }
 
-function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mouseEvents, isSelecting, onGoingSelection, color, disId, isHidable, blockOrder, nextBlock }: {
+function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, color, disId, isHidable, blockOrder, nextBlock }: {
     binaryFilePath: string,
     block: InstructionBlock,
     instruction: Instruction,
     isHighlighted: boolean,
-    mouseEvents: {
-        onMouseDown: (lineNumber: number) => void
-        onMouseOver: (lineNumber: number) => void
-        onMouseUp: (lineNumber: number) => void
-    },
-    isSelecting: boolean,
-    onGoingSelection: DisassemblyLineSelection | null,
     color: string,
     disId: number,
     isHidable: boolean,
@@ -57,15 +50,20 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
         selectionStyle.border = "1px solid grey";
         selectionStyle.cursor = "pointer";
     }
-    if (isSelecting && instruction.address >= onGoingSelection!.start_address && instruction.address <= onGoingSelection!.end_address) {
-        selectionStyle.backgroundColor = "#eee";
-        selectionStyle.border = "1px solid grey";
-        selectionStyle.cursor = "pointer";
-    }
 
-    function setThisSelection(addresses: number[]) {
-        api.getSourceAndBinaryCorrespondencesFromSelection(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
-            dispatch(setSelection(selections))            
+    function setThisSelection() {
+        api.getSourceFromBinary(binaryFilePath, instruction.address).then(source => {
+            const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+                source_file,
+                source_lines: lines
+            }))
+            dispatch(setSelection({
+                source_selection,
+                binary_selection: [{
+                    binary_file: binaryFilePath,
+                    addresses: [instruction.address]
+                }]
+            }))
         })
     }
 
@@ -143,7 +141,19 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
                         }} onClick={() => {
 
                             api.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder).then(block => {
-                                setThisSelection(block.instructions.map(instruction => instruction.address))
+                                api.getSourceFromBinary(binaryFilePath, block.start_address).then(source => {
+                                    const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+                                        source_file,
+                                        source_lines: lines
+                                    }))
+                                    dispatch(setSelection({
+                                        source_selection,
+                                        binary_selection: [{
+                                            binary_file: binaryFilePath,
+                                            addresses: [block.start_address]
+                                        }],
+                                    }))
+                                })
                             })
                         }} className="opennewbutton"> </button>
                     </mark>
@@ -213,34 +223,6 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
 
     const parsedTokens = parseInstruction(instruction, block)
     
-    function handleMouseOver(instruction: Instruction) {
-        if (!instruction.correspondence || Object.keys(instruction.correspondence).length === 0) {
-            // Clear hover highlights when no correspondence exists
-            dispatch(clearSourceHoverHighlight())
-            dispatch(clearBinaryHoverHighlight())
-            return
-        }
-
-        // Update source hover highlight
-        const sourceFiles = Object.entries(instruction.correspondence).map(([source_file, lines]) => ({
-            source_file,
-            lines
-        }))
-        
-        if (sourceFiles.length > 0) {
-            dispatch(setSourceHoverHighlight({
-                source_file: sourceFiles[0].source_file,
-                source_lines: sourceFiles[0].lines
-            }))
-        }
-
-        // Update binary hover highlight
-        dispatch(setBinaryHoverHighlight([{
-            binary_file: binaryFilePath,
-            addresses: [instruction.address]
-        }]))
-    }
-
     // Add selector for hover state
     const binaryHoverHighlight = useAppSelector(selectBinaryHoverHighlight);
     const isMouseHovered = React.useMemo(() => {
@@ -250,12 +232,21 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
         );
     }, [binaryHoverHighlight, binaryFilePath, instruction.address]);
     
-    INSTRUCTION_TAGS.forEach(tag => {
-        console.log("For tag: ", tag.id, " enabled: ", enabledTags[tag.id], " instruction flags: ", instruction.flags)
-        if (enabledTags[tag.id] && instruction.flags.includes(tag.id)) {
-            console.log("For instruction: ", instruction.instruction, " tag: ", tag.id)
-        }
-    })
+    const handleMouseOver = () => {
+        api.getSourceFromBinary(binaryFilePath, instruction.address).then(source => {
+            const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+                source_file,
+                source_lines: lines
+            }))
+            dispatch(setHoverHighlight({
+                source_hover_highlight: source_selection,
+                binary_hover_highlight: [{
+                    binary_file: binaryFilePath,
+                    addresses: [instruction.address]
+                }]
+            }))
+        })
+    }
 
     return <div
         key={disLineToId(disId, instruction.address)}
@@ -265,12 +256,14 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, mo
         {isHidable ? <span className="hidablegutter"></span> : <></>}
         <code
             style={{ textAlign: 'left', color: 'black', ...selectionStyle }}
-            onMouseDown={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseDown(instruction.address) } : () => { }}
-            onMouseOver={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseOver(instruction.address); handleMouseOver(instruction) } : () => { }}
-            onMouseUp={(instruction.correspondence !== undefined && Object.keys(instruction.correspondence).length !== 0) ? () => { mouseEvents.onMouseUp(instruction.address) } : () => { }}
             onMouseLeave={() => {
-                dispatch(clearSourceHoverHighlight())
-                dispatch(clearBinaryHoverHighlight())
+                dispatch(clearHoverHighlight())
+            }}
+            onMouseOver={() => {
+                handleMouseOver()
+            }}
+            onClick={() => {
+                setThisSelection()
             }}
         >
             <span style={{ color: 'grey' }}>0x{instruction_address}</span>:{" "}
