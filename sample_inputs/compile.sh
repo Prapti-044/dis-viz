@@ -19,9 +19,6 @@ gcc -g -O3 loop_outer_block.c -o bin/loop_outer_block-O3
 g++ -g -O0 eg1.cpp -o bin/eg1-O0
 g++ -g -O3 eg1.cpp -o bin/eg1-O3
 
-gcc -g -O0 multisource/hello.c -o bin/multisource-O0
-gcc -g -O3 multisource/hello.c -o bin/multisource-O3
-
 gcc -g -O0 ifelse.c -o bin/ifelse-O0
 gcc -g -O3 ifelse.c -o bin/ifelse-O3
 

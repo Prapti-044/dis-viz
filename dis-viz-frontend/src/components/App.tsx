@@ -1,10 +1,6 @@
 import React from 'react';
 import * as api from "../api";
 
-import { Menu, SubMenu, MenuItem, MenuButton } from '@szhsin/react-menu';
-import '@szhsin/react-menu/dist/index.css';
-import '@szhsin/react-menu/dist/transitions/zoom.css';
-
 import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
 import TabContent from "./TabContent";
@@ -12,14 +8,13 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toast } from 'react-toastify';
 
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
-import { selectTagEnabled, toggleTag, selectAllTagStates } from '../features/tags/tagsSlice';
-import { SOURCE_TAGS, INSTRUCTION_TAGS } from '../utils';
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
+import HeaderMenu from './HeaderMenu';
 
 import '../styles/app.css';
 
@@ -31,10 +26,9 @@ const App = () => {
       file_name: string,
       status: "opened" | "closed"
   }[]>([])
+  const [showMinimaps, setShowMinimaps] = React.useState(true);
   
   const binaryFilePathsRef = React.useRef(binaryFilePaths);
-  const dispatch = useAppDispatch();
-  const enabledTags = useAppSelector(selectAllTagStates);
 
   React.useEffect(() => {
     binaryFilePathsRef.current = binaryFilePaths;
@@ -99,6 +93,7 @@ const App = () => {
           <DisassemblyView
             id={newId}
             removeSelf={() => { removeSelfDisassemblyView(newId) }}
+            showMinimap={showMinimaps}
           /></TabContent>,
         closable: true,
       };
@@ -112,7 +107,7 @@ const App = () => {
     else {
       toast.error("No valid binary file paths found")
     }
-  }, [disassemblyViewIds, removeSelfDisassemblyView])
+  }, [disassemblyViewIds, removeSelfDisassemblyView, showMinimaps])
   
   React.useEffect(() => {
     if (dockRef.current === null) return;
@@ -154,6 +149,29 @@ const App = () => {
         }
       });
   }, [sourceViewStates])
+  
+  // Update existing DisassemblyView tabs when showMinimaps changes
+  React.useEffect(() => {
+    if (dockRef.current === null) return;
+    
+    disassemblyViewIds.forEach(id => {
+      const tabId = `DisassemblyView:${id}`;
+      const tab = dockRef.current!.find(tabId) as TabData;
+      
+      if (tab) {
+        dockRef.current!.updateTab(tabId, {
+          ...tab,
+          content: <TabContent key={`tab-DisassemblyView-${id}`}>
+            <DisassemblyView
+              id={id}
+              removeSelf={() => { removeSelfDisassemblyView(id) }}
+              showMinimap={showMinimaps}
+            />
+          </TabContent>
+        });
+      }
+    });
+  }, [showMinimaps, disassemblyViewIds, removeSelfDisassemblyView]);
   
   const [layout, setLayout] = React.useState<LayoutData>({
     dockbox: {
@@ -263,53 +281,21 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <div className="file-menus">
-        <Menu menuButton={<MenuButton>File</MenuButton>}>
-          <MenuItem>New File</MenuItem>
-          <SubMenu label="Edit">
-            <MenuItem>Cut</MenuItem>
-            <MenuItem>Copy</MenuItem>
-            <MenuItem>Paste</MenuItem>
-            <SubMenu label="Find">
-              <MenuItem>Find...</MenuItem>
-              <MenuItem>Find Next</MenuItem>
-              <MenuItem>Find Previous</MenuItem>
-            </SubMenu>
-          </SubMenu>
-          <MenuItem>Print...</MenuItem>
-        </Menu>
-        <div className="file-menu-tags">
-          {[...SOURCE_TAGS, ...INSTRUCTION_TAGS]
-            .filter((tag, index, self) => 
-              index === self.findIndex(t => t.id === tag.id)
-            )
-            .map(tag => (
-              <label key={tag.id} className="file-menu-tag" style={{
-                border: `2px solid ${tag.color[1]}`,
-                color: tag.color,
-              }}>
-                <input
-                  type="checkbox"
-                  checked={enabledTags[tag.id]}
-                  onChange={() => dispatch(toggleTag(tag.id))}
-                />
-                <span>{tag.fullName}</span>
-              </label>
-            ))}
-        </div>
+      <HeaderMenu showMinimaps={showMinimaps} setShowMinimaps={setShowMinimaps} />
+      <div className="main-content">
+        <DockLayout
+          ref={dockRef}
+          defaultLayout={layout}
+          onLayoutChange={onLayoutChange}
+          style={{
+            position: 'absolute',
+            left: 0,
+            top: 0,
+            right: 0,
+            bottom: 0
+          }}
+        />
       </div>
-      <DockLayout
-        ref={dockRef}
-        defaultLayout={layout}
-        onLayoutChange={onLayoutChange}
-        style={{
-          position: 'absolute',
-          left: 5,
-          top: 36,
-          right: 5,
-          bottom: 5
-        }}
-      />
     </div>
   )
 }

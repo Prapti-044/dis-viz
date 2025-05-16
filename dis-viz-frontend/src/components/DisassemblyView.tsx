@@ -17,7 +17,7 @@ import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
 
 
 
-function useVisibleBlockWindow(ref: React.MutableRefObject<{
+function useVisibleBlockWindow(ref: React.RefObject<{
     [start_address: number]: { div: HTMLDivElement, idx: number }
 }>) {
     const [blockIsVisible, setBlockIsVisible] = React.useState<{blockIdx:number, blockAddress: number, inside:boolean}[]>([])
@@ -76,10 +76,11 @@ function useVisibleBlockWindow(ref: React.MutableRefObject<{
     }
 }
 
-function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
+function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = true }:{
     id: number,
     removeSelf: () => void,
-    defaultBinaryFilePath?: string
+    defaultBinaryFilePath?: string,
+    showMinimap?: boolean
 }) {
     const selections = useAppSelector(selectBinarySelection)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
@@ -335,7 +336,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath }:{
             {pages.length > 0 && !pages[pages.length-1].is_last?<button onClick={e => {addNewPage(pages[pages.length-1].page_no+1)}}>
                 Load more
             </button>:<></>}
-            {minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
+            {showMinimap && minimap && onScreenFirstBlockAddress.nBlocks > 0 && <Minimap
                 binaryFilePath={binaryFilePath}
                 disViewId={id}
                 width={150}

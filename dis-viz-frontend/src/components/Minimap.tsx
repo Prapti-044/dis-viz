@@ -1,7 +1,7 @@
 import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
 import { selectBinarySelection, setSelection } from '../features/selections/selectionsSlice'
-import { HIGHLIGHT_COLOR, hexToHSL } from '../utils'
+import { HIGHLIGHT_COLOR, hexToHSL, INSTRUCTION_TAGS } from '../utils'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import * as api from '../api';
@@ -134,14 +134,27 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
                 }
             }
 
-            if (highlightOption === "VEC" && minimap.blockTypes[i].includes("vectorized"))
-                ctx.strokeStyle = "cyan"
-            else if (highlightOption === "Mem_Read" && minimap.blockTypes[i].includes("memory_read"))
-                ctx.strokeStyle = "purple"
-            else if (highlightOption === "Mem_Write" && minimap.blockTypes[i].includes("memory_write"))
-                ctx.strokeStyle = "orange"
-            else if (highlightOption === "Syscall" && minimap.blockTypes[i].includes("syscall"))
-                ctx.strokeStyle = "red"
+            if (highlightOption !== "none") {
+                const tag = INSTRUCTION_TAGS.find(tag => tag.id === highlightOption);
+                
+                // Map tag identifiers to block types
+                const tagToBlockType: Record<string, string> = {
+                    'VECTORIZED': 'vectorized',
+                    'MEMORY_READ': 'memory_read',
+                    'MEMORY_WRITE': 'memory_write',
+                    'SYSCALL': 'syscall',
+                    'CALL': 'call',
+                    'INLINE': 'inline',
+                    'FP': 'floating_point',
+                    'HOISTED': 'hoisted',
+                    'BRANCH': 'branch'
+                };
+                
+                const blockType = tagToBlockType[highlightOption];
+                if (tag && blockType && minimap.blockTypes[i].includes(blockType)) {
+                    ctx.strokeStyle = tag.color;
+                }
+            }
 
             ctx.lineWidth = (blockHeight === 0 ? 1 : blockHeight) * BLOCK_LINE_HEIGHT_FACTOR
             ctx.lineTo(x + BLOCK_LINE_WIDTH, y)
@@ -250,18 +263,31 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
     return <>
         <select style={{
             position: "absolute",
-            fontSize: "17px",
-            top: "60px", //5px
+            fontSize: "16px",
+            top: "60px",
             right: "20px",
-            color: "#4b89e7",
             zIndex: 3,
-            width: "150px"
+            width: "150px",
+            padding: "4px 8px",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            backgroundColor: "#fff",
+            boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)"
         }} value={highlightOption} onChange={e => setHighlightOption(e.target.value)}>
-            <option value="none">Default</option>
-            <option value="VEC">Vectorized</option>
-            <option value="Mem_Read">Memory Read</option>
-            <option value="Mem_Write">Memory Write</option>
-            <option value="Syscall">System Call</option>
+            <option value="none" style={{padding: "4px 0"}}>Default</option>
+            {INSTRUCTION_TAGS.map(tag => (
+                <option 
+                    key={tag.id} 
+                    value={tag.id}
+                    style={{
+                        color: tag.color,
+                        fontWeight: "500",
+                        padding: "4px 0"
+                    }}
+                >
+                    {tag.fullName}
+                </option>
+            ))}
         </select>
         <div style={{
             position: "absolute",
