@@ -183,7 +183,7 @@ function SourceView({ file_name }: {
                                                 }}>
                                                 <div className="right-tag">
                                                     <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
-                                                    {validBinaryFilePaths.length > 1 && tags[tagIndex].length !== validBinaryFilePaths.length && (
+                                                    {validBinaryFilePaths.length > 1 && (
                                                         <div className="right-tag-binaries">
                                                             {validBinaryFilePaths.map((binaryPath, binaryIndex) => (
                                                                 <div
@@ -191,18 +191,6 @@ function SourceView({ file_name }: {
                                                                     key={`${line}-${tagIndex}-${binaryIndex}`}
                                                                     title={binaryPath.split('/').pop()}
                                                                 />
-                                                                // <div
-                                                                //     key={`${line}-${tagIndex}-${binaryIndex}`}
-                                                                //     title={binaryPath.split('/').pop()}
-                                                                //     style={{
-                                                                //         fontSize: '18px',
-                                                                //     }}
-                                                                // >
-                                                                //     {binaries.includes(binaryIndex) ? 
-                                                                //         <strong>,</strong> : 
-                                                                //         <span>.</span>
-                                                                //     }
-                                                                // </div>
                                                             ))}
                                                         </div>
                                                     )}
