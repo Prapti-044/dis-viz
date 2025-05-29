@@ -6,11 +6,13 @@
 #include <algorithm>
 #include <boost/range/adaptor/indexed.hpp>
 #include <filesystem>
+#include <sstream>
 
 #include <CodeObject.h>
 #include <Function.h>
 #include <InstructionDecoder.h>
 #include <Symtab.h>
+#include <registers/x86_64_regs.h>
 
 #include <json_converter.hpp>
 #include <fstream>
@@ -19,6 +21,7 @@
 #include <vector>
 
 #include "include/parse_source.hpp"
+
 
 using std::set, std::vector, std::string, std::map, std::unordered_map, std::ifstream, std::stringstream, std::unique_ptr;
 
@@ -37,69 +40,76 @@ const std::unordered_map<INSTRUCTION_FLAGS, SOURCE_CODE_FLAGS> INSTRUCTION_FLAGS
   {INST_HOISTED, SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED}
 };
 
+const std::vector<string> SYSTEM_LOCATIONS = {"/usr/"};
 
-void setInstructionFlags(const InstructionAPI::Instruction &instr,
-                   std::unordered_set<INSTRUCTION_FLAGS> &flags) {
-  switch (instr.getCategory()) {
+// Optimized utility functions
+void setInstructionFlags(const InstructionAPI::Instruction &instr, std::unordered_set<INSTRUCTION_FLAGS> &flags) {
+  // Use lookup table for better performance
+  static const std::unordered_map<InstructionAPI::InsnCategory, INSTRUCTION_FLAGS> categoryMap = {
 #if defined(DYNINST_MAJOR_VERSION) && (DYNINST_MAJOR_VERSION >= 10)
-    case InstructionAPI::c_VectorInsn:
-      flags.insert(INST_VECTORIZED);
-      break;
+    {InstructionAPI::c_VectorInsn, INST_VECTORIZED},
 #endif
-    case InstructionAPI::c_CallInsn:
-      flags.insert(INST_CALL);
-      break;
-    case InstructionAPI::c_SysEnterInsn:
-    case InstructionAPI::c_SyscallInsn:
-      flags.insert(INST_SYSCALL);
-      break;
-    case InstructionAPI::c_BranchInsn:
-      flags.insert(INST_BRANCH);
-      break;
-    default:
-      break;
+    {InstructionAPI::c_CallInsn, INST_CALL},
+    {InstructionAPI::c_SysEnterInsn, INST_SYSCALL},
+    {InstructionAPI::c_SyscallInsn, INST_SYSCALL},
+    {InstructionAPI::c_BranchInsn, INST_BRANCH}
+  };
+
+  if (auto it = categoryMap.find(instr.getCategory()); it != categoryMap.end()) {
+    flags.insert(it->second);
   }
+  
   if (instr.readsMemory()) flags.insert(INST_MEMORY_READ);
   if (instr.writesMemory()) flags.insert(INST_MEMORY_WRITE);
 }
 
 string print_clean_string(const string &str) {
-  static std::regex pattern("[^a-zA-Z0-9 /:;,\\.{}\\[\\]<>~|\\-_+()&\\*=$!#]");
+  static const std::regex pattern("[^a-zA-Z0-9 /:;,\\.{}\\[\\]<>~|\\-_+()&\\*=$!#]");
   return regex_replace(str, pattern, "?");
 }
 
-string number_to_hex(const unsigned long val) {
-  auto stream = stringstream();
-  stream << std::nouppercase << std::showbase << std::hex << (unsigned int)val;
-  return stream.str();
-}
-
-string number_to_hex(const unsigned int val) {
-  auto stream = stringstream();
-  stream << std::nouppercase << std::showbase << std::hex << val;
-  return stream.str();
-}
-
-string number_to_hex(const int val) {
-  auto stream = stringstream();
-  stream << std::nouppercase << std::showbase << std::hex << val;
-  return stream.str();
-}
-
-string number_to_hex(const long val) {
-  auto stream = stringstream();
-  stream << std::nouppercase << std::showbase << std::hex << (int)val;
+// Templated hex conversion for better performance
+template<typename T>
+string number_to_hex(T val) {
+  std::stringstream stream;
+  stream << "0x" << std::hex << static_cast<unsigned long>(val);
   return stream.str();
 }
 
 inline string getRegFromFullName(const string &fullname) {
-  return fullname.substr(fullname.rfind("::") + 2);
+  const auto pos = fullname.rfind("::");
+  return pos != string::npos ? fullname.substr(pos + 2) : fullname;
+}
+
+// Optimized variable location string formatting
+template<typename LocationType>
+string formatVariableLocation(const LocationType &location) {
+  const string regName = getRegFromFullName(location.mr_reg.name());
+  const string offsetStr = number_to_hex(location.frameOffset);
+  
+  switch (location.stClass) {
+    case Dyninst::storageAddr:
+      return (location.refClass == Dyninst::storageNoRef) 
+        ? "$" + offsetStr 
+        : "($" + offsetStr + ")";
+    
+    case Dyninst::storageReg:
+      return (location.refClass == Dyninst::storageNoRef)
+        ? "%" + regName
+        : "(%" + regName + ")";
+    
+    case Dyninst::storageRegOffset:
+      return offsetStr + "(%" + regName + ")";
+    
+    default:
+      return "";
+  }
 }
 
 VariableInfo printVar(SymtabAPI::localVar *var) {
-  auto name = var->getName();
-  auto lineNum = var->getLineNum()-1; // converted to 0 based index
-  auto fileName = var->getFileName();
+  const string name = var->getName();
+  const int lineNum = var->getLineNum() - 1; // converted to 0 based index
+  const string fileName = var->getFileName();
 
   auto varLocations = vector<VarLocation>();
   auto locations = var->getLocationLists();
@@ -149,33 +159,55 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
 
 long totalLoops = 0;
 
-LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
-  auto loop_entry = LoopEntry();
-
-  if (lt.loop) {
-    auto backedges = vector<ParseAPI::Edge *>();
-    auto blocks = vector<ParseAPI::Block *>();
-    lt.loop->getBackEdges(backedges);
-    lt.loop->getLoopBasicBlocks(blocks);
-
-    loop_entry.name = lt.name();
-    std::vector<ParseAPI::Block *> loop_entry_blocks;
-    lt.loop->getLoopEntries(loop_entry_blocks);
-    loop_entry.header_block = loop_entry_blocks.size() > 0 ? block_ids[loop_entry_blocks[0]] : "";
-    loop_entry.latch_block = "";
-
-    totalLoops++;
-
-    if (!backedges.empty()) {
-      for (auto &e : backedges) {
-        loop_entry.backedges.emplace_back(
-            block_ids[e->src()], block_ids[e->trg()]);
-      }
+// Optimized loop processing
+LoopEntry createLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
+  LoopEntry entry;
+  
+  if (!lt.loop) {
+    // Process children only
+    for (auto &child : lt.children) {
+      entry.loops.push_back(createLoopEntry(block_ids, *child));
     }
-    for (auto &block : blocks) loop_entry.blocks.push_back(block_ids[block]);
+    return entry;
   }
-  for (auto &i : lt.children) loop_entry.loops.push_back(printLoopEntry(block_ids, *i));
-  return loop_entry;
+  
+  entry.name = lt.name();
+  
+  // Get loop entries
+  std::vector<ParseAPI::Block *> loop_entry_blocks;
+  lt.loop->getLoopEntries(loop_entry_blocks);
+  entry.header_block = !loop_entry_blocks.empty() ? block_ids[loop_entry_blocks[0]] : "";
+  entry.latch_block = "";
+  
+  totalLoops++;
+  
+  // Process backedges
+  vector<ParseAPI::Edge *> backedges;
+  lt.loop->getBackEdges(backedges);
+  entry.backedges.reserve(backedges.size());
+  for (const auto &edge : backedges) {
+    entry.backedges.emplace_back(block_ids[edge->src()], block_ids[edge->trg()]);
+  }
+  
+  // Process blocks
+  vector<ParseAPI::Block *> blocks;
+  lt.loop->getLoopBasicBlocks(blocks);
+  entry.blocks.reserve(blocks.size());
+  for (const auto &block : blocks) {
+    entry.blocks.push_back(block_ids[block]);
+  }
+  
+  // Process children
+  for (auto &child : lt.children) {
+    entry.loops.push_back(createLoopEntry(block_ids, *child));
+  }
+  
+  return entry;
+}
+
+// Legacy wrapper for compatibility
+LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
+  return createLoopEntry(block_ids, lt);
 }
 
 bool matchOperands(const vector<signed int> &readSet,
@@ -218,48 +250,63 @@ bool matchOperands(const vector<signed int> &readSet,
   return true;
 }
 
-// Hidable getFuncBegin(ParseAPI::Function *f) {
-//   auto blocks = f->blocks();
-//   auto insns = ParseAPI::Block::Insns();
-//   (*blocks.begin())->getInsns(insns);
+Hidable getFuncBegin(ParseAPI::Function *f) {
+  auto blocks = f->blocks();
+  auto insns = ParseAPI::Block::Insns();
+  (*blocks.begin())->getInsns(insns);
 
-//   auto itm = insns.begin();
-//   auto instruction = itm->second;
+  auto itm = insns.begin();
+  auto instruction = itm->second;
 
-//   auto operation = instruction.getOperation();
-//   if (operation.getID() == e_push) {
-//     auto operands = vector<InstructionAPI::Operand>();
-//     instruction.getOperands(operands);
+  auto operation = instruction.getOperation();
+  if (operation.getID() == e_push) {
+    vector<InstructionAPI::Operand> operands = instruction.getAllOperands();
 
-//     if (!matchOperands({Dyninst::x86_64::rsp, Dyninst::x86_64::rbp}, {},
-//                        operands))
-//       return {};
-//   } else
-//     return {};
+    if (!matchOperands({Dyninst::x86_64::rsp, Dyninst::x86_64::rbp}, {},
+                       operands))
+      return {};
+  } else
+    return {};
 
-//   itm++;
-//   itm->first;
-//   if (itm == insns.end()) return {};
-//   instruction = itm->second;
+  itm++;
+  if (itm == insns.end()) return {};
+  instruction = itm->second;
 
-//   operation = instruction.getOperation();
-//   // mov %rsp %rbp
-//   if (operation.getID() == e_mov) {
-//     auto operands = vector<InstructionAPI::Operand>();
-//     instruction.getOperands(operands);
-//     if (!matchOperands(
-//             {Dyninst::x86_64::rsp},                        // Read Reg
-//             {Dyninst::x86_64::rbp, Dyninst::x86_64::rsp},  // Write Reg
-//             operands))
-//       return {};
-//   } else
-//     return {};
+  operation = instruction.getOperation();
+  // mov %rsp %rbp
+  if (operation.getID() == e_mov) {
+    vector<InstructionAPI::Operand> operands = instruction.getAllOperands();
+    if (!matchOperands(
+            {Dyninst::x86_64::rsp},                        // Read Reg
+            {Dyninst::x86_64::rbp, Dyninst::x86_64::rsp},  // Write Reg
+            operands))
+      return {};
+  } else
+    return {};
 
-//   return {"Function Entry", insns.begin()->first, itm->first};
-// }
+  return {"Function Entry", insns.begin()->first, itm->first};
+}
 
-string block_to_name(const ParseAPI::Function *fn, const ParseAPI::Block *block,
+string block_to_name(SymtabAPI::Symtab *symtab, const ParseAPI::Function *fn, const ParseAPI::Block *block,
                      const int cur_id) {
+  
+
+  SymtabAPI::Function *symtab_fn = nullptr;
+  symtab->getContainingFunction(fn->addr(), symtab_fn);
+  
+  if (symtab_fn && symtab_fn->pretty_names_begin() != symtab_fn->pretty_names_end()) {
+    set<string> unique_names;
+    for (auto it = symtab_fn->pretty_names_begin(); it != symtab_fn->pretty_names_end(); ++it) {
+      unique_names.insert(*it);
+    }
+    string pretty_names;
+    for (const auto& name : unique_names) {
+      if (!pretty_names.empty()) pretty_names += ", ";
+      pretty_names += name;
+    }
+    return print_clean_string(pretty_names + ": B" + std::to_string(cur_id));
+  }
+
   return print_clean_string(fn->name() + ": B" + std::to_string(cur_id));
 }
 
@@ -372,85 +419,85 @@ vector<unsigned int> getAllBlocksInLoop(const vector<BlockInfo> &funcBlocks,
 }
 
 vector<int> getBlockHeights(const vector<BlockInfo> &blocks) {
-  auto blockHeights = vector<int>(); blockHeights.reserve(blocks.size());
-  std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockHeights), [](const BlockInfo &b) {
-    return b.block_type == BlockInfo::BLOCK_TYPE_NORMAL ? b.nInstructions : 0;
-  });
-  return blockHeights;
+  vector<int> heights;
+  heights.reserve(blocks.size());
+  
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(heights),
+    [](const BlockInfo &b) {
+      return b.block_type == BlockInfo::BLOCK_TYPE_NORMAL ? b.nInstructions : 0;
+    });
+  
+  return heights;
 }
 
 vector<vector<string>> getBlockTypes(const vector<BlockInfo> &blocks) {
-  auto blockTypes = vector<vector<string>>(); blockTypes.reserve(blocks.size());
-  std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockTypes), [](const BlockInfo &b) {
-    auto thisBlockType = std::unordered_set<string>();
-    for(const auto &ins: b.instructions) {
-      for(const auto &flag: ins.flags) {
-        if(flag == INST_VECTORIZED) {
-          thisBlockType.insert("vectorized");
-        }
-        else if(flag == INST_MEMORY_READ) {
-          thisBlockType.insert("memory_read");
-        }
-        else if(flag == INST_MEMORY_WRITE) {
-          thisBlockType.insert("memory_write");
-        }
-        else if(flag == INST_CALL) {
-          thisBlockType.insert("call");
-        }
-        else if(flag == INST_SYSCALL) {
-          thisBlockType.insert("syscall");
-        }
-        else if(flag == INST_FP) {
-          thisBlockType.insert("fp");
+  vector<vector<string>> types;
+  types.reserve(blocks.size());
+  
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(types),
+    [](const BlockInfo &b) { 
+      std::unordered_set<string> typeSet;
+      
+      for (const auto &inst : b.instructions) {
+        for (const auto &flag : inst.flags) {
+          switch (flag) {
+            case INST_VECTORIZED: typeSet.insert("vectorized"); break;
+            case INST_MEMORY_READ: typeSet.insert("memory_read"); break;
+            case INST_MEMORY_WRITE: typeSet.insert("memory_write"); break;
+            case INST_CALL: typeSet.insert("call"); break;
+            case INST_SYSCALL: typeSet.insert("syscall"); break;
+            case INST_FP: typeSet.insert("fp"); break;
+            default: break;
+          }
         }
       }
-    }
-    return vector<string>(thisBlockType.begin(), thisBlockType.end());
-  });
-  return blockTypes;
+      
+      return vector<string>(typeSet.begin(), typeSet.end());
+    });
+  
+  return types;
 }
 
 vector<bool> getIsBuiltInBlock(const vector<BlockInfo> &blocks) {
-  auto systemLocations = vector<string>{
-      "/usr/",
-  };
-  auto isBuiltInBlock = vector<bool>(); isBuiltInBlock.reserve(blocks.size());
-  std::transform(
-      blocks.begin(), blocks.end(), std::back_inserter(isBuiltInBlock),
-      [&systemLocations](const BlockInfo &b) {
-        for(const auto &ins: b.instructions) {
-          for(const auto &correspondence: ins.correspondence) {
-            auto sourceFile = correspondence.first;
-            for (const auto &systemLocation : systemLocations) {
-              if (sourceFile.size() > systemLocation.size()) {
-                if (equal(sourceFile.begin(),
-                          sourceFile.begin() + systemLocation.size(),
-                          systemLocation.begin()))
-                  return true;
-              }
+  vector<bool> isBuiltIn;
+  isBuiltIn.reserve(blocks.size());
+  
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(isBuiltIn),
+    [](const BlockInfo &b) { 
+      for (const auto &inst : b.instructions) {
+        for (const auto &correspondence : inst.correspondence) {
+          for (const auto &systemLocation : SYSTEM_LOCATIONS) {
+            if (correspondence.first.size() > systemLocation.size() &&
+                correspondence.first.substr(0, systemLocation.size()) == systemLocation) {
+              return true;
             }
           }
         }
-
-        return false;
-      });
-  return isBuiltInBlock;
+      }
+      return false;
+    });
+  
+  return isBuiltIn;
 }
 
 vector<int> getBlockStartAddresses(const vector<BlockInfo> &blocks) {
-  auto blockStartAddresses = vector<int>(); blockStartAddresses.reserve(blocks.size());
-  std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockStartAddresses), [](const BlockInfo &b) {
-    return b.startAddress;
-  });
-  return blockStartAddresses;
+  vector<int> addresses;
+  addresses.reserve(blocks.size());
+  
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(addresses),
+    [](const BlockInfo &b) { return b.startAddress; });
+  
+  return addresses;
 }
 
 vector<int> getBlockIndents(const vector<BlockInfo> &blocks) {
-  auto blockIndents = vector<int>(); blockIndents.reserve(blocks.size());
-  std::transform(blocks.begin(), blocks.end(), std::back_inserter(blockIndents), [](const BlockInfo &b) {
-    return b.loops.size();
-  });
-  return blockIndents;
+  vector<int> indents;
+  indents.reserve(blocks.size());
+  
+  std::transform(blocks.begin(), blocks.end(), std::back_inserter(indents),
+    [](const BlockInfo &b) { return static_cast<int>(b.loops.size()); });
+  
+  return indents;
 }
 
 void getInlines(const set<SymtabAPI::InlinedFunction*> &inlineFuncs, vector<InlineEntry> &result) {
@@ -496,12 +543,20 @@ void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
 }
 
 unsigned long getNumberOfLines(const string &file) {
-  std::ifstream fileStream(file);
-  std::string line;
-  int lineCount = 0;
-  while (std::getline(fileStream, line)) {
-    lineCount++;
+  static std::unordered_map<string, unsigned long> cache;
+  
+  if (auto it = cache.find(file); it != cache.end()) {
+    return it->second;
   }
+  
+  std::ifstream fileStream(file);
+  unsigned long lineCount = std::count(
+    std::istreambuf_iterator<char>(fileStream),
+    std::istreambuf_iterator<char>(),
+    '\n'
+  );
+  
+  cache[file] = lineCount;
   return lineCount;
 }
 
@@ -591,7 +646,7 @@ std::tuple<
         setInstructionFlags(instr, instruction_flags[icur]);
         icur += instr.size();
       }
-      block_ids[block] = block_to_name(f, block, curr_block_id++);
+      block_ids[block] = block_to_name(symtab, f, block, curr_block_id++);
     }
 
     // Loops
@@ -602,9 +657,9 @@ std::tuple<
     }
     
     // Hidables
-    // auto hidables = vector<Hidable>();
-    // auto fnBegin = getFuncBegin(f);
-    // if (!fnBegin.name.empty()) hidables.push_back(std::move(fnBegin));
+    auto hidables = vector<Hidable>();
+    auto fnBegin = getFuncBegin(f);
+    if (!fnBegin.name.empty()) hidables.push_back(std::move(fnBegin));
 
     auto funcBlocks = vector<BlockInfo>();
     
@@ -676,7 +731,7 @@ std::tuple<
       calls,
       inlines,
       funcLoops,
-      {} // hidables
+      {}
     };
     
     // Function variables
@@ -715,11 +770,11 @@ std::tuple<
       };
       funcInfo.basic_blocks.push_back(blockInfo.name);
 
-      // for (const auto &hidable : hidables) {
-      //   if (hidable.start >= block->start() && hidable.end <= block->last()) {
-      //     blockInfo.hidables.push_back(std::move(hidable)); // maybe gotcha
-      //   }
-      // }
+      for (const auto &hidable : hidables) {
+        if (hidable.start >= block->start() && hidable.end <= block->last()) {
+          blockInfo.hidables.push_back(std::move(hidable)); // maybe gotcha
+        }
+      }
 
       for (const auto &edge : block->targets()) {
         auto sourcei = block_ids.find(edge->src());
@@ -1059,4 +1114,24 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
   }
   
   return binaryCacheResult[binaryPath];
+}
+
+// Optimized system check
+bool isSystemLocation(const string &sourceFile) {
+  return std::any_of(SYSTEM_LOCATIONS.begin(), SYSTEM_LOCATIONS.end(),
+    [&sourceFile](const string &systemLocation) {
+      return sourceFile.size() > systemLocation.size() &&
+             sourceFile.substr(0, systemLocation.size()) == systemLocation;
+    });
+}
+
+bool isBuiltInBlock(const BlockInfo &block) {
+  for (const auto &inst : block.instructions) {
+    for (const auto &correspondence : inst.correspondence) {
+      if (isSystemLocation(correspondence.first)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

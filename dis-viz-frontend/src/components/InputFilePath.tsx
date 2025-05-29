@@ -6,7 +6,6 @@ import * as api from "../api"
 import '../styles/inputsourcefilepath.css'
 import { selectBinaryFilePaths, addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath } from '../features/binary-data/binaryDataSlice'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
-import { setSelection } from '../features/selections/selectionsSlice'
 
 function InputFilePath() {
     const [binaryList, setBinaryList] = React.useState<{
@@ -37,12 +36,37 @@ function InputFilePath() {
             })}
         </Form.Select>}
         {binaryFilePaths.map((binaryFilePath, index) => {
+            const row = (index % 2) + 1;
+            const col = Math.floor(index / 2) + 1;
+            const totalColumns = Math.ceil(binaryFilePaths.filter(path => path !== "").length / 2);
+
+            const hasSelectedBinaries = binaryFilePath !== "";
             return <div key={index} className="input-source-file-path" style={{
                 display: "flex",
                 alignItems: "center",
                 marginTop: "10px"
             }}>
-                <div className="binary-index">{index + 1}</div>
+                <div className="binary-index" style={{
+                    display: "grid",
+                    gridTemplateColumns: `repeat(${totalColumns}, 12px)`,
+                    gap: "1px",
+                    marginRight: "10px",
+                    width: `${totalColumns * 12 + (totalColumns - 1)}px`,
+                    height: "25px"
+                }}>
+                    {hasSelectedBinaries && [...Array(totalColumns * 2)].map((_, i) => {
+                        const squareRow = Math.floor(i / totalColumns) + 1;
+                        const squareCol = (i % totalColumns) + 1;
+                        console.log(squareRow, squareCol)
+                        return <div key={i} style={{
+                            width: "12px",
+                            height: "12px",
+                            border: "1px solid #ccc",
+                            backgroundColor: (squareRow === row && squareCol === col && binaryFilePath !== "") ? "#868686" : "transparent",
+                            color: (squareRow === row && squareCol === col && binaryFilePath !== "") ? "#dddddd" : "transparent"
+                        }}></div>
+                    })}
+                </div>
                 <Form.Select value={binaryFilePath} 
                 onChange={(e) => {
                     dispatch(replaceBinaryFilePath({ index, binaryFilePath: e.target.value }));
