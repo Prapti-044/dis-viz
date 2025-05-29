@@ -147,4 +147,4 @@ struct BinaryCacheResult {
 
 
 bool isParsable(const std::string &binaryPath);
-BinaryCacheResult* decodeBinaryCache(std::string binaryPath, const bool saveJson);
+BinaryCacheResult* decodeBinaryCache(std::string binaryPath);

@@ -14,7 +14,6 @@
 #include <Symtab.h>
 #include <registers/x86_64_regs.h>
 
-#include <json_converter.hpp>
 #include <fstream>
 
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
@@ -1050,7 +1049,7 @@ bool isParsable(const string &binaryPath) {
 
 
 
-BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJson) {
+BinaryCacheResult* decodeBinaryCache(const string binaryPath) {
   if (binaryCacheResult.find(binaryPath) != binaryCacheResult.end()) return binaryCacheResult.at(binaryPath);
 
   SymtabAPI::Symtab *symtab;
@@ -1093,25 +1092,6 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
       correspondence,
       sourceCodeInfo
   });
-  
-  if(saveJson) {
-    auto jsonName = binaryPath.substr(binaryPath.find_last_of("/\\") + 1) + ".json";
-
-    auto path = std::filesystem::current_path() / "json";
-    if(!std::filesystem::is_directory(path) || !std::filesystem::exists(path)) {
-      std::filesystem::create_directory(path);
-    }
-    path /= jsonName;
-    auto o = std::ofstream(path.string());
-    auto j = crow::json::wvalue();
-    j["blocks_info"] = convertBinaryCache(binaryCacheResult[binaryPath]);
-    
-    j["functions"] = convertFunctionInfos(functionInfos);
-
-    j["source_code_info"] = convertSourceCodeInfo(sourceCodeInfo);
-    
-    o << j.dump() << std::endl;
-  }
   
   return binaryCacheResult[binaryPath];
 }

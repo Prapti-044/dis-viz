@@ -1,4 +1,10 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.22...4.0.2)
+
+# Set policy for FindBoost module deprecation
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 NEW)
+endif()
+
 project(DisViz VERSION 0.1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
@@ -23,9 +29,9 @@ ExternalProject_Add(indicators
     CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
-ExternalProject_Add(crow
-    GIT_REPOSITORY https://github.com/CrowCpp/Crow
-    CMAKE_ARGS -DCROW_BUILD_EXAMPLES=OFF -DCROW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+ExternalProject_Add(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    CMAKE_ARGS -DJSON_BuildTests=OFF -DJSON_Install=ON -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
 if(DEFINED ${DYNINST_LOCATION})
@@ -45,8 +51,12 @@ link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
-find_package(Boost REQUIRED COMPONENTS program_options)
-target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
+# Modern Boost configuration
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED ON)
+set(Boost_USE_STATIC_RUNTIME OFF)
+
+find_package(Boost 1.70 REQUIRED COMPONENTS program_options)
 
 # Find Clang
 find_path(CLANG_INCLUDE_DIR clang-c/Index.h
@@ -78,11 +88,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
     symtabAPI parseAPI instructionAPI
     # dynElf dynDwarf 
     elf common 
-    ${Boost_LIBRARIES}
+    Boost::program_options
 )
 
 add_dependencies(${PROJECT_NAME}
-    indicators crow
+    indicators nlohmann_json
 )
 if(NOT DEFINED ${DYNINST_LOCATION})
     add_dependencies(${PROJECT_NAME} dyninst)
