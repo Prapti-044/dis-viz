@@ -389,16 +389,16 @@ vector<vector<string>> getBlockTypes(const vector<BlockInfo> &blocks) {
           thisBlockType.insert("vectorized");
         }
         else if(flag == INST_MEMORY_READ) {
-          thisBlockType.insert("call");
-        }
-        else if(flag == INST_MEMORY_WRITE) {
-          thisBlockType.insert("syscall");
-        }
-        else if(flag == INST_CALL) {
           thisBlockType.insert("memory_read");
         }
-        else if(flag == INST_SYSCALL) {
+        else if(flag == INST_MEMORY_WRITE) {
           thisBlockType.insert("memory_write");
+        }
+        else if(flag == INST_CALL) {
+          thisBlockType.insert("call");
+        }
+        else if(flag == INST_SYSCALL) {
+          thisBlockType.insert("syscall");
         }
         else if(flag == INST_FP) {
           thisBlockType.insert("fp");
@@ -1032,7 +1032,7 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
         getIsBuiltInBlock(loopOrderBlocks),
         getBlockStartAddresses(loopOrderBlocks),
         getBlockIndents(loopOrderBlocks),
-        getBlockTypes(addressOrderBlocks),
+        getBlockTypes(loopOrderBlocks),
       }},
       source_files,
       correspondence,
