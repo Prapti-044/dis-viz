@@ -22,10 +22,13 @@ export const binaryFilePathSlice = createSlice({
         replaceBinaryFilePath: (state: BinaryFilePaths, action: PayloadAction<{ index: number, binaryFilePath: string }>) => {
             state.paths = state.paths.map((path, index) => index === action.payload.index ? action.payload.binaryFilePath : path);
         },
+        clearBinaryFilePaths: (state: BinaryFilePaths) => {
+            state.paths = [];
+        },
     },
 });
 
-export const { addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath } = binaryFilePathSlice.actions;
+export const { addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath, clearBinaryFilePaths } = binaryFilePathSlice.actions;
 export const selectBinaryFilePaths = (state: RootState) => state.binaryFilePath.paths;
 
 export default binaryFilePathSlice.reducer;

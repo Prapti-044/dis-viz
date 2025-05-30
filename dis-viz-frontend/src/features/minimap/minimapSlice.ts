@@ -1,12 +1,13 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
+import { INSTRUCTION_TAGS } from '../../utils';
 
 export type MinimapType = {
     blockHeights: number[],
     builtInBlock: boolean[],
     blockStartAddress: number[],
     blockLoopIndents: number[],
-    blockTypes: string[][]
+    blockTypes: ("memory_read" | "memory_write" | "call" | "vectorized" | "normal" | "hoisted" | "inline")[]
 }
 
 export interface Minimap {

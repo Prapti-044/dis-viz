@@ -4,7 +4,7 @@ import { selectBinarySelection, setSelection } from '../features/selections/sele
 import { HIGHLIGHT_COLOR, hexToHSL, INSTRUCTION_TAGS } from '../utils'
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
-import * as api from '../api';
+import * as disvizProcessor from '../disvizProcessor';
 import { BLOCK_ORDERS } from '../types';
 
 const BLOCK_LINE_HEIGHT_FACTOR = 1.2
@@ -221,9 +221,8 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
     
     
     function setThisSelection(addresses: number[]) {
-        api.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, order).then(selections => {
-            dispatch(setSelection(selections))            
-        })
+        const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, order)
+        dispatch(setSelection(selections))
     }
 
     function onCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
@@ -243,21 +242,19 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
         
         // get instruction addresses from blockI
         const addresses = [minimap.blockStartAddress[blockI]]
-        api.getDisassemblyBlockByAddress(binaryFilePath, order, addresses[0])
-            .then(block => {
-                const sourceLines: { [source_file: string] : number[] } = {}
-                for (let instr of block.instructions) {
-                    for (let sourceFile in instr.correspondence) {
-                        if (sourceLines[sourceFile] === undefined) {
-                            sourceLines[sourceFile] = []
-                        }
-                        sourceLines[sourceFile].push(...instr.correspondence[sourceFile])
-                    }
+        const block = disvizProcessor.getDisassemblyBlockByAddress(binaryFilePath, order, addresses[0])
+        const sourceLines: { [source_file: string] : number[] } = {}
+        for (let instr of block.instructions) {
+            for (let sourceFile in instr.correspondence) {
+                if (sourceLines[sourceFile] === undefined) {
+                    sourceLines[sourceFile] = []
                 }
-                const sourceSelection = Object.entries(sourceLines).map(([source_file, lines]) => ({ source_file, lines }))
-                
-                setThisSelection(block.instructions.map(inst => inst.address))
-            })
+                sourceLines[sourceFile].push(...instr.correspondence[sourceFile])
+            }
+        }
+        const sourceSelection = Object.entries(sourceLines).map(([source_file, lines]) => ({ source_file, lines }))
+            
+        setThisSelection(block.instructions.map(inst => inst.address))
     }
 
     return <>

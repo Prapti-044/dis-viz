@@ -34,6 +34,42 @@ ExternalProject_Add(nlohmann_json
     CMAKE_ARGS -DJSON_BuildTests=OFF -DJSON_Install=ON -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
+# Try to find system libarchive first
+find_package(PkgConfig QUIET)
+if(PkgConfig_FOUND)
+    pkg_check_modules(LIBARCHIVE QUIET libarchive)
+endif()
+
+if(NOT LIBARCHIVE_FOUND)
+    # If system libarchive not found, build minimal version
+    ExternalProject_Add(libarchive
+        GIT_REPOSITORY https://github.com/libarchive/libarchive
+        CMAKE_ARGS 
+            -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+            -DENABLE_TEST=OFF 
+            -DENABLE_TAR=OFF 
+            -DENABLE_CPIO=OFF 
+            -DENABLE_CAT=OFF
+            -DENABLE_WERROR=OFF
+            -DENABLE_ACL=OFF
+            -DENABLE_XATTR=OFF
+            -DENABLE_ICONV=OFF
+            -DENABLE_EXPAT=OFF
+            -DENABLE_LIBXML2=OFF
+            -DENABLE_LZMA=OFF
+            -DENABLE_NETTLE=OFF
+            -DENABLE_OPENSSL=OFF
+            -DENABLE_PCREPOSIX=OFF
+            -DENABLE_LibGCC=OFF
+            -DENABLE_CNG=OFF
+            -DENABLE_BZip2=ON
+            -DENABLE_GZIP=ON
+            -DENABLE_ZLIB=ON
+    )
+    set(LIBARCHIVE_LIBRARIES archive)
+    set(LIBARCHIVE_INCLUDE_DIRS ${EXTERNAL_INSTALL_LOCATION}/include)
+endif()
+
 if(DEFINED ${DYNINST_LOCATION})
     include_directories(${DYNINST_LOCATION}/include)
     link_directories(${DYNINST_LOCATION}/lib)
@@ -47,6 +83,11 @@ endif()
 
 include_directories(${EXTERNAL_INSTALL_LOCATION}/include)
 link_directories(${EXTERNAL_INSTALL_LOCATION}/lib)
+
+# Add libarchive include directories if using external build
+if(NOT LIBARCHIVE_FOUND)
+    include_directories(${LIBARCHIVE_INCLUDE_DIRS})
+endif()
 
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
@@ -84,6 +125,14 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${CLANG_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CLANG_LIBRARY})
 
+# Link libarchive
+if(LIBARCHIVE_FOUND)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBARCHIVE_LIBRARIES})
+    target_include_directories(${PROJECT_NAME} PRIVATE ${LIBARCHIVE_INCLUDE_DIRS})
+else()
+    target_link_libraries(${PROJECT_NAME} PRIVATE archive)
+endif()
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
     symtabAPI parseAPI instructionAPI
     # dynElf dynDwarf 
@@ -94,6 +143,11 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 add_dependencies(${PROJECT_NAME}
     indicators nlohmann_json
 )
+
+if(NOT LIBARCHIVE_FOUND)
+    add_dependencies(${PROJECT_NAME} libarchive)
+endif()
+
 if(NOT DEFINED ${DYNINST_LOCATION})
     add_dependencies(${PROJECT_NAME} dyninst)
 endif()

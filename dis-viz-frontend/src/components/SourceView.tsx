@@ -2,7 +2,7 @@ import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import '../styles/sourceview.css'
 import { setSelection, clearHoverHighlight, setHoverHighlight, clearSelection, BinarySelection } from '../features/selections/selectionsSlice'
-import * as api from '../api'
+import * as disvizProcessor from '../disvizProcessor'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
@@ -15,6 +15,8 @@ loader.config({ monaco });
 function SourceView({ file_name }: {
     file_name: string,
 }) {
+    console.log("Refreshing SourceView")
+
     const dispatch = useAppDispatch()
     const thisSelection = useAppSelector(selectSourceSelection).find(selection => selection.source_file === file_name)
     const selectedLines = React.useMemo(() => thisSelection?.source_lines ?? [], [thisSelection])
@@ -94,28 +96,36 @@ function SourceView({ file_name }: {
         hover: { enabled: false }, // Disables hover effects
     }
 
+    // load source file
     React.useEffect(() => {
-        if (validBinaryFilePaths.length === 0) return
-        api.getSourceLines(validBinaryFilePaths, file_name).then(sourceFile => {
-            let tmpSourceCode = ""
-            sourceFile.lines.map(line => line.line).forEach((line) => {
-                tmpSourceCode += line
-            })
-            const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-            const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
-            validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
-                tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath])
+        if (validBinaryFilePaths.length === 0) {
+            setSourceCode("")
+            setCorrespondences({})
+            setLineTags([])
+            return
+        }
+        console.log("Use Effect Loading source file")
 
-                sourceFile.lines.forEach((line, lineI) => {
-                    line.tags[binaryFilePath].forEach(tag => {
-                        tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
-                    })
+        const sourceFile = disvizProcessor.getSourceLines(validBinaryFilePaths, file_name)
+        
+        // Extract source code
+        const lines = sourceFile.lines.map(line => line.line)
+        setSourceCode(lines.join('\n'))
+        
+        // Extract correspondences
+        const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
+        const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
+        validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
+            tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
+
+            sourceFile.lines.forEach((line, lineI) => {
+                line.tags[binaryFilePath].forEach(tag => {
+                    tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
                 })
             })
-            setSourceCode(tmpSourceCode)
-            setCorrespondences(tmpCorrespondences)
-            setLineTags(tmpLineTags)
         })
+        setCorrespondences(tmpCorrespondences)
+        setLineTags(tmpLineTags)
     }, [binaryFilePaths, file_name])
 
     // add decorations for lines with correspondences and tags
@@ -413,10 +423,9 @@ function SourceView({ file_name }: {
         // Handle the click on the selection line button
         function handleSelectionButtonClick(lineNumber: number, file: string, element: HTMLElement | null) {
             const binaryFilePath = validBinaryFilePaths[0]
-            api.getSelectionFromBinary_indirect(binaryFilePath, correspondences[binaryFilePath][lineNumber], validBinaryFilePaths, 'memory_order').then(selections => {
-                dispatch(setSelection(selections))
-            })
-            
+            const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, correspondences[binaryFilePath][lineNumber], validBinaryFilePaths, 'memory_order')
+            dispatch(setSelection(selections))
+
             // Add clicked class to the button element
             if (element) {
                 if (element.classList.contains('selection-button-container')) {

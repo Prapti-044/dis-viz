@@ -1,5 +1,5 @@
 import React from 'react';
-import * as api from "../api";
+import * as disvizProcessor from "../disvizProcessor";
 
 import { DockLayout, LayoutData, DropDirection, TabData, PanelData } from 'rc-dock'
 import "rc-dock/dist/rc-dock.css";
@@ -51,16 +51,22 @@ const App = () => {
   // Get the source files for each binary file
   React.useEffect(() => {
       const curSourceViewStates: { [file_name: string]: "opened" | "closed" } = {}
-      Promise.all(binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "").map(async (binaryFilePath) => {
-          const sourceFiles = await api.getSourceFiles(binaryFilePath)
+      
+      try {
+        binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "").forEach((binaryFilePath) => {
+          const sourceFiles = disvizProcessor.getSourceFiles(binaryFilePath)
           sourceFiles.forEach(sourceFile => {
               if (!(sourceFile in curSourceViewStates)) {
                   curSourceViewStates[sourceFile] = "closed"
               }
           })
-      })).then(() => {
+        })
+        
         setSourceViewStates(Object.entries(curSourceViewStates).map(([file_name, status]) => ({ file_name, status })))
-      })
+      } catch (error) {
+        console.error('Error getting source files:', error)
+        toast.error('Error loading source files')
+      }
   }, [binaryFilePaths])
 
   React.useEffect(() => {

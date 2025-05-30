@@ -9,7 +9,7 @@ import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs, SOURCE_TAGS } from '../utils'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
-import * as api from "../api";
+import * as disvizProcessor from "../disvizProcessor";
 import { INSTRUCTION_TAGS } from '../utils'
 
 
@@ -52,19 +52,18 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
     }
 
     function setThisSelection() {
-        api.getSourceFromBinary(binaryFilePath, instruction.address).then(source => {
-            const source_selection = Object.entries(source).map(([source_file, lines]) => ({
-                source_file,
-                source_lines: lines
-            }))
-            dispatch(setSelection({
-                source_selection,
-                binary_selection: [{
-                    binary_file: binaryFilePath,
-                    addresses: [instruction.address]
-                }]
-            }))
-        })
+        const source = disvizProcessor.getSourceFromBinary(binaryFilePath, instruction.address)
+        const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+            source_file,
+            source_lines: lines
+        }))
+        dispatch(setSelection({
+            source_selection,
+            binary_selection: [{
+                binary_file: binaryFilePath,
+                addresses: [instruction.address]
+            }],
+        }))
     }
 
     function parseInstruction(instruction: Instruction, block: InstructionBlock) {
@@ -139,22 +138,19 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
                             top: "2px",
                             left: "5px",
                         }} onClick={() => {
-
-                            api.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder).then(block => {
-                                api.getSourceFromBinary(binaryFilePath, block.start_address).then(source => {
-                                    const source_selection = Object.entries(source).map(([source_file, lines]) => ({
-                                        source_file,
-                                        source_lines: lines
-                                    }))
-                                    dispatch(setSelection({
-                                        source_selection,
-                                        binary_selection: [{
-                                            binary_file: binaryFilePath,
-                                            addresses: [block.start_address]
-                                        }],
-                                    }))
-                                })
-                            })
+                            const targetBlock = disvizProcessor.getDisassemblyBlock(binaryFilePath, block.next_block_numbers.filter(jmpNextBlock => jmpNextBlock !== nextBlock.name)[0], blockOrder)
+                            const source = disvizProcessor.getSourceFromBinary(binaryFilePath, targetBlock.start_address)
+                            const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+                                source_file,
+                                source_lines: lines
+                            }))
+                            dispatch(setSelection({
+                                source_selection,
+                                binary_selection: [{
+                                    binary_file: binaryFilePath,
+                                    addresses: [targetBlock.start_address]
+                                }],
+                            }))
                         }} className="opennewbutton"> </button>
                     </mark>
             }
@@ -233,19 +229,18 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
     }, [binaryHoverHighlight, binaryFilePath, instruction.address]);
     
     const handleMouseOver = () => {
-        api.getSourceFromBinary(binaryFilePath, instruction.address).then(source => {
-            const source_selection = Object.entries(source).map(([source_file, lines]) => ({
-                source_file,
-                source_lines: lines
-            }))
-            dispatch(setHoverHighlight({
-                source_hover_highlight: source_selection,
-                binary_hover_highlight: [{
-                    binary_file: binaryFilePath,
-                    addresses: [instruction.address]
-                }]
-            }))
-        })
+        const source = disvizProcessor.getSourceFromBinary(binaryFilePath, instruction.address)
+        const source_selection = Object.entries(source).map(([source_file, lines]) => ({
+            source_file,
+            source_lines: lines
+        }))
+        dispatch(setHoverHighlight({
+            source_hover_highlight: source_selection,
+            binary_hover_highlight: [{
+                binary_file: binaryFilePath,
+                addresses: [instruction.address]
+            }]
+        }))
     }
 
     return <div

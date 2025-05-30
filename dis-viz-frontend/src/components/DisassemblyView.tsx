@@ -3,7 +3,7 @@ import React  from 'react';
 import { selectBinarySelection, selectBinaryHoverHighlight } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
-import * as api from '../api'
+import * as disvizProcessor from '../disvizProcessor'
 import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
@@ -21,13 +21,23 @@ function useVisibleBlockWindow(ref: React.RefObject<{
     [start_address: number]: { div: HTMLDivElement, idx: number }
 }>) {
     const [blockIsVisible, setBlockIsVisible] = React.useState<{blockIdx:number, blockAddress: number, inside:boolean}[]>([])
+    const blockIsVisibleRef = React.useRef(blockIsVisible)
+    
+    // Keep the ref in sync with state
+    React.useEffect(() => {
+        blockIsVisibleRef.current = blockIsVisible
+    }, [blockIsVisible])
 
-    const observer = React.useMemo(() => new IntersectionObserver(entries => {
+    const observerCallback = React.useCallback((entries: IntersectionObserverEntry[]) => {
+        if (!ref.current) return
+        
         const changedBlockAddresses = Object.keys(ref.current)
             .filter(key => entries.map(entry => entry.target).includes(ref.current[parseInt(key)].div))
 
-        const newBlockVisibility = structuredClone(blockIsVisible)
+        const currentBlockVisibility = blockIsVisibleRef.current
+        const newBlockVisibility = structuredClone(currentBlockVisibility)
         newBlockVisibility.forEach(block => { block.inside = false })
+        
         changedBlockAddresses.forEach((address, i) => {
             const foundBlock = newBlockVisibility.find(block => block.blockAddress === parseInt(address))
             if (!foundBlock) {
@@ -44,17 +54,25 @@ function useVisibleBlockWindow(ref: React.RefObject<{
 
         newBlockVisibility.sort((a, b) => a.blockAddress - b.blockAddress)
 
-        const allKeys = Array.from(new Set([...newBlockVisibility.map(block => block.blockAddress), ...blockIsVisible.map(block => block.blockAddress)]))
+        // Only update state if there's actually a change
+        const allKeys = Array.from(new Set([...newBlockVisibility.map(block => block.blockAddress), ...currentBlockVisibility.map(block => block.blockAddress)]))
+        let hasChanged = false
         for (const key of allKeys) {
             const newBlock = newBlockVisibility.find(block => block.blockAddress === key)
-            const block = blockIsVisible.find(block => block.blockAddress === key)
+            const block = currentBlockVisibility.find(block => block.blockAddress === key)
 
             if (!block || !newBlock || block.inside !== newBlock.inside) {
-                setBlockIsVisible(newBlockVisibility)
+                hasChanged = true
                 break
             }
         }
-    }), [blockIsVisible, ref])
+        
+        if (hasChanged) {
+            setBlockIsVisible(newBlockVisibility)
+        }
+    }, [ref])
+
+    const observer = React.useMemo(() => new IntersectionObserver(observerCallback), [observerCallback])
     
     const currentRef = ref.current[parseInt(Object.keys(ref.current)[0])]
 
@@ -82,6 +100,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     defaultBinaryFilePath?: string,
     showMinimap?: boolean
 }) {
+    
     const selections = useAppSelector(selectBinarySelection)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
     const validBinaryFilePaths = binaryFilePaths.filter((binaryFilePath) => binaryFilePath !== "")
@@ -109,23 +128,24 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     const [showDownloadModal, setShowDownloadModal] = React.useState(false);
 
     const addNewPage = (newPageNo: number) => {
-        api.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder).then(page => {
-            let pagesCopy = [...pages]
-            pagesCopy.push(page)
-            pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
-            setPages(pagesCopy)
-        })
+        const page = disvizProcessor.getDisassemblyPage(binaryFilePath, newPageNo, blockOrder)
+        let pagesCopy = [...pages]
+        pagesCopy.push(page)
+        pagesCopy = pagesCopy.sort((page1, page2) => page1.page_no - page2.page_no)
+        setPages(pagesCopy)
     }
-    
-    
     
     // Fetch and get the pages
     React.useEffect(() => {
-        const setAfterFetch = (page: BlockPage) => { setPages([page]) }
-        if (thisBinarySelection && thisBinarySelection.length > 0)
-            api.getDisassemblyPageByAddress(binaryFilePath, thisBinarySelection[0], blockOrder).then(setAfterFetch)
-        else
-            api.getDisassemblyPage(binaryFilePath, 0, blockOrder).then(setAfterFetch)
+        if (!binaryFilePath) return
+        let page: BlockPage
+        if (thisBinarySelection && thisBinarySelection.length > 0) {
+            page = disvizProcessor.getDisassemblyPageByAddress(binaryFilePath, thisBinarySelection[0], blockOrder)
+        } else {
+            page = disvizProcessor.getDisassemblyPage(binaryFilePath, 0, blockOrder)
+        }
+        setPages([page])
+            
         setTimeout(() => {
             setShouldScroll({value: true})
         }, 500);
@@ -133,12 +153,16 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
 
     // Get total address range for jumping to address
     React.useEffect(() => {
-        api.getAddressRange(binaryFilePath).then(setBinaryJumpAddressRange)
+        if (!binaryFilePath) return
+        const range = disvizProcessor.getAddressRange(binaryFilePath)
+        setBinaryJumpAddressRange(range)
     }, [binaryFilePath])
 
     // get minimap data
     React.useEffect(() => {
-        api.getMinimapData(binaryFilePath, blockOrder).then(setMinimap)
+        if (!binaryFilePath) return
+        const minimapData = disvizProcessor.getMinimapData(binaryFilePath, blockOrder)
+        setMinimap(minimapData)
     }, [binaryFilePath, blockOrder])
 
     // Setup backedges
@@ -286,14 +310,13 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                                 </Button>
                                 <Button variant="primary" onClick={(e) => {
                                     const includeAddresses = document.getElementById('download-with-addresses') as HTMLInputElement;
-                                    api.downloadDisassembly(binaryFilePath, includeAddresses.checked).then((blob: Blob) => {
-                                        const url = window.URL.createObjectURL(blob)
-                                        const a = document.createElement('a')
-                                        a.href = url
-                                        a.download = 'disassembly.txt'
-                                        a.click()
-                                        setShowDownloadModal(false)
-                                    })
+                                    const blob = disvizProcessor.downloadDisassembly(binaryFilePath, includeAddresses.checked);
+                                    const url = window.URL.createObjectURL(blob)
+                                    const a = document.createElement('a')
+                                    a.href = url
+                                    a.download = 'disassembly.txt'
+                                    a.click()
+                                    setShowDownloadModal(false)
                                 }}>
                                     Download
                                 </Button>
@@ -351,5 +374,5 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     </>
 }
 
-export default DisassemblyView;
+export default React.memo(DisassemblyView);
 

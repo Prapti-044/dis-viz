@@ -8,7 +8,7 @@ import { shortenName, HIGHLIGHT_COLOR } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
 import { useAppDispatch } from '../app/hooks';
-import * as api from "../api";
+import * as disvizProcessor from "../disvizProcessor";
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 import { useAppSelector } from '../app/hooks';
@@ -37,9 +37,8 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     const validBinaryFilePaths = binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "")
     
     function setThisSelection(addresses: number[]) {
-        api.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, blockOrder).then(selections => {
-            dispatch(setSelection(selections))            
-        })
+        const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, blockOrder)
+        dispatch(setSelection(selections))
     }
 
 
