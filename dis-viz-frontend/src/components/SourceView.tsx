@@ -119,9 +119,11 @@ function SourceView({ file_name }: {
             tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
 
             sourceFile.lines.forEach((line, lineI) => {
-                line.tags[binaryFilePath].forEach(tag => {
-                    tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
-                })
+                if (line.tags[binaryFilePath]) {
+                    line.tags[binaryFilePath].forEach(tag => {
+                        tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
+                    })
+                }
             })
         })
         setCorrespondences(tmpCorrespondences)

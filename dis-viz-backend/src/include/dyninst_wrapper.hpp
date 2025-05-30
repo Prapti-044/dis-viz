@@ -130,6 +130,14 @@ struct SourceCodeInfo {
   std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>> lines;
 };
 
+struct BinaryMetadata {
+  std::string architecture;
+  std::string analysis_date;
+  std::string analysis_time;
+  std::string compiler_used;
+  std::vector<std::string> compiler_flags;
+};
+
 struct BinaryCacheResult {
   struct {
     std::vector<BlockInfo> memory_order_blocks;
@@ -142,9 +150,8 @@ struct BinaryCacheResult {
   std::vector<std::string> source_files;
   std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
   std::unordered_map<std::string, SourceCodeInfo> sourceCodeInfo;
+  BinaryMetadata metadata;
 };
-
-
 
 bool isParsable(const std::string &binaryPath);
 BinaryCacheResult* decodeBinaryCache(std::string binaryPath);

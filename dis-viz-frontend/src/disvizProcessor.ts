@@ -74,9 +74,14 @@ interface LoadedDisvizFile {
   data: DisvizData;
   sourceFiles: Map<string, string>; // Maps source file paths to content
   addressRange: { start: number; end: number };
+  memoryOrderPages: BlockData[][];
+  loopOrderPages: BlockData[][];
 }
 
 const loadedFiles: Map<string, LoadedDisvizFile> = new Map();
+
+// Track the order of loaded files for drag and drop
+let fileOrder: string[] = [];
 
 // Function to extract tar.gz content
 async function extractTarGz(buffer: ArrayBuffer): Promise<Map<string, Uint8Array>> {
@@ -155,6 +160,17 @@ export async function loadDisvizFile(file: File): Promise<string> {
       if (block.end_address > maxAddress) maxAddress = block.end_address;
     }
     
+    // Pre-compute pages for both orders
+    const memoryOrderPages: BlockData[][] = [];
+    for (let i = 0; i < data.disassembly.memory_order_blocks.length; i += PAGE_SIZE) {
+      memoryOrderPages.push(data.disassembly.memory_order_blocks.slice(i, i + PAGE_SIZE));
+    }
+    
+    const loopOrderPages: BlockData[][] = [];
+    for (let i = 0; i < data.disassembly.loop_order_blocks.length; i += PAGE_SIZE) {
+      loopOrderPages.push(data.disassembly.loop_order_blocks.slice(i, i + PAGE_SIZE));
+    }
+    
     let fileName = file.name.replace('.disviz', '');
     
     // If file with same name exists, append number
@@ -169,8 +185,15 @@ export async function loadDisvizFile(file: File): Promise<string> {
       name: fileName,
       data,
       sourceFiles,
-      addressRange: { start: minAddress, end: maxAddress }
+      addressRange: { start: minAddress, end: maxAddress },
+      memoryOrderPages,
+      loopOrderPages
     });
+    
+    // Add to file order if not already present
+    if (!fileOrder.includes(fileName)) {
+      fileOrder.push(fileName);
+    }
     
     return fileName;
   } catch (error) {
@@ -218,7 +241,6 @@ export function getAddressRange(filepath: string): { start: number; end: number 
   return file.addressRange;
 }
 
-// Get source lines with correspondences
 export function getSourceLines(binaryFiles: string[], sourceFile: string): SourceFile {
   let copiedPath: string | null = null;
   let file: string | null = null;
@@ -331,11 +353,13 @@ export function getDisassemblyPage(filepath: string, pageNo: number, order: BLOC
   const file = loadedFiles.get(filepath);
   if (!file) throw new Error(`File not found: ${filepath}`);
   
-  const blocks = file.data.disassembly[`${order}_blocks`];
-  const startIndex = pageNo * PAGE_SIZE;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, blocks.length);
+  const pages = order === 'memory_order' ? file.memoryOrderPages : file.loopOrderPages;
   
-  const pageBlocks = blocks.slice(startIndex, endIndex).map(convertToInstructionBlock);
+  if (pageNo >= pages.length || pageNo < 0) {
+    throw new Error(`Page ${pageNo} is out of range. Available pages: 0-${pages.length - 1}`);
+  }
+  
+  const pageBlocks = pages[pageNo].map(convertToInstructionBlock);
   
   // Calculate page address range
   let startAddress = Number.MAX_SAFE_INTEGER;
@@ -351,7 +375,7 @@ export function getDisassemblyPage(filepath: string, pageNo: number, order: BLOC
   return new BlockPage(
     pageBlocks,
     pageNo,
-    endIndex >= blocks.length,
+    pageNo === pages.length - 1,
     startAddress,
     endAddress,
     totalInstructions
@@ -376,23 +400,19 @@ export function getDisassemblyPageByAddress(filepath: string, startAddress: numb
   const file = loadedFiles.get(filepath);
   if (!file) throw new Error(`File not found: ${filepath}`);
   
-  const blocks = file.data.disassembly[`${order}_blocks`];
-  
-  // Find the block containing this address
-  const blockIndex = blocks.findIndex(b => 
-    b.start_address <= startAddress && startAddress <= b.end_address
+  const pages = order === 'memory_order' ? file.memoryOrderPages : file.loopOrderPages;
+
+  // Find which page contains the address
+  const pageIndex = pages.findIndex(pageBlocks => 
+    pageBlocks.some(block => block.start_address <= startAddress && startAddress <= block.end_address)
   );
-  
-  if (blockIndex === -1) {
+
+  if (pageIndex === -1) {
     throw new Error(`No block found containing address: ${startAddress}`);
   }
-  
-  // Return a page starting from this block
-  const startIndex = blockIndex;
-  const endIndex = Math.min(startIndex + PAGE_SIZE, blocks.length);
-  
-  const pageBlocks = blocks.slice(startIndex, endIndex).map(convertToInstructionBlock);
-  
+
+  const pageBlocks = pages[pageIndex].map(convertToInstructionBlock);
+
   // Calculate page address range
   let pageStartAddress = Number.MAX_SAFE_INTEGER;
   let pageEndAddress = Number.MIN_SAFE_INTEGER;
@@ -403,11 +423,11 @@ export function getDisassemblyPageByAddress(filepath: string, startAddress: numb
     if (block.end_address > pageEndAddress) pageEndAddress = block.end_address;
     totalInstructions += block.n_instructions;
   }
-  
+
   return new BlockPage(
     pageBlocks,
-    Math.floor(startIndex / PAGE_SIZE),
-    endIndex >= blocks.length,
+    pageIndex,
+    pageIndex === pages.length - 1,
     pageStartAddress,
     pageEndAddress,
     totalInstructions
@@ -518,10 +538,37 @@ export function clearLoadedFile(filepath: string): void {
     throw new Error(`File not found: ${filepath}`);
   }
   loadedFiles.delete(filepath);
+  // Remove from file order as well
+  fileOrder = fileOrder.filter(name => name !== filepath);
 }
 
-
-// Get loaded file names
+// Get loaded file names in order
 export function getLoadedFileNames(): string[] {
-  return Array.from(loadedFiles.keys());
+  // Filter fileOrder to only include files that are still loaded
+  const validOrder = fileOrder.filter(name => loadedFiles.has(name));
+  
+  // Add any loaded files that aren't in the order (shouldn't happen, but just in case)
+  const allLoaded = Array.from(loadedFiles.keys());
+  const missingFiles = allLoaded.filter(name => !validOrder.includes(name));
+  
+  return [...validOrder, ...missingFiles];
+}
+
+// Reorder files
+export function reorderFiles(newOrder: string[]): void {
+  // Validate that all files in newOrder exist and all loaded files are included
+  const loadedFileNames = Array.from(loadedFiles.keys());
+  const validOrder = newOrder.filter(name => loadedFileNames.includes(name));
+  
+  if (validOrder.length !== loadedFileNames.length) {
+    throw new Error('Invalid reorder: missing or extra files');
+  }
+  
+  fileOrder = validOrder;
+}
+
+// Clear all loaded files
+export function clearAllLoadedFiles(): void {
+  loadedFiles.clear();
+  fileOrder = [];
 } 

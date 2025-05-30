@@ -185,7 +185,7 @@ const App = () => {
       children: [
         {
           mode: 'vertical',
-          size: 1,
+          size: 2,
           children: [
             {
               size: 1,
@@ -201,7 +201,7 @@ const App = () => {
               ],
             },
             {
-              size: 5,
+              size: 2,
               tabs: [
                 {
                   id: "SourceFileTree:1",
@@ -220,7 +220,7 @@ const App = () => {
         },
         {
           mode: 'vertical',
-          size: 2,
+          size: 3,
           children: [{
             id: 'SourceViewPanel',
             tabs: [],

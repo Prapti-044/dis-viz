@@ -7,6 +7,9 @@
 #include <string>
 #include <vector>
 #include <unordered_set>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
 
 #include <nlohmann/json.hpp>
 #include <dyninst_wrapper.hpp>
@@ -234,7 +237,8 @@ json convertSourceCodeInfoNlohmann(const std::unordered_map<std::string, SourceC
 }
 
 json convertBinaryCacheNlohmann(const BinaryCacheResult& res, 
-                                const std::unordered_map<std::string, std::string>& source_mapping) {
+                                const std::unordered_map<std::string, std::string>& source_mapping,
+                                const BinaryMetadata& metadata) {
     
     // Convert disassembly blocks
     json memory_order_blocks = json::array();
@@ -248,6 +252,13 @@ json convertBinaryCacheNlohmann(const BinaryCacheResult& res,
     }
     
     return json{
+        {"metadata", json{
+            {"architecture", metadata.architecture},
+            {"date", metadata.analysis_date},
+            {"time", metadata.analysis_time},
+            {"compiler", metadata.compiler_used},
+            {"flags", metadata.compiler_flags}
+        }},
         {"disassembly", json{
             {"memory_order_blocks", std::move(memory_order_blocks)},
             {"loop_order_blocks", std::move(loop_order_blocks)}
@@ -406,6 +417,126 @@ std::unordered_map<std::string, std::string> createDisVizArchive(
     return source_mapping;
 }
 
+// Helper function to get current date and time
+std::pair<std::string, std::string> getCurrentDateTime() {
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+    
+    std::stringstream date_stream, time_stream;
+    date_stream << std::put_time(&tm, "%Y-%m-%d");
+    time_stream << std::put_time(&tm, "%H:%M:%S");
+    
+    return {date_stream.str(), time_stream.str()};
+}
+
+// Helper function to extract architecture information
+std::string extractArchitecture(const std::string& binaryPath) {
+    // Try to extract architecture using file command or ELF headers
+    // For now, return a placeholder - this can be enhanced with proper binary analysis
+    try {
+        std::string command = "file " + binaryPath + " 2>/dev/null";
+        FILE* pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            std::string result;
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+            pclose(pipe);
+            
+            // Parse architecture from file output
+            if (result.find("x86-64") != std::string::npos || result.find("x86_64") != std::string::npos) {
+                return "x86_64";
+            } else if (result.find("i386") != std::string::npos || result.find("80386") != std::string::npos) {
+                return "i386";
+            } else if (result.find("aarch64") != std::string::npos || result.find("ARM64") != std::string::npos) {
+                return "aarch64";
+            } else if (result.find("ARM") != std::string::npos) {
+                return "arm";
+            } else if (result.find("PowerPC") != std::string::npos || result.find("ppc64") != std::string::npos) {
+                return "ppc64";
+            }
+        }
+    } catch (...) {
+        // Fallback to unknown if file command fails
+    }
+    return "unknown";
+}
+
+// Helper function to extract compiler information
+std::pair<std::string, std::vector<std::string>> extractCompilerInfo(const std::string& binaryPath) {
+    std::string compiler = "unknown";
+    std::vector<std::string> flags;
+    
+    try {
+        // Try to extract compiler information from debug sections
+        // This is a simplified implementation - can be enhanced with DWARF parsing
+        std::string command = "objdump -s -j .comment " + binaryPath + " 2>/dev/null | grep -v 'Contents of section'";
+        FILE* pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            std::string result;
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+            pclose(pipe);
+            
+            // Parse compiler from comment section
+            if (result.find("GCC") != std::string::npos || result.find("gcc") != std::string::npos) {
+                compiler = "gcc";
+            } else if (result.find("clang") != std::string::npos || result.find("Clang") != std::string::npos) {
+                compiler = "clang";
+            } else if (result.find("icc") != std::string::npos || result.find("Intel") != std::string::npos) {
+                compiler = "icc";
+            }
+        }
+        
+        // Try to extract flags from debug information
+        // This is a placeholder - real implementation would parse DWARF debug info
+        command = "objdump -g " + binaryPath + " 2>/dev/null | grep -i 'producer\\|compile' | head -5";
+        pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                std::string line(buffer);
+                if (line.find("-O") != std::string::npos) {
+                    if (line.find("-O0") != std::string::npos) flags.push_back("-O0");
+                    else if (line.find("-O1") != std::string::npos) flags.push_back("-O1");
+                    else if (line.find("-O2") != std::string::npos) flags.push_back("-O2");
+                    else if (line.find("-O3") != std::string::npos) flags.push_back("-O3");
+                }
+                if (line.find("-g") != std::string::npos) flags.push_back("-g");
+                if (line.find("-fPIC") != std::string::npos) flags.push_back("-fPIC");
+            }
+            pclose(pipe);
+        }
+    } catch (...) {
+        // Fallback if extraction fails
+    }
+    
+    if (flags.empty()) {
+        flags.push_back("unknown");
+    }
+    
+    return {compiler, flags};
+}
+
+// Helper function to create metadata for binary
+BinaryMetadata createBinaryMetadata(const std::string& binaryPath) {
+    auto [date, time] = getCurrentDateTime();
+    auto architecture = extractArchitecture(binaryPath);
+    auto [compiler, flags] = extractCompilerInfo(binaryPath);
+    
+    return BinaryMetadata{
+        .architecture = architecture,
+        .analysis_date = date,
+        .analysis_time = time,
+        .compiler_used = compiler,
+        .compiler_flags = flags
+    };
+}
+
 int main(int argc, char* argv[]) {
     std::vector<std::string> binary_paths;
     std::string binary_paths_file;
@@ -484,7 +615,7 @@ int main(int argc, char* argv[]) {
             
             // First create the JSON without source mapping to get initial structure
             std::unordered_map<std::string, std::string> empty_mapping;
-            auto binary_json = convertBinaryCacheNlohmann(*binary_result, empty_mapping);
+            auto binary_json = convertBinaryCacheNlohmann(*binary_result, empty_mapping, createBinaryMetadata(binary_path));
             
             // Create .disviz archive with source files and get the mapping
             const auto source_mapping = createDisVizArchive(
@@ -495,7 +626,7 @@ int main(int argc, char* argv[]) {
             );
             
             // Update the JSON with correct source mapping
-            binary_json = convertBinaryCacheNlohmann(*binary_result, source_mapping);
+            binary_json = convertBinaryCacheNlohmann(*binary_result, source_mapping, createBinaryMetadata(binary_path));
             
             // Recreate the archive with updated JSON
             createDisVizArchive(binary_result->source_files, output_path, binary_name, binary_json);

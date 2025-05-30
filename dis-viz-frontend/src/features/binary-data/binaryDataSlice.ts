@@ -1,5 +1,6 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
 import { RootState } from '../../app/store';
+import * as disvizProcessor from '../../disvizProcessor';
 
 export interface BinaryFilePaths {
     paths: string[],
@@ -25,10 +26,34 @@ export const binaryFilePathSlice = createSlice({
         clearBinaryFilePaths: (state: BinaryFilePaths) => {
             state.paths = [];
         },
+        reorderBinaryFilePaths: (state: BinaryFilePaths, action: PayloadAction<string[]>) => {
+            state.paths = action.payload;
+        },
+        removeLoadedFile: (state: BinaryFilePaths, action: PayloadAction<string>) => {
+            try {
+                disvizProcessor.clearLoadedFile(action.payload);
+                state.paths = state.paths.filter(path => path !== action.payload);
+            } catch (error) {
+                console.error('Error removing file:', error);
+            }
+        },
+        syncWithLoadedFiles: (state: BinaryFilePaths) => {
+            const loadedFiles = disvizProcessor.getLoadedFileNames();
+            state.paths = loadedFiles;
+        },
     },
 });
 
-export const { addBinaryFilePath, removeBinaryFilePath, replaceBinaryFilePath, clearBinaryFilePaths } = binaryFilePathSlice.actions;
+export const { 
+    addBinaryFilePath, 
+    removeBinaryFilePath, 
+    replaceBinaryFilePath, 
+    clearBinaryFilePaths,
+    reorderBinaryFilePaths,
+    removeLoadedFile,
+    syncWithLoadedFiles
+} = binaryFilePathSlice.actions;
+
 export const selectBinaryFilePaths = (state: RootState) => state.binaryFilePath.paths;
 
 export default binaryFilePathSlice.reducer;
