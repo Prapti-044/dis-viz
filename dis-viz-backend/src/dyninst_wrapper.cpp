@@ -10,6 +10,7 @@
 #include <Function.h>
 #include <InstructionDecoder.h>
 #include <Symtab.h>
+#include <registers/x86_64_regs.h>
 
 #include <json_converter.hpp>
 #include <fstream>
@@ -163,7 +164,7 @@ bool matchOperands(const vector<signed int> &readSet,
   auto writeSetMatched = vector<bool>(writeSet.size());
 
   for (auto &operand : operands) {
-    auto regs = InstructionAPI::Operation_impl::registerSet();
+    auto regs = InstructionAPI::Operation::registerSet();
     if (readSet.size() != 0) {
       operand.getReadSet(regs);
       for (auto &reg : regs) {
@@ -238,7 +239,7 @@ bool matchOperands(const vector<signed int> &readSet,
 
 string block_to_name(const ParseAPI::Function *fn, const ParseAPI::Block *block,
                      const int cur_id) {
-  return print_clean_string(fn->name() + ": B" + Dyninst::itos(cur_id));
+  return print_clean_string(fn->name() + ": B" + std::to_string(cur_id));
 }
 
 vector<VariableInfo> getInstructionVariables(
@@ -504,10 +505,9 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
       auto icur = block->start();
       auto iend = block->last();
       while (icur <= iend) {
-        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
-        symtab->getSourceLines(cur_lines, icur);
+        auto cur_lines = symtab->getSourceLines(icur);
         // if (cur_lines.empty()) continue;
-        for(auto &fl : cur_lines) unique_sourcefiles.insert(fl->getFile());
+        for(auto &fl : cur_lines) unique_sourcefiles.insert(fl.getFile());
 
         auto raw_insnptr =
             (const unsigned char *)f->isrc()->getPtrToInstruction(icur);
@@ -649,12 +649,11 @@ std::tuple<vector<BlockInfo>, vector<BlockInfo>, unordered_map<string, map<int, 
 
       for (const auto &instr : insns) {
         // Correspondences
-        auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
-        symtab->getSourceLines(cur_lines, instr.first);
+        auto cur_lines = symtab->getSourceLines(instr.first);
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
-          correspondences[print_clean_string(li->getFile())].push_back(li->getLine());
-          source_correspondences[print_clean_string(li->getFile())][li->getLine()].push_back(instr.first);
+          correspondences[print_clean_string(li.getFile())].push_back(li.getLine());
+          source_correspondences[print_clean_string(li.getFile())][li.getLine()].push_back(instr.first);
         }
 
 
