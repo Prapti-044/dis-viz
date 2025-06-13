@@ -13,6 +13,7 @@
 #include <registers/x86_64_regs.h>
 
 #include <json_converter.hpp>
+#include <streaming_json_converter.hpp>
 #include <fstream>
 
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
@@ -857,12 +858,9 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath, const bool saveJso
     }
     path /= jsonName;
     auto o = std::ofstream(path.string());
-    auto j = crow::json::wvalue();
-    j["blocks_info"] = convertBinaryCache(binaryCacheResult[binaryPath]);
     
-    j["functions"] = convertFunctionInfos(functionInfos);
-    
-    o << j.dump() << std::endl;
+    // Use streaming JSON writer to avoid memory issues
+    writeCompleteJsonStreaming(o, binaryCacheResult[binaryPath], functionInfos);
   }
   
   return binaryCacheResult[binaryPath];

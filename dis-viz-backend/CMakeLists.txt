@@ -28,6 +28,11 @@ ExternalProject_Add(crow
     CMAKE_ARGS -DCROW_BUILD_EXAMPLES=OFF -DCROW_BUILD_TESTS=OFF -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
 )
 
+ExternalProject_Add(nlohmann_json
+    GIT_REPOSITORY https://github.com/nlohmann/json
+    CMAKE_ARGS -DJSON_BuildTests=OFF -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION}
+)
+
 if(DEFINED ${DYNINST_LOCATION})
     include_directories(${DYNINST_LOCATION}/include)
     link_directories(${DYNINST_LOCATION}/lib)
@@ -82,7 +87,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 )
 
 add_dependencies(${PROJECT_NAME}
-    indicators crow
+    indicators crow nlohmann_json
 )
 if(NOT DEFINED ${DYNINST_LOCATION})
     add_dependencies(${PROJECT_NAME} dyninst)
