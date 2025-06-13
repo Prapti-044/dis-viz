@@ -4,7 +4,7 @@ This project visualizes binary executable files and maps it back to the source c
 
 __Due to requirement of a high power back-end, I hosted this on Google Cloud Platform (GCP) and shared the demo link below.__
 
-## [Video Link](https://youtu.be/JzdskO-FHIU)
+## [Video Link]([https://youtu.be/JzdskO-FHIU](https://drive.google.com/file/d/1tGopztmKr1JtXu4geoLLKAnrK_8LNzw4/view?usp=drive_link))
 ## [Website Demo Link](http://155.98.19.71:9000/)
 
 ## Quick Start
