@@ -17,7 +17,7 @@
 using json = crow::json::wvalue;
 namespace po = boost::program_options;
 
-#define BLOCKS_PER_PAGE 50
+#define BLOCKS_PER_PAGE 200
 
 // TODO: Handle POST body format verification
 

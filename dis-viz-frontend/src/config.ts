@@ -19,4 +19,4 @@ export const marginHorizontal = 10
 export const marginSameVertical = 20 // 10
 export const marginDifferentVertical = 80 //100
 export const LOOP_INDENT_SIZE = 26
-export const BLOCK_MAX_WIDTH = 420 //400
+export const BLOCK_MAX_WIDTH = 450 //400

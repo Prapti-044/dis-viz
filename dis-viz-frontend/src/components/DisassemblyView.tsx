@@ -206,7 +206,7 @@ function DisassemblyView({ id }:{
             top: '10px',
             right: '200px',
             height: '40px',
-            zIndex: 10,
+            zIndex: 15,
         }}>
             <input type="checkbox" ref={activeRef} onChange={(event) => {
                 if(event.target.checked)
@@ -229,7 +229,7 @@ function DisassemblyView({ id }:{
                 backgroundColor: '#f1f1f1',
                 padding: '10px',
                 fontWeight: 'bold',
-                zIndex: 1,
+                zIndex: 10,
                 display: 'flex',
                 flexDirection: 'row',
             }}>
