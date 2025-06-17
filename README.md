@@ -2,10 +2,7 @@
 
 This project visualizes binary executable files and maps it back to the source code. I used Dyninst library that can decompile binary files compiled with Debug flags. The implementation details are listed below.
 
-__Due to requirement of a high power back-end, I hosted this on Google Cloud Platform (GCP) and shared the demo link below.__
-
-## [Video Link](https://youtu.be/JzdskO-FHIU)
-## [Website Demo Link](http://155.98.19.71:9000/)
+## [Video Link](https://youtu.be/RVfb3yhSeI4)
 
 ## Quick Start
 

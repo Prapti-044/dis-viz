@@ -69,7 +69,7 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
 
 
     const rootFile: FileType = {
-        name: '/',
+        name: 'root',
         fullPath: "/",
         type: "directory",
         subdir: [],
@@ -78,13 +78,16 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
 
     sourceViewData.forEach(({ file_name, status }) => {
         let currentLoc = rootFile
-        const list = file_name.split("/").slice(1)
+        // Transform the path for display: replace "/home/insane/prapti/" with "root/"
+        const displayPath = file_name.replace(/^\/home\/insane\/prapti\//, 'root/')
+        const list = displayPath.split("/").slice(1) // Remove empty first element after split
+        
         list.forEach((fileOrFolder, i) => {
             const isFile = i === list.length-1
             if (isFile) {
                 const newDir: FileType = {
                     name: fileOrFolder,
-                    fullPath: "/"+list.slice(0,i+1).join('/'),
+                    fullPath: file_name, // Keep original path for functionality
                     type: "file",
                     subdir: null,
                     status: status,
@@ -96,9 +99,13 @@ function SourceFileTree({ sourceViewData, setSourceViewData }:{
                     currentLoc = currentLoc.subdir.find(dir => dir.name === fileOrFolder)!
                 }
                 else {
+                    // Create display path for folders too, but keep original logic for fullPath
+                    const originalList = file_name.split("/").slice(1)
+                    const originalFolderPath = "/"+originalList.slice(0,i+1).join('/')
+                    
                     const newDir: FileType = {
                         name: fileOrFolder,
-                        fullPath: "/"+list.slice(0,i+1).join('/'),
+                        fullPath: originalFolderPath, // Keep original path structure
                         type: "directory",
                         subdir: [],
                         status: "opened",
