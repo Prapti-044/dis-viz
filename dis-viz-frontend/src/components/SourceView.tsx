@@ -128,6 +128,7 @@ function SourceView({ file_name }: {
         })
         setCorrespondences(tmpCorrespondences)
         setLineTags(tmpLineTags)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [binaryFilePaths, file_name])
 
     // add decorations for lines with correspondences and tags
@@ -311,6 +312,7 @@ function SourceView({ file_name }: {
                 }
             });
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags]);
 
     // add decoration for selected lines
@@ -452,6 +454,7 @@ function SourceView({ file_name }: {
         return () => {
             disposable.dispose();
         };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection, tagsDecorationCollection])
 
     return <Suspense fallback={<div>Loading source code...</div>}>

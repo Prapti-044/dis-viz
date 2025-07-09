@@ -216,6 +216,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
         return () => {
             window.cancelAnimationFrame(animationFrameId)
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [draw, highlightOption])
     
     
