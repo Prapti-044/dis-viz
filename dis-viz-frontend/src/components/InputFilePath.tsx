@@ -7,9 +7,10 @@ import '../styles/inputsourcefilepath.css'
 import { 
     reorderBinaryFilePaths, 
     removeLoadedFile, 
-    syncWithLoadedFiles 
+    syncWithLoadedFiles,
+    selectBinaryFilePaths
 } from '../features/binary-data/binaryDataSlice'
-import { useAppDispatch } from '../app/hooks'
+import { useAppDispatch, useAppSelector } from '../app/hooks'
 import { toast } from 'react-toastify'
 import {
     DndContext,
@@ -30,15 +31,16 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { MdDragIndicator, MdDelete, MdUpload, MdCloudUpload } from 'react-icons/md'
+import { MdDragIndicator, MdDelete, MdUpload, MdCloudUpload, MdFileDownload, MdPlayArrow } from 'react-icons/md'
 
 interface SortableFileItemProps {
     fileName: string;
     index: number;
     onDelete: (fileName: string) => void;
+    totalFiles: number;
 }
 
-function SortableFileItem({ fileName, index, onDelete }: SortableFileItemProps) {
+function SortableFileItem({ fileName, index, onDelete, totalFiles }: SortableFileItemProps) {
     const {
         attributes,
         listeners,
@@ -55,7 +57,6 @@ function SortableFileItem({ fileName, index, onDelete }: SortableFileItemProps) 
     };
 
     // Calculate grid visualization
-    const totalFiles = disvizProcessor.getLoadedFileNames().length;
     const row = (index % 2) + 1;
     const col = Math.floor(index / 2) + 1;
     const totalColumns = Math.ceil(totalFiles / 2);
@@ -239,11 +240,120 @@ function DropZone({ onFileUpload, isUploading }: DropZoneProps) {
     );
 }
 
+interface ExampleFilesProps {
+    onLoadExample: (fileName: string) => void;
+    isLoading: boolean;
+}
+
+function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
+    const exampleFiles = [
+        { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
+        { name: 'bubble-O1.disviz', description: 'Bubble sort with O1 optimization' },
+        { name: 'bubble-O2.disviz', description: 'Bubble sort with O2 optimization' },
+        { name: 'bubble-O3.disviz', description: 'Bubble sort with O3 optimization' },
+        { name: 'bubble_sort_clang_O3.disviz', description: 'Bubble sort with Clang O3 optimization' },
+
+        { name: 'codehoist-O0.disviz', description: 'Code hoisting example with O0 optimization' },
+        { name: 'codehoist-O3.disviz', description: 'Code hoisting example with O3 optimization' },
+
+        { name: 'raja-perf-gcc13.exe.disviz', description: 'Raja Performance Test compiled with GCC 13' },
+        { name: 'raja-perf-O0.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O0 optimization' },
+        { name: 'raja-perf-O3.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O3 optimization' },
+
+        { name: 'syscall.disviz', description: 'Syscall example' },
+        { name: 'syscall-O0.disviz', description: 'Syscall example with O0 optimization' },
+    ];
+
+    return (
+        <div style={{ marginBottom: "20px" }}>
+            <div style={{
+                padding: "15px",
+                backgroundColor: "#f1f8ff",
+                borderRadius: "8px",
+                border: "1px solid #c6e2ff"
+            }}>
+                <div style={{ 
+                    fontSize: "14px", 
+                    color: "#0366d6", 
+                    marginBottom: "12px",
+                    fontWeight: "600",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "8px"
+                }}>
+                    <MdFileDownload size={18} />
+                    Example Files
+                </div>
+                
+                <div style={{ 
+                    fontSize: "12px", 
+                    color: "#586069", 
+                    marginBottom: "15px",
+                    fontStyle: "italic"
+                }}>
+                    Click to load pre-built binary analysis examples
+                </div>
+
+                <div style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                    gap: "8px"
+                }}>
+                    {exampleFiles.map((file) => (
+                        <Button
+                            key={file.name}
+                            variant="outline-primary"
+                            size="sm"
+                            onClick={() => onLoadExample(file.name)}
+                            disabled={isLoading}
+                            style={{
+                                padding: "8px 12px",
+                                textAlign: "left",
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "8px",
+                                fontSize: "12px",
+                                borderRadius: "6px",
+                                backgroundColor: "transparent",
+                                border: "1px solid #c6e2ff"
+                            }}
+                            className="example-file-button"
+                        >
+                            <MdPlayArrow size={14} style={{ flexShrink: 0 }} />
+                            <div style={{ overflow: "hidden" }}>
+                                <div style={{ 
+                                    fontWeight: "500", 
+                                    overflow: "hidden", 
+                                    textOverflow: "ellipsis", 
+                                    whiteSpace: "nowrap" 
+                                }}>
+                                    {file.name}
+                                </div>
+                                <div style={{ 
+                                    fontSize: "10px", 
+                                    color: "#586069", 
+                                    marginTop: "2px",
+                                    overflow: "hidden", 
+                                    textOverflow: "ellipsis", 
+                                    whiteSpace: "nowrap" 
+                                }}>
+                                    {file.description}
+                                </div>
+                            </div>
+                        </Button>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
 function InputFilePath() {
     const [isUploading, setIsUploading] = React.useState<boolean>(false);
+    const [isLoadingExample, setIsLoadingExample] = React.useState<boolean>(false);
 
     const dispatch = useAppDispatch();
-    const loadedFileNames = disvizProcessor.getLoadedFileNames();
+    const loadedFileNames = useAppSelector(selectBinaryFilePaths);
 
     // Sync Redux state with loaded files on component mount and when files change
     React.useEffect(() => {
@@ -286,6 +396,34 @@ function InputFilePath() {
         }
     };
 
+    const handleLoadExample = async (fileName: string) => {
+        setIsLoadingExample(true);
+        
+        try {
+            // Fetch the example file from the public directory
+            const response = await fetch(`/snapshots/${fileName}`);
+            if (!response.ok) {
+                throw new Error(`Failed to fetch example file: ${response.statusText}`);
+            }
+            
+            const blob = await response.blob();
+            const file = new File([blob], fileName, { type: 'application/octet-stream' });
+            
+            const loadedFileName = await disvizProcessor.loadDisvizFile(file);
+            
+            // Sync with loaded files after loading example
+            dispatch(syncWithLoadedFiles());
+            
+            toast.success(`Loaded example: ${loadedFileName}`);
+            
+        } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+            toast.error(`Failed to load example file: ${errorMessage}`);
+        } finally {
+            setIsLoadingExample(false);
+        }
+    };
+
     const handleDragEnd = (event: DragEndEvent) => {
         const { active, over } = event;
 
@@ -302,6 +440,7 @@ function InputFilePath() {
     };
 
     const handleDeleteFile = (fileName: string) => {
+        // Redux action handles both processor and state removal
         dispatch(removeLoadedFile(fileName));
         toast.success(`Removed ${fileName}`);
     };
@@ -346,6 +485,7 @@ function InputFilePath() {
                                         fileName={fileName}
                                         index={index}
                                         onDelete={handleDeleteFile}
+                                        totalFiles={loadedFileNames.length}
                                     />
                                 ))}
                             </SortableContext>
@@ -353,6 +493,11 @@ function InputFilePath() {
                     </div>
                 </div>
             )}
+
+            <ExampleFiles 
+                onLoadExample={handleLoadExample}
+                isLoading={isLoadingExample}
+            />
 
             {loadedFileNames.length === 0 && (
                 <Alert variant="info" style={{ 
@@ -362,7 +507,7 @@ function InputFilePath() {
                     borderRadius: "8px"
                 }}>
                     <MdUpload style={{ marginRight: "8px" }} />
-                    Upload .disviz files above to begin your binary analysis
+                    Upload .disviz files above or try the example files to begin your binary analysis
                 </Alert>
             )}
         </div>

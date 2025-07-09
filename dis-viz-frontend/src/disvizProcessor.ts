@@ -532,7 +532,6 @@ export function getSelectionFromBinary_indirect(
   };
 }
 
-// Remove a specific file from loaded files, TODO: Add a button to InputFilePath component
 export function clearLoadedFile(filepath: string): void {
   if (!loadedFiles.has(filepath)) {
     throw new Error(`File not found: ${filepath}`);
