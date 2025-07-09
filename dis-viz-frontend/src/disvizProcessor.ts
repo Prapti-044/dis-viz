@@ -272,7 +272,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
             flags: { [binaryFileName]: line.flags }
           }));
         } else {
-          info.lines.forEach(infoLine => {
+          for (const infoLine of info.lines) {
             const existingLine = lines.find(l => l.line === infoLine.line);
             if (existingLine) {
               existingLine.correspondences[binaryFileName] = infoLine.correspondences;
@@ -284,7 +284,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
                 flags: { [binaryFileName]: infoLine.flags }
               });
             }
-          });
+          }
         }
       }
     }

@@ -1,7 +1,7 @@
 import React, { Suspense } from 'react'
 import ReactDOM from 'react-dom/client'
 import '../styles/sourceview.css'
-import { setSelection, clearHoverHighlight, setHoverHighlight, clearSelection, BinarySelection } from '../features/selections/selectionsSlice'
+import { setSelection, clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice'
 import * as disvizProcessor from '../disvizProcessor'
 import { useAppSelector, useAppDispatch } from '../app/hooks'
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice'

@@ -1,17 +1,15 @@
 import React from 'react'
-import Form from 'react-bootstrap/Form'
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import * as disvizProcessor from "../disvizProcessor"
 import '../styles/inputsourcefilepath.css'
 import { 
-    selectBinaryFilePaths, 
     reorderBinaryFilePaths, 
     removeLoadedFile, 
     syncWithLoadedFiles 
 } from '../features/binary-data/binaryDataSlice'
-import { useAppSelector, useAppDispatch } from '../app/hooks'
+import { useAppDispatch } from '../app/hooks'
 import { toast } from 'react-toastify'
 import {
     DndContext,
@@ -245,7 +243,6 @@ function InputFilePath() {
     const [isUploading, setIsUploading] = React.useState<boolean>(false);
 
     const dispatch = useAppDispatch();
-    const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
     const loadedFileNames = disvizProcessor.getLoadedFileNames();
 
     // Sync Redux state with loaded files on component mount and when files change

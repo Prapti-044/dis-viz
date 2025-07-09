@@ -2,7 +2,7 @@ import React from "react";
 import Card from "react-bootstrap/Card";
 import ListGroup from "react-bootstrap/ListGroup";
 import { setSelection } from "../features/selections/selectionsSlice";
-import { BLOCK_ORDERS, BlockPage, DisassemblyLineSelection, InstructionBlock } from "../types";
+import { BLOCK_ORDERS, BlockPage, InstructionBlock } from "../types";
 import { selectBinaryFilePaths } from "../features/binary-data/binaryDataSlice";
 import { shortenName, HIGHLIGHT_COLOR } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";

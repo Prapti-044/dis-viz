@@ -13,7 +13,6 @@ const BLOCK_SEP = 5
 const BLOCK_LINE_LEFT = 20
 const BLOCKS_START_TOP = 50
 const BRUSH_OFFSET = 10
-const HIDDEN_ARROW_GAP = 30
 const HIDDEN_ARROW_LEN = 20
 const LOOP_INDENT_SIZE = 6
 
@@ -252,7 +251,6 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
                 sourceLines[sourceFile].push(...instr.correspondence[sourceFile])
             }
         }
-        const sourceSelection = Object.entries(sourceLines).map(([source_file, lines]) => ({ source_file, lines }))
             
         setThisSelection(block.instructions.map(inst => inst.address))
     }

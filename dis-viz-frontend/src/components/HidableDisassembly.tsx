@@ -33,7 +33,7 @@ function HidableDisassembly({ name, block, disId }: {
                 if(el) toggleHideElement(isHidden, el)
             })
         setIsHidden(true)
-    }, [])
+    }, [block.hidables, block.instructions, disId, isHidden])
 
     return <button
             className={"hidablebtn " + (isHidden?"open":"closed")}

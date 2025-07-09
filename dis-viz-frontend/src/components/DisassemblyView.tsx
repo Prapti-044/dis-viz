@@ -1,13 +1,13 @@
 import React  from 'react';
 
-import { selectBinarySelection, selectBinaryHoverHighlight } from '../features/selections/selectionsSlice'
+import { selectBinarySelection } from '../features/selections/selectionsSlice'
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { BLOCK_ORDERS, BlockPage } from '../types'
 import * as disvizProcessor from '../disvizProcessor'
 import Minimap from './Minimap';
 
 import DisassemblyBlock from './DisassemblyBlock';
-import { useAppDispatch, useAppSelector } from '../app/hooks';
+import { useAppSelector } from '../app/hooks';
 import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';

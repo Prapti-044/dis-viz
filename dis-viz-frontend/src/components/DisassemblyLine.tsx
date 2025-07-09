@@ -4,10 +4,9 @@ import '../styles/disassemblyview.css'
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { setSelection, selectBinaryHoverHighlight, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
-import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 
-import { Instruction, DisassemblyLineSelection, InstructionBlock, BLOCK_ORDERS } from '../types'
-import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs, SOURCE_TAGS } from '../utils'
+import { Instruction, InstructionBlock, BLOCK_ORDERS } from '../types'
+import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
 import * as disvizProcessor from "../disvizProcessor";
 import { INSTRUCTION_TAGS } from '../utils'
@@ -35,9 +34,6 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
 
     const [showDoc, setShowDoc] = React.useState(false)
     
-    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
-    const validBinaryFilePaths = binaryFilePaths.filter(path => path !== "")
-
     const enabledTags = useAppSelector(selectAllTagStates);
 
     let instruction_address = instruction.address.toString(16).toUpperCase();

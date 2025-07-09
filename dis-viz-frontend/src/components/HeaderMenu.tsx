@@ -14,13 +14,7 @@ interface HeaderMenuProps {
     setShowMinimaps: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-// Define a tag type to match the structure of the tags
-interface Tag {
-    id: string;
-    fullName: string;
-    color: string;
-    [key: string]: any; // Allow other properties that might be in the tag objects
-}
+
 
 const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps }) => {
     const dispatch = useAppDispatch();
