@@ -56,6 +56,14 @@ interface SourceCodeInfo {
   }[];
 }
 
+interface DisvizMetadata {
+  architecture: string;
+  compiler: string;
+  date: string;
+  flags: string[];
+  time: string;
+}
+
 interface DisvizData {
   disassembly: {
     memory_order_blocks: BlockData[];
@@ -66,6 +74,7 @@ interface DisvizData {
     loop_order: MinimapData;
   };
   source_code_info: SourceCodeInfo[];
+  metadata?: DisvizMetadata;
 }
 
 // Global storage for loaded .disviz files
@@ -239,6 +248,14 @@ export function getAddressRange(filepath: string): { start: number; end: number 
   if (!file) throw new Error(`File not found: ${filepath}`);
   
   return file.addressRange;
+}
+
+// Get metadata for a loaded file
+export function getFileMetadata(filepath: string): DisvizMetadata | null {
+  const file = loadedFiles.get(filepath);
+  if (!file) return null;
+  
+  return file.data.metadata || null;
 }
 
 export function getSourceLines(binaryFiles: string[], sourceFile: string): SourceFile {

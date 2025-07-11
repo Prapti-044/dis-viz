@@ -4,6 +4,7 @@ import Alert from 'react-bootstrap/Alert'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import * as disvizProcessor from "../disvizProcessor"
 import '../styles/inputsourcefilepath.css'
+import { Tooltip } from '@mui/material'
 import { 
     reorderBinaryFilePaths, 
     removeLoadedFile, 
@@ -31,7 +32,54 @@ import {
     useSortable,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { MdDragIndicator, MdDelete, MdUpload, MdCloudUpload, MdFileDownload, MdPlayArrow } from 'react-icons/md'
+import { MdDragIndicator, MdDelete, MdUpload, MdCloudUpload, MdFileDownload, MdPlayArrow, MdExpandMore, MdExpandLess, MdInfo } from 'react-icons/md'
+
+// Helper function to get metadata for a loaded file
+function getFileMetadata(fileName: string) {
+    try {
+        const binaryList = disvizProcessor.getBinaryList();
+        const file = binaryList.find(f => f.name === fileName);
+        if (!file) return null;
+
+        const sourceFiles = disvizProcessor.getSourceFiles(fileName);
+        const addressRange = disvizProcessor.getAddressRange(fileName);
+        const metadata = disvizProcessor.getFileMetadata(fileName);
+        
+        // Get first page to check if there are any blocks
+        let memoryOrderBlockCount = 0;
+        let loopOrderBlockCount = 0;
+        let hasBlocks = false;
+        
+        try {
+            const memoryOrderPage = disvizProcessor.getDisassemblyPage(fileName, 0, 'memory_order');
+            memoryOrderBlockCount = memoryOrderPage.blocks.length;
+            hasBlocks = true;
+        } catch (error) {
+            // No blocks available
+        }
+        
+        try {
+            const loopOrderPage = disvizProcessor.getDisassemblyPage(fileName, 0, 'loop_order');
+            loopOrderBlockCount = loopOrderPage.blocks.length;
+            hasBlocks = true;
+        } catch (error) {
+            // No blocks available
+        }
+        
+        return {
+            name: fileName,
+            sourceFileCount: sourceFiles.length,
+            memoryOrderBlockCount: memoryOrderBlockCount,
+            loopOrderBlockCount: loopOrderBlockCount,
+            hasBlocks: hasBlocks,
+            addressRange: addressRange,
+            metadata: metadata
+        };
+    } catch (error) {
+        console.error('Error getting file metadata:', error);
+        return null;
+    }
+}
 
 interface SortableFileItemProps {
     fileName: string;
@@ -60,6 +108,54 @@ function SortableFileItem({ fileName, index, onDelete, totalFiles }: SortableFil
     const row = (index % 2) + 1;
     const col = Math.floor(index / 2) + 1;
     const totalColumns = Math.ceil(totalFiles / 2);
+
+    // Get metadata for tooltip
+    const metadata = getFileMetadata(fileName);
+
+    // Create tooltip content
+    const tooltipContent = metadata ? (
+        <div style={{ fontSize: "12px", lineHeight: "1.4" }}>
+            <div style={{ fontWeight: "bold", marginBottom: "8px" }}>
+                {metadata.name}
+            </div>
+            
+            {/* Build metadata */}
+            {metadata.metadata && (
+                <div style={{ marginBottom: "8px", padding: "6px", backgroundColor: "rgba(255,255,255,0.1)", borderRadius: "4px" }}>
+                    <div style={{ fontWeight: "bold", marginBottom: "4px", color: "#ffd700" }}>
+                        🔨 Build Information
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#ddd", marginBottom: "2px" }}>
+                        <strong>Architecture:</strong> {metadata.metadata.architecture}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#ddd", marginBottom: "2px" }}>
+                        <strong>Compiler:</strong> {metadata.metadata.compiler}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#ddd", marginBottom: "2px" }}>
+                        <strong>Flags:</strong> {metadata.metadata.flags.join(", ")}
+                    </div>
+                    <div style={{ fontSize: "11px", color: "#ddd" }}>
+                        <strong>Built:</strong> {metadata.metadata.date} at {metadata.metadata.time}
+                    </div>
+                </div>
+            )}
+            
+            <div style={{ marginBottom: "4px" }}>
+                📁 <strong>Source Files:</strong> {metadata.sourceFileCount}
+            </div>
+            
+            <div style={{ marginBottom: "4px" }}>
+                🔧 <strong>Basic Blocks:</strong> {metadata.memoryOrderBlockCount}
+            </div>
+            
+            <div>
+                📍 <strong>Address Range:</strong> 
+                <div style={{ fontSize: "11px", color: "#666", fontFamily: "monospace" }}>
+                    0x{metadata.addressRange.start.toString(16)} - 0x{metadata.addressRange.end.toString(16)}
+                </div>
+            </div>
+        </div>
+    ) : 'No metadata available';
 
     return (
         <div
@@ -128,6 +224,37 @@ function SortableFileItem({ fileName, index, onDelete, totalFiles }: SortableFil
                 }}>
                     {fileName}
                 </div>
+
+                {/* Info icon with tooltip */}
+                <Tooltip 
+                    title={tooltipContent}
+                    arrow
+                    placement="top"
+                    componentsProps={{
+                        tooltip: {
+                            style: {
+                                maxWidth: '300px',
+                                backgroundColor: '#2c3e50',
+                                color: '#ffffff',
+                                fontSize: '12px',
+                                borderRadius: '6px',
+                                padding: '12px'
+                            }
+                        }
+                    }}
+                >
+                    <div style={{
+                        padding: "4px",
+                        marginLeft: "8px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        color: "#6c757d",
+                        borderRadius: "4px"
+                    }}>
+                        <MdInfo size={16} />
+                    </div>
+                </Tooltip>
 
                 {/* Delete button */}
                 <Button
@@ -246,6 +373,8 @@ interface ExampleFilesProps {
 }
 
 function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
+    const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
+    
     const exampleFiles = [
         { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
         { name: 'bubble-O1.disviz', description: 'Bubble sort with O1 optimization' },
@@ -264,85 +393,122 @@ function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
         { name: 'syscall-O0.disviz', description: 'Syscall example with O0 optimization' },
     ];
 
+    const toggleExpanded = () => {
+        setIsExpanded(!isExpanded);
+    };
+
     return (
         <div style={{ marginBottom: "20px" }}>
             <div style={{
-                padding: "15px",
                 backgroundColor: "#f1f8ff",
                 borderRadius: "8px",
                 border: "1px solid #c6e2ff"
             }}>
-                <div style={{ 
-                    fontSize: "14px", 
-                    color: "#0366d6", 
-                    marginBottom: "12px",
-                    fontWeight: "600",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px"
-                }}>
-                    <MdFileDownload size={18} />
-                    Example Files
+                {/* Collapsible header */}
+                <div 
+                    onClick={toggleExpanded}
+                    style={{
+                        padding: "15px",
+                        cursor: "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        userSelect: "none"
+                    }}
+                >
+                    <div style={{ 
+                        fontSize: "14px", 
+                        color: "#0366d6", 
+                        fontWeight: "600",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px"
+                    }}>
+                        <MdFileDownload size={18} />
+                        Example Files
+                        <span style={{ 
+                            fontSize: "12px", 
+                            color: "#586069", 
+                            fontWeight: "400",
+                            fontStyle: "italic"
+                        }}>
+                            ({exampleFiles.length} available)
+                        </span>
+                    </div>
+                    
+                    {isExpanded ? (
+                        <MdExpandLess size={20} color="#0366d6" />
+                    ) : (
+                        <MdExpandMore size={20} color="#0366d6" />
+                    )}
                 </div>
                 
-                <div style={{ 
-                    fontSize: "12px", 
-                    color: "#586069", 
-                    marginBottom: "15px",
-                    fontStyle: "italic"
-                }}>
-                    Click to load pre-built binary analysis examples
-                </div>
+                {/* Collapsible content */}
+                {isExpanded && (
+                    <div style={{ 
+                        padding: "0 15px 15px 15px",
+                        borderTop: "1px solid #c6e2ff"
+                    }}>
+                        <div style={{ 
+                            fontSize: "12px", 
+                            color: "#586069", 
+                            marginBottom: "15px",
+                            fontStyle: "italic"
+                        }}>
+                            Click to load pre-built binary analysis examples
+                        </div>
 
-                <div style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-                    gap: "8px"
-                }}>
-                    {exampleFiles.map((file) => (
-                        <Button
-                            key={file.name}
-                            variant="outline-primary"
-                            size="sm"
-                            onClick={() => onLoadExample(file.name)}
-                            disabled={isLoading}
-                            style={{
-                                padding: "8px 12px",
-                                textAlign: "left",
-                                display: "flex",
-                                alignItems: "center",
-                                gap: "8px",
-                                fontSize: "12px",
-                                borderRadius: "6px",
-                                backgroundColor: "transparent",
-                                border: "1px solid #c6e2ff"
-                            }}
-                            className="example-file-button"
-                        >
-                            <MdPlayArrow size={14} style={{ flexShrink: 0 }} />
-                            <div style={{ overflow: "hidden" }}>
-                                <div style={{ 
-                                    fontWeight: "500", 
-                                    overflow: "hidden", 
-                                    textOverflow: "ellipsis", 
-                                    whiteSpace: "nowrap" 
-                                }}>
-                                    {file.name}
-                                </div>
-                                <div style={{ 
-                                    fontSize: "10px", 
-                                    color: "#586069", 
-                                    marginTop: "2px",
-                                    overflow: "hidden", 
-                                    textOverflow: "ellipsis", 
-                                    whiteSpace: "nowrap" 
-                                }}>
-                                    {file.description}
-                                </div>
-                            </div>
-                        </Button>
-                    ))}
-                </div>
+                        <div style={{
+                            display: "grid",
+                            gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                            gap: "8px"
+                        }}>
+                            {exampleFiles.map((file) => (
+                                <Button
+                                    key={file.name}
+                                    variant="outline-primary"
+                                    size="sm"
+                                    onClick={() => onLoadExample(file.name)}
+                                    disabled={isLoading}
+                                    style={{
+                                        padding: "8px 12px",
+                                        textAlign: "left",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: "8px",
+                                        fontSize: "12px",
+                                        borderRadius: "6px",
+                                        backgroundColor: "transparent",
+                                        border: "1px solid #c6e2ff"
+                                    }}
+                                    className="example-file-button"
+                                >
+                                    <MdPlayArrow size={14} style={{ flexShrink: 0 }} />
+                                    <div style={{ overflow: "hidden" }}>
+                                        <div style={{ 
+                                            fontWeight: "500", 
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis", 
+                                            whiteSpace: "nowrap" 
+                                        }}>
+                                            {file.name}
+                                        </div>
+                                        <div style={{ 
+                                            fontSize: "10px", 
+                                            color: "#586069", 
+                                            marginTop: "2px",
+                                            overflow: "hidden", 
+                                            textOverflow: "ellipsis", 
+                                            whiteSpace: "nowrap" 
+                                        }}>
+                                            {file.description}
+                                        </div>
+                                    </div>
+                                </Button>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
