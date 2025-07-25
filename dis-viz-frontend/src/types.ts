@@ -7,15 +7,46 @@ export type BLOCK_ORDERS = 'memory_order' | 'loop_order'
 type SourceCodeFlag = (typeof SOURCE_TAGS)[number]['id']
 type InstructionFlag = (typeof INSTRUCTION_TAGS)[number]['id']
 
+export class InlineEntry {
+    @Expose() name: string;
+    @Expose() callsite_file: string;
+    @Expose() callsite_line: number;
+    @Expose() ranges: { start: number; end: number }[];
+    @Type(() => InlineEntry)
+    @Expose() children: InlineEntry[];
+
+    constructor(
+        name: string,
+        callsite_file: string,
+        callsite_line: number,
+        ranges: { start: number; end: number }[] = [],
+        children: InlineEntry[] = []
+    ) {
+        this.name = name;
+        this.callsite_file = callsite_file;
+        this.callsite_line = callsite_line;
+        this.ranges = ranges;
+        this.children = children;
+    }
+}
+
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: { [binaryFilePath: string]: number[] };
     @Expose() tags: { [binaryFilePath: string]: SourceCodeFlag[] };
+    @Type(() => InlineEntry)
+    @Expose() inline_tree: { [binaryFilePath: string]: InlineEntry[] };
 
-    constructor(line: string, addresses: { [binaryFilePath: string]: number[] }, tags: { [binaryFilePath: string]: SourceCodeFlag[] }) {
+    constructor(
+        line: string, 
+        addresses: { [binaryFilePath: string]: number[] }, 
+        tags: { [binaryFilePath: string]: SourceCodeFlag[] },
+        inline_tree: { [binaryFilePath: string]: InlineEntry[] } = {}
+    ) {
         this.line = line
         this.addresses = addresses
         this.tags = tags
+        this.inline_tree = inline_tree
     }
 }
 

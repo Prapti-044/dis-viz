@@ -39,6 +39,7 @@ struct InlineEntry {
   std::vector<std::pair<unsigned long, unsigned long> > ranges;
   std::string callsite_file;
   unsigned long callsite_line;
+  std::vector<InlineEntry> children;
 };
 struct LoopEntry {
   std::string name;
@@ -124,10 +125,15 @@ typedef enum {
   SOURCE_CODE_HOISTED
 } SOURCE_CODE_FLAGS;
 
+struct LineInfo {
+  std::unordered_set<SOURCE_CODE_FLAGS> flags;
+  std::vector<InlineEntry> inlineTree; // Hierarchical inline functions affecting this line
+};
+
 struct SourceCodeInfo {
   std::string file;
   int total_lines;
-  std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>> lines;
+  std::map<int, LineInfo> lines;
 };
 
 struct BinaryMetadata {

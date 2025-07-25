@@ -1,0 +1,194 @@
+.inline-tree-tooltip {
+    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    border: 1px solid #e1e5e9;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    padding: 16px;
+    max-width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 13px;
+    line-height: 1.4;
+    color: #2c3e50;
+}
+
+.inline-tree-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #e8ecf0;
+}
+
+.inline-tree-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #34495e;
+    display: flex;
+    align-items: center;
+}
+
+.inline-tree-title::before {
+    content: "ƒ";
+    margin-right: 6px;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.inline-tree-count {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.inline-tree-content {
+    /* Custom scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 transparent;
+}
+
+.inline-tree-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.inline-tree-content::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.inline-tree-content::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 2px;
+}
+
+.inline-tree-content::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+.inline-tree-node {
+    margin-bottom: 4px;
+}
+
+.inline-tree-entry {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    cursor: default;
+    gap: 6px;
+}
+
+.inline-tree-entry:hover {
+    background: linear-gradient(135deg, #f0f4ff 0%, #e8f0fe 100%);
+    transform: translateX(2px);
+}
+
+.inline-tree-icon {
+    font-size: 14px;
+    min-width: 18px;
+    text-align: center;
+}
+
+.inline-tree-function-name {
+    font-weight: 600;
+    color: #2d3748;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    flex-shrink: 0;
+}
+
+.inline-tree-location {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 2px;
+}
+
+.inline-tree-file {
+    color: #4a5568;
+    font-size: 11px;
+    background: #edf2f7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.inline-tree-line {
+    color: #38b2ac;
+    font-weight: 500;
+    font-size: 11px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.inline-tree-ranges {
+    color: #718096;
+    font-size: 10px;
+    background: #f7fafc;
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: 4px;
+}
+
+.inline-tree-children {
+    border-left: 2px solid #e2e8f0;
+    margin-left: 12px;
+    position: relative;
+}
+
+.inline-tree-children::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    opacity: 0.3;
+}
+
+.inline-tree-empty {
+    text-align: center;
+    color: #a0aec0;
+    font-style: italic;
+    padding: 20px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    border: 1px dashed #dee2e6;
+}
+
+/* Depth-based coloring */
+.inline-tree-entry[style*="padding-left: 0px"] .inline-tree-function-name {
+    color: #2b6cb0;
+}
+
+.inline-tree-entry[style*="padding-left: 16px"] .inline-tree-function-name {
+    color: #2f855a;
+}
+
+.inline-tree-entry[style*="padding-left: 32px"] .inline-tree-function-name {
+    color: #d69e2e;
+}
+
+.inline-tree-entry[style*="padding-left: 48px"] .inline-tree-function-name {
+    color: #c53030;
+}
+
+/* Animation for tooltip appearance */
+.inline-tree-tooltip {
+    animation: tooltipFadeIn 0.2s ease-out;
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+} 

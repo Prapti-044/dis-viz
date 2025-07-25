@@ -90,6 +90,43 @@ json getLineCorrespondences(const std::string& file, int line_no,
     return line_correspondences;
 }
 
+json convertInlineEntryNlohmann(const InlineEntry& inlineEntry) {
+    json result{
+        {"name", inlineEntry.name},
+        {"callsite_file", inlineEntry.callsite_file},
+        {"callsite_line", inlineEntry.callsite_line}
+    };
+    
+    // Convert ranges array
+    json ranges = json::array();
+    for (const auto& range : inlineEntry.ranges) {
+        ranges.emplace_back(json{
+            {"start", range.first},
+            {"end", range.second}
+        });
+    }
+    result["ranges"] = std::move(ranges);
+    
+    // Convert children recursively
+    if (!inlineEntry.children.empty()) {
+        json children = json::array();
+        for (const auto& child : inlineEntry.children) {
+            children.emplace_back(convertInlineEntryNlohmann(child));
+        }
+        result["children"] = std::move(children);
+    }
+    
+    return result;
+}
+
+json convertInlineTreeNlohmann(const std::vector<InlineEntry>& inlineTree) {
+    json result = json::array();
+    for (const auto& entry : inlineTree) {
+        result.emplace_back(convertInlineEntryNlohmann(entry));
+    }
+    return result;
+}
+
 json convertMinimapInfoNlohmann(const MinimapInfo& minimap) {
     return json{
         {"block_heights", minimap.block_heights},
@@ -187,16 +224,17 @@ json convertSourceCodeInfoNlohmann(const std::unordered_map<std::string, SourceC
         
         json lines = json::array();
         
-        for (const auto& [line_no, flags] : info.lines) {
+        for (const auto& [line_no, lineInfo] : info.lines) {
             json line_flags = json::array();
-            for (const auto& flag : flags) {
+            for (const auto& flag : lineInfo.flags) {
                 line_flags.emplace_back(SOURCE_TAGS_TO_STR.at(flag));
             }
             
             lines.emplace_back(json{
                 {"line", line_no},
                 {"flags", std::move(line_flags)},
-                {"correspondences", getLineCorrespondences(file, line_no, correspondences)}
+                {"correspondences", getLineCorrespondences(file, line_no, correspondences)},
+                {"inline_tree", convertInlineTreeNlohmann(lineInfo.inlineTree)}
             });
         }
         

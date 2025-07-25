@@ -1,6 +1,6 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
-import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable } from './types';
+import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry } from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
 import { INSTRUCTION_TAGS, SOURCE_TAGS } from './utils';
@@ -45,6 +45,14 @@ interface BlockData {
     hidables: Hidable[];
 }
 
+interface InlineEntryData {
+  name: string;
+  callsite_file: string;
+  callsite_line: number;
+  ranges: { start: number; end: number }[];
+  children?: InlineEntryData[];
+}
+
 interface SourceCodeInfo {
   file: string;
   copied_path: string | null;
@@ -53,6 +61,7 @@ interface SourceCodeInfo {
     line: number;
     flags: (typeof SOURCE_TAGS)[number]['id'][];
     correspondences: number[];
+    inline_tree: InlineEntryData[];
   }[];
 }
 
@@ -266,6 +275,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
     line: number;
     flags: { [binaryFilePath: string]: (typeof SOURCE_TAGS)[number]['id'][] };
     correspondences: { [binaryFilePath: string]: number[] };
+    inline_tree: { [binaryFilePath: string]: InlineEntryData[] };
   }[] = [];
 
   for (const binaryFileName of binaryFiles) {
@@ -286,7 +296,8 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
           lines = info.lines.map(line => ({
             line: line.line,
             correspondences: { [binaryFileName]: line.correspondences },
-            flags: { [binaryFileName]: line.flags }
+            flags: { [binaryFileName]: line.flags },
+            inline_tree: { [binaryFileName]: line.inline_tree || [] }
           }));
         } else {
           for (const infoLine of info.lines) {
@@ -294,11 +305,13 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
             if (existingLine) {
               existingLine.correspondences[binaryFileName] = infoLine.correspondences;
               existingLine.flags[binaryFileName] = infoLine.flags;
+              existingLine.inline_tree[binaryFileName] = infoLine.inline_tree || [];
             } else {
               lines.push({
                 line: infoLine.line,
                 correspondences: { [binaryFileName]: infoLine.correspondences },
-                flags: { [binaryFileName]: infoLine.flags }
+                flags: { [binaryFileName]: infoLine.flags },
+                inline_tree: { [binaryFileName]: infoLine.inline_tree || [] }
               });
             }
           }
@@ -325,11 +338,24 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
     const lineNo = index + 1;
     const lineInfo = lines.find(l => l.line === lineNo);
     if (lineInfo) {
-      return new SourceLine(lineContent, lineInfo.correspondences, lineInfo.flags);
+      // Convert inline tree data
+      const inlineTreeConverted: { [binaryFilePath: string]: InlineEntry[] } = {};
+      console.log(lineInfo)
+      for (const [binaryFile, inlineData] of Object.entries(lineInfo.inline_tree)) {
+        inlineTreeConverted[binaryFile] = inlineData.map(convertInlineEntryData);
+      }
+      
+      return new SourceLine(
+        lineContent, 
+        lineInfo.correspondences, 
+        lineInfo.flags,
+        inlineTreeConverted
+      );
     }
     else {
       return new SourceLine(
         lineContent,
+        Object.fromEntries(binaryFiles.map(f => [f, []])),
         Object.fromEntries(binaryFiles.map(f => [f, []])),
         Object.fromEntries(binaryFiles.map(f => [f, []]))
       );
@@ -337,6 +363,17 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
   });
   
   return new SourceFile(sourceLines);
+}
+
+// Helper function to convert InlineEntryData to InlineEntry
+function convertInlineEntryData(data: InlineEntryData): InlineEntry {
+  return new InlineEntry(
+    data.name,
+    data.callsite_file,
+    data.callsite_line,
+    data.ranges,
+    data.children?.map(child => convertInlineEntryData(child)) || []
+  );
 }
 
 // Convert block data to InstructionBlock instances

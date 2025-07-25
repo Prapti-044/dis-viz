@@ -15,6 +15,8 @@
 #include <registers/x86_64_regs.h>
 
 #include <fstream>
+#include <iostream>
+#include <functional>
 
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
 #include <vector>
@@ -499,34 +501,48 @@ vector<int> getBlockIndents(const vector<BlockInfo> &blocks) {
   return indents;
 }
 
-void getInlines(const set<SymtabAPI::InlinedFunction*> &inlineFuncs, vector<InlineEntry> &result) {
-  for (auto &inlineFunc : inlineFuncs) {
-    auto demangleStatus = int();
-    const auto name = abi::__cxa_demangle(inlineFunc->getName().c_str(), 0, 0, &demangleStatus);
-    auto name_str = name ? string(name) : inlineFunc->getName();
-    const auto &ranges = inlineFunc->getRanges();
+// Build a hierarchical tree of inlined functions
+InlineEntry createInlineEntry(SymtabAPI::InlinedFunction* inlineFunc) {
+  auto demangleStatus = int();
+  const auto name = abi::__cxa_demangle(inlineFunc->getName().c_str(), 0, 0, &demangleStatus);
+  auto name_str = name ? string(name) : inlineFunc->getName();
+  const auto &ranges = inlineFunc->getRanges();
 
-    auto inlineRanges = vector<std::pair<unsigned long, unsigned long>>();
-    for (auto range : ranges)
-      inlineRanges.push_back({range.low(), range.high()});
+  auto inlineRanges = vector<std::pair<unsigned long, unsigned long>>();
+  for (auto range : ranges)
+    inlineRanges.push_back({range.low(), range.high()});
 
-    result.push_back({
-        print_clean_string(name_str),
-        inlineRanges,
-        inlineFunc->getCallsite().first,
-        inlineFunc->getCallsite().second,
-    });
+  InlineEntry entry = {
+      print_clean_string(name_str),
+      inlineRanges,
+      inlineFunc->getCallsite().first,
+      inlineFunc->getCallsite().second,
+      {} // children will be filled below
+  };
 
-    free(const_cast<char *>(name));
+  free(const_cast<char *>(name));
 
-    auto ic = SymtabAPI::InlineCollection(inlineFunc->getInlines());
-    auto next_funcs = set<SymtabAPI::InlinedFunction *>();
-    for (auto &j : ic)
-      next_funcs.insert(static_cast<SymtabAPI::InlinedFunction *>(j));
-    if (!next_funcs.empty())
-      getInlines(next_funcs, result);
+  // Get child inlined functions and create tree structure
+  auto ic = SymtabAPI::InlineCollection(inlineFunc->getInlines());
+  for (auto &funcBase : ic) {
+    auto childInlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);
+    entry.children.push_back(createInlineEntry(childInlineFunc));
   }
+
+  return entry;
 }
+
+// Create inline tree from top-level inlined functions
+vector<InlineEntry> buildInlineTree(const set<SymtabAPI::InlinedFunction*> &topLevelInlineFuncs) {
+  vector<InlineEntry> inlineTree;
+  
+  for (auto &inlineFunc : topLevelInlineFuncs) {
+    inlineTree.push_back(createInlineEntry(inlineFunc));
+  }
+  
+  return inlineTree;
+}
+
 
 void addLoopHeaderInfo(BlockInfo &block, const vector<LoopEntry> &loops) {
   for (const auto &loop : loops) {
@@ -672,31 +688,42 @@ std::tuple<
       topLevelFuncs.insert(symt_func);
     }
     auto inlineFuncs = set<SymtabAPI::InlinedFunction*>();
-    if(!topLevelFuncs.empty()) {
-      for(auto &topLevelFunc: topLevelFuncs) {
-        auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
-        for (auto &funcBase : ic) {
-          auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
-          if(addresses.find(inlineFunc->getOffset()) == addresses.end()) continue;
-          inlineFuncs.insert(inlineFunc);
+    for(auto &topLevelFunc: topLevelFuncs) {
+      auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
+      for (auto &funcBase : ic) {
+        auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
+        if(addresses.find(inlineFunc->getOffset()) == addresses.end()) continue;
+        inlineFuncs.insert(inlineFunc);
+      }
+    }
+    auto inlineTree = buildInlineTree(inlineFuncs);
+
+    // Traverse the inline tree to update sourceCodeInfo
+    std::function<void(const vector<InlineEntry>&)> updateSourceCodeInfo = [&](const vector<InlineEntry>& entries) {
+      for(const auto &inlineEntry : entries) {
+        if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
+          sourceCodeInfo[inlineEntry.callsite_file] = SourceCodeInfo{
+            inlineEntry.callsite_file,
+            static_cast<int>(getNumberOfLines(inlineEntry.callsite_file)),
+            std::map<int, LineInfo>()
+          };
+        }
+        
+        auto& lineInfo = sourceCodeInfo[inlineEntry.callsite_file].lines[inlineEntry.callsite_line];
+        lineInfo.flags.insert(SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE);
+        
+        // Add the current inline entry with its complete tree structure to this line
+        lineInfo.inlineTree.push_back(inlineEntry);
+        
+        // Recursively process children
+        if (!inlineEntry.children.empty()) {
+          updateSourceCodeInfo(inlineEntry.children);
         }
       }
-    }
-    auto inlines = vector<InlineEntry>();
-    getInlines(inlineFuncs, inlines);
-
-    for(const auto &inlineEntry: inlines) {
-      if(sourceCodeInfo.find(inlineEntry.callsite_file) == sourceCodeInfo.end()) {
-
-        sourceCodeInfo[inlineEntry.callsite_file] = SourceCodeInfo{
-          inlineEntry.callsite_file,
-          static_cast<int>(getNumberOfLines(inlineEntry.callsite_file)),
-          std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
-        };
-      }
-      sourceCodeInfo[inlineEntry.callsite_file].lines[inlineEntry.callsite_line - 1].insert(SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE);
-    }
+    };
     
+    updateSourceCodeInfo(inlineTree);
+
     // Calls
     auto calls = vector<Call>();
     for (auto &edge : f->callEdges()) {
@@ -729,7 +756,7 @@ std::tuple<
       {},
       {},
       calls,
-      inlines,
+      inlineTree,
       funcLoops,
       {}
     };
@@ -820,10 +847,10 @@ std::tuple<
                 sourceCodeInfo[sourceFile] = SourceCodeInfo{
                   sourceFile,
                   static_cast<int>(getNumberOfLines(sourceFile)),
-                  std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
+                  std::map<int, LineInfo>()
                 };
               if (auto it = INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.find(inst_flag); it != INSTRUCTION_FLAGS_TO_SOURCE_CODE_FLAGS.end()) {
-                sourceCodeInfo[sourceFile].lines[line].insert(it->second);
+                sourceCodeInfo[sourceFile].lines[line].flags.insert(it->second);
               }
             }
           }
@@ -845,7 +872,7 @@ std::tuple<
         sourceCodeInfo[sourceFile] = SourceCodeInfo{
           sourceFile,
           lineCount,
-          std::map<int, std::unordered_set<SOURCE_CODE_FLAGS>>()
+          std::map<int, LineInfo>()
         };
       }
     }
@@ -1027,7 +1054,7 @@ std::tuple<
                   inst->flags.insert(INST_HOISTED);
                   // Add HOISTED flag to the source code line
                   if (sourceCodeInfo.find(sourceFile) != sourceCodeInfo.end()) {
-                    sourceCodeInfo[sourceFile].lines[bodyLine-1].insert(SOURCE_CODE_HOISTED);
+                    sourceCodeInfo[sourceFile].lines[bodyLine-1].flags.insert(SOURCE_CODE_HOISTED);
                   }
                 }
               }

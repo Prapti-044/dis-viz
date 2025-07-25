@@ -10,7 +10,72 @@ import { HIGHLIGHT_COLOR, SOURCE_TAGS } from '../utils'
 import MonacoEditor, { loader } from '@monaco-editor/react'
 import * as monaco from 'monaco-editor'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
+import { useFloating, autoUpdate, offset, flip, shift, useHover, useDismiss, useRole, useInteractions, FloatingPortal } from '@floating-ui/react'
+import InlineTreeTooltip from './InlineTreeTooltip'
+import { InlineEntry } from '../types'
 loader.config({ monaco });
+
+// Component to wrap tags with tooltip functionality
+const TooltipWrapper: React.FC<{ 
+    children: React.ReactNode; 
+    inlineTree?: InlineEntry[]; 
+    tagId: string;
+}> = ({ children, inlineTree, tagId }) => {
+    const [isOpen, setIsOpen] = React.useState(false);
+
+    const { refs, floatingStyles, context } = useFloating({
+        open: isOpen,
+        onOpenChange: setIsOpen,
+        middleware: [
+            offset(8),
+            flip(),
+            shift()
+        ],
+        whileElementsMounted: autoUpdate,
+    });
+
+    const hover = useHover(context, {
+        delay: { open: 300, close: 150 }
+    });
+    const dismiss = useDismiss(context);
+    const role = useRole(context, { role: 'tooltip' });
+
+    const { getReferenceProps, getFloatingProps } = useInteractions([
+        hover,
+        dismiss,
+        role,
+    ]);
+
+    // Only show tooltip for inline tags that have actual inline tree data
+    const shouldShowTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
+
+    if (!shouldShowTooltip) {
+        return <>{children}</>;
+    }
+
+    return (
+        <>
+            <div ref={refs.setReference} {...getReferenceProps()}>
+                {children}
+            </div>
+            {isOpen && (
+                <FloatingPortal root={document.body}>
+                    <div
+                        ref={refs.setFloating}
+                        style={{
+                            ...floatingStyles,
+                            zIndex: 100,
+                            position: 'fixed'
+                        }}
+                        {...getFloatingProps()}
+                    >
+                        <InlineTreeTooltip inlineTree={inlineTree} />
+                    </div>
+                </FloatingPortal>
+            )}
+        </>
+    );
+};
 
 function SourceView({ file_name }: {
     file_name: string,
@@ -27,6 +92,7 @@ function SourceView({ file_name }: {
     const [sourceCode, setSourceCode] = React.useState("")
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
     const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary]
+    const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({})
     const enabledTags = useAppSelector(selectAllTagStates);
     
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -102,6 +168,7 @@ function SourceView({ file_name }: {
             setSourceCode("")
             setCorrespondences({})
             setLineTags([])
+            setLineInlineTrees({})
             return
         }
         console.log("Use Effect Loading source file")
@@ -115,6 +182,8 @@ function SourceView({ file_name }: {
         // Extract correspondences
         const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
         const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
+        const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {}
+        
         validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
             tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
 
@@ -124,10 +193,19 @@ function SourceView({ file_name }: {
                         tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
                     })
                 }
+                
+                // Extract inline trees
+                if (line.inline_tree && line.inline_tree[binaryFilePath] && line.inline_tree[binaryFilePath].length > 0) {
+                    if (!tmpLineInlineTrees[lineI]) {
+                        tmpLineInlineTrees[lineI] = {}
+                    }
+                    tmpLineInlineTrees[lineI][binaryFilePath] = line.inline_tree[binaryFilePath]
+                }
             })
         })
         setCorrespondences(tmpCorrespondences)
         setLineTags(tmpLineTags)
+        setLineInlineTrees(tmpLineInlineTrees)
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [binaryFilePaths, file_name])
 
@@ -185,32 +263,56 @@ function SourceView({ file_name }: {
                         root.render(
                             <div className="right-tags-wrapper">
                                 <div className="right-tags">
-                                    {tags.map((binaries, tagIndex) =>
-                                        binaries.length > 0 && enabledTags[SOURCE_TAGS[tagIndex].id] && (
-                                            <div key={tagIndex + line.toString()} className="right-tags-container" 
-                                                style={{
-                                                    border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
-                                                    color: SOURCE_TAGS[tagIndex].textColor,
-                                                    backgroundColor: SOURCE_TAGS[tagIndex].color,
-                                                    fontFamily: 'Consolas',
-                                                }}>
-                                                <div className="right-tag">
-                                                    <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
-                                                    {validBinaryFilePaths.length > 1 && (
-                                                        <div className="right-tag-binaries">
-                                                            {validBinaryFilePaths.map((binaryPath, binaryIndex) => (
-                                                                <div
-                                                                    className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
-                                                                    key={`${line}-${tagIndex}-${binaryIndex}`}
-                                                                    title={binaryPath.split('/').pop()}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                    {tags.map((binaries, tagIndex) => {
+                                        if (binaries.length === 0 || !enabledTags[SOURCE_TAGS[tagIndex].id]) {
+                                            return null;
+                                        }
+
+                                        const tagId = SOURCE_TAGS[tagIndex].id;
+                                        const inlineTreeForLine = lineInlineTrees[line];
+                                        let inlineTreeData: InlineEntry[] = [];
+
+                                        // Get inline tree data for this line from any binary that has it
+                                        if (tagId === 'INLINE' && inlineTreeForLine) {
+                                            for (const binaryPath of validBinaryFilePaths) {
+                                                if (inlineTreeForLine[binaryPath]) {
+                                                    inlineTreeData = inlineTreeForLine[binaryPath];
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        return (
+                                            <TooltipWrapper
+                                                key={tagIndex + line.toString()}
+                                                tagId={tagId}
+                                                inlineTree={inlineTreeData}
+                                            >
+                                                <div className="right-tags-container" 
+                                                    style={{
+                                                        border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
+                                                        color: SOURCE_TAGS[tagIndex].textColor,
+                                                        backgroundColor: SOURCE_TAGS[tagIndex].color,
+                                                        fontFamily: 'Consolas',
+                                                    }}>
+                                                    <div className="right-tag">
+                                                        <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
+                                                        {validBinaryFilePaths.length > 1 && (
+                                                            <div className="right-tag-binaries">
+                                                                {validBinaryFilePaths.map((binaryPath, binaryIndex) => (
+                                                                    <div
+                                                                        className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
+                                                                        key={`${line}-${tagIndex}-${binaryIndex}`}
+                                                                        title={binaryPath.split('/').pop()}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        )
-                                    )}
+                                            </TooltipWrapper>
+                                        );
+                                    })}
                                 </div>
                             </div>
                         );
@@ -313,7 +415,7 @@ function SourceView({ file_name }: {
             });
         };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags]);
+    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees]);
 
     // add decoration for selected lines
     React.useEffect(() => {

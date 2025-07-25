@@ -305,7 +305,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
                 width: BLOCK_LINE_LEFT + BLOCK_LINE_WIDTH + BRUSH_OFFSET,
                 // height: brushHeight,
                 // border: "2px solid #4b89e7",
-                zIndex: "10",
+                zIndex: 4,
                 opacity: "0.3",
                 backgroundColor: "#4b89e7",
                 borderRadius: "2px",
