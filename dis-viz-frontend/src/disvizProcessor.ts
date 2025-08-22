@@ -47,6 +47,7 @@ interface BlockData {
 
 interface InlineEntryData {
   name: string;
+  simplified_name: string;
   callsite_file: string;
   callsite_line: number;
   ranges: { start: number; end: number }[];
@@ -369,6 +370,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
 function convertInlineEntryData(data: InlineEntryData): InlineEntry {
   return new InlineEntry(
     data.name,
+    data.simplified_name,
     data.callsite_file,
     data.callsite_line,
     data.ranges,

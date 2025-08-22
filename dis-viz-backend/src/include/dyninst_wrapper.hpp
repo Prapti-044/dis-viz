@@ -36,6 +36,7 @@ struct VariableInfo {
 };
 struct InlineEntry {
   std::string name;
+  std::string simplified_name;
   std::vector<std::pair<unsigned long, unsigned long> > ranges;
   std::string callsite_file;
   unsigned long callsite_line;
@@ -158,6 +159,8 @@ struct BinaryCacheResult {
   std::unordered_map<std::string, SourceCodeInfo> sourceCodeInfo;
   BinaryMetadata metadata;
 };
+
+std::string getSimplifiedFunctionName(const std::string& signature);
 
 bool isParsable(const std::string &binaryPath);
 BinaryCacheResult* decodeBinaryCache(std::string binaryPath);

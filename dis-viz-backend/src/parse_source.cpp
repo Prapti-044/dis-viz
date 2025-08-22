@@ -22,16 +22,6 @@ void printAST(CXCursor cursor, const std::string &filePath, unsigned int depth) 
       return;
   }
 
-  for (unsigned int i = 0; i < depth; ++i) {
-    std::cout << "  ";
-  }
-
-  std::cout << clang_getCString(cursorKind) << " ("
-            << clang_getCString(cursorSpelling) << ") at line " << line
-            // << ", column " << column
-            << " in file " << fileNameStr.substr(fileNameStr.find_last_of("/\\") + 1)
-            << std::endl;
-
   clang_disposeString(cursorKind);
   clang_disposeString(cursorSpelling);
 

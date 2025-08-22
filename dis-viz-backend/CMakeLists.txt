@@ -77,6 +77,7 @@ else()
     ExternalProject_Add(dyninst
         GIT_REPOSITORY https://github.com/dyninst/dyninst
         GIT_TAG 5b6094b656828e785a9ac01ac488582bcea2c9dc
+        # 268b6300b59d507317b6c342ae9588eb6fedf2ac
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DCMAKE_BUILD_TYPE=Release
     )
 endif()

@@ -93,6 +93,7 @@ json getLineCorrespondences(const std::string& file, int line_no,
 json convertInlineEntryNlohmann(const InlineEntry& inlineEntry) {
     json result{
         {"name", inlineEntry.name},
+        {"simplified_name", inlineEntry.simplified_name},
         {"callsite_file", inlineEntry.callsite_file},
         {"callsite_line", inlineEntry.callsite_line}
     };

@@ -82,6 +82,107 @@ inline string getRegFromFullName(const string &fullname) {
   return pos != string::npos ? fullname.substr(pos + 2) : fullname;
 }
 
+// Strip trailing top-level template arguments
+string stripTrailingTopLevelTemplate(const string& token) {
+  // Ignore trailing whitespace, then ensure we end on '>' (possibly after spaces).
+  int end = token.length() - 1;
+  while (end >= 0 && std::isspace(token[end])) end--;
+  if (end < 0 || token[end] != '>') return token;
+
+  // Walk backwards to find the matching '<' at top level.
+  int depth = 0;
+  for (int i = end; i >= 0; i--) {
+    char c = token[i];
+    if (c == '>') depth++;
+    else if (c == '<') {
+      depth--;
+      if (depth == 0) {
+        // Remove the matched "<...>" (and any trailing spaces after it).
+        string head = token.substr(0, i);
+        // Trim trailing spaces
+        while (!head.empty() && std::isspace(head.back())) head.pop_back();
+        return head;
+      }
+    }
+  }
+  // Unbalanced; leave as-is.
+  return token;
+}
+
+// Extract simplified function name from C++ function signature
+string getSimplifiedFunctionName(const string& signature) {
+  string s = signature;
+
+  // Special handling for C++ operator functions
+  static const std::vector<std::string> operator_names = {
+    "operator<<", "operator>>", "operator+", "operator-", "operator*", "operator/", "operator%",
+    "operator==", "operator!=", "operator<", "operator<=", "operator>", "operator>=",
+    "operator&&", "operator||", "operator!", "operator~", "operator&", "operator|", "operator^",
+    "operator=", "operator+=", "operator-=", "operator*=", "operator/=", "operator%=",
+    "operator<<=", "operator>>=", "operator&=", "operator|=", "operator^=",
+    "operator++", "operator--", "operator()", "operator[]", "operator->", "operator->*",
+    "operator,", "operator new", "operator delete", "operator new[]", "operator delete[]"
+  };
+  
+  for (const auto& op_name : operator_names) {
+    if (s.find(op_name) != std::string::npos) {
+      return op_name;
+    }
+  }
+
+  // 1) Find the first '(' not inside template args.
+  int angleDepth = 0;
+  int parenIndex = -1;
+  for (size_t i = 0; i < s.length(); i++) {
+    char c = s[i];
+    if (c == '<') angleDepth++;
+    else if (c == '>') angleDepth = std::max(0, angleDepth - 1);
+    else if (c == '(' && angleDepth == 0) { parenIndex = i; break; }
+  }
+  string left = (parenIndex >= 0 ? s.substr(0, parenIndex) : s);
+
+  // 2) Walk backwards from just before '(' to capture the *entire* function token,
+  //    including namespaces and any trailing template args, while respecting <...>.
+  int i = left.length() - 1;
+  while (i >= 0 && std::isspace(left[i])) i--; // skip trailing spaces
+  int depth = 0;
+  int start = i;
+  for (; i >= 0; i--) {
+    char c = left[i];
+    if (c == '>') { depth++; }
+    else if (c == '<') { depth = std::max(0, depth - 1); }
+    if (depth == 0 && std::isspace(c)) { start = i + 1; break; }
+    start = i;
+  }
+  string token = left.substr(start);
+
+  // Trim leading/trailing spaces
+  token.erase(0, token.find_first_not_of(" \t\r\n"));
+  token.erase(token.find_last_not_of(" \t\r\n") + 1);
+
+  // 3) Drop trailing ref/pointer sigils that might cling to the token (rare).
+  while (!token.empty() && (token.back() == '&' || token.back() == '*')) {
+    token.pop_back();
+  }
+
+  // Trim again after removing sigils
+  token.erase(0, token.find_first_not_of(" \t\r\n"));
+  token.erase(token.find_last_not_of(" \t\r\n") + 1);
+
+  // 4) If the token ends with a top-level <...>, strip exactly that one group.
+  token = stripTrailingTopLevelTemplate(token);
+
+  // 5) Keep only the identifier after the last '::'.
+  size_t k = token.rfind("::");
+  string simple = (k != string::npos ? token.substr(k + 2) : token);
+
+  // Final trim
+  simple.erase(0, simple.find_first_not_of(" \t\r\n"));
+  simple.erase(simple.find_last_not_of(" \t\r\n") + 1);
+
+  return simple;
+}
+
 // Optimized variable location string formatting
 template<typename LocationType>
 string formatVariableLocation(const LocationType &location) {
@@ -514,6 +615,7 @@ InlineEntry createInlineEntry(SymtabAPI::InlinedFunction* inlineFunc) {
 
   InlineEntry entry = {
       print_clean_string(name_str),
+      getSimplifiedFunctionName(name_str),
       inlineRanges,
       inlineFunc->getCallsite().first,
       inlineFunc->getCallsite().second,
@@ -586,18 +688,9 @@ std::tuple<
 > getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
   auto bar = indicators::ProgressBar{
-    indicators::option::BarWidth{50},
     indicators::option::MaxProgress{funcs.size()},
-    indicators::option::Start{" ["},
-    indicators::option::Fill{"█"},
-    indicators::option::Lead{"█"},
-    indicators::option::Remainder{"-"},
-    indicators::option::End{"]"},
     indicators::option::PrefixText{"Disassembling"},
     indicators::option::ForegroundColor{indicators::Color::yellow},
-    indicators::option::ShowElapsedTime{true},
-    indicators::option::ShowRemainingTime{true},
-    indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}
   };
 
   auto addressOrderBlocks = vector<BlockInfo>();

@@ -9,6 +9,7 @@ type InstructionFlag = (typeof INSTRUCTION_TAGS)[number]['id']
 
 export class InlineEntry {
     @Expose() name: string;
+    @Expose() simplified_name: string;
     @Expose() callsite_file: string;
     @Expose() callsite_line: number;
     @Expose() ranges: { start: number; end: number }[];
@@ -17,12 +18,14 @@ export class InlineEntry {
 
     constructor(
         name: string,
+        simplified_name: string,
         callsite_file: string,
         callsite_line: number,
         ranges: { start: number; end: number }[] = [],
         children: InlineEntry[] = []
     ) {
         this.name = name;
+        this.simplified_name = simplified_name;
         this.callsite_file = callsite_file;
         this.callsite_line = callsite_line;
         this.ranges = ranges;

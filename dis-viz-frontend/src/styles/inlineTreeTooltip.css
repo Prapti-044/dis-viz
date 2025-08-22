@@ -160,21 +160,9 @@
     border: 1px dashed #dee2e6;
 }
 
-/* Depth-based coloring */
-.inline-tree-entry[style*="padding-left: 0px"] .inline-tree-function-name {
-    color: #2b6cb0;
-}
-
-.inline-tree-entry[style*="padding-left: 16px"] .inline-tree-function-name {
-    color: #2f855a;
-}
-
-.inline-tree-entry[style*="padding-left: 32px"] .inline-tree-function-name {
-    color: #d69e2e;
-}
-
-.inline-tree-entry[style*="padding-left: 48px"] .inline-tree-function-name {
-    color: #c53030;
+/* All function names have the same color */
+.inline-tree-function-name {
+    color: #2d3748 !important;
 }
 
 /* Animation for tooltip appearance */
