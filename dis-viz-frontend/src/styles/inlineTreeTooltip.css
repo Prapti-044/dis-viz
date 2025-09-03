@@ -165,6 +165,20 @@
     color: #2d3748 !important;
 }
 
+/* Clickable function styling */
+.clickable-function {
+    cursor: pointer !important;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: all 0.2s ease;
+}
+
+.clickable-function:hover {
+    color: #667eea !important;
+    text-decoration-color: #667eea;
+    transform: translateX(2px);
+}
+
 /* Animation for tooltip appearance */
 .inline-tree-tooltip {
     animation: tooltipFadeIn 0.2s ease-out;

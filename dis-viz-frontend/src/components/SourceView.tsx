@@ -13,14 +13,19 @@ import { selectAllTagStates } from '../features/tags/tagsSlice'
 import { useFloating, autoUpdate, offset, flip, shift, useHover, useDismiss, useRole, useInteractions, FloatingPortal } from '@floating-ui/react'
 import InlineTreeTooltip from './InlineTreeTooltip'
 import { InlineEntry } from '../types'
+import { AppDispatch } from '../app/store'
+
 loader.config({ monaco });
 
 // Component to wrap tags with tooltip functionality
-const TooltipWrapper: React.FC<{ 
-    children: React.ReactNode; 
-    inlineTree?: InlineEntry[]; 
+const TooltipWrapper: React.FC<{
+    children: React.ReactNode;
+    inlineTree?: InlineEntry[];
     tagId: string;
-}> = ({ children, inlineTree, tagId }) => {
+    dispatch: AppDispatch;
+    validBinaryFilePaths: string[];
+    correspondences: { [binaryFilePath: string]: number[][] };
+}> = ({ children, inlineTree, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const { refs, floatingStyles, context } = useFloating({
@@ -69,7 +74,12 @@ const TooltipWrapper: React.FC<{
                         }}
                         {...getFloatingProps()}
                     >
-                        <InlineTreeTooltip inlineTree={inlineTree} />
+                        <InlineTreeTooltip
+                            inlineTree={inlineTree}
+                            dispatch={dispatch}
+                            validBinaryFilePaths={validBinaryFilePaths}
+                            correspondences={correspondences}
+                        />
                     </div>
                 </FloatingPortal>
             )}
@@ -80,7 +90,6 @@ const TooltipWrapper: React.FC<{
 function SourceView({ file_name }: {
     file_name: string,
 }) {
-    console.log("Refreshing SourceView")
 
     const dispatch = useAppDispatch()
     const thisSelection = useAppSelector(selectSourceSelection).find(selection => selection.source_file === file_name)
@@ -94,7 +103,7 @@ function SourceView({ file_name }: {
     const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary]
     const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({})
     const enabledTags = useAppSelector(selectAllTagStates);
-    
+
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
 
     const [editorRefUpdated, setEditorRefUpdated] = React.useState(false)
@@ -159,7 +168,7 @@ function SourceView({ file_name }: {
         disableLayerHinting: true, // Disables layer hinting
         hideCursorInOverviewRuler: true, // Hides cursor in overview ruler
         contextmenu: false, // Disables the context menu
-        hover: { enabled: false }, // Disables hover effects
+        hover: { enabled: true }, // Disables hover effects
     }
 
     // load source file
@@ -174,16 +183,16 @@ function SourceView({ file_name }: {
         console.log("Use Effect Loading source file")
 
         const sourceFile = disvizProcessor.getSourceLines(validBinaryFilePaths, file_name)
-        
+
         // Extract source code
         const lines = sourceFile.lines.map(line => line.line)
         setSourceCode(lines.join('\n'))
-        
+
         // Extract correspondences
         const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
         const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
         const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {}
-        
+
         validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
             tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
 
@@ -193,7 +202,7 @@ function SourceView({ file_name }: {
                         tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
                     })
                 }
-                
+
                 // Extract inline trees
                 if (line.inline_tree && line.inline_tree[binaryFilePath] && line.inline_tree[binaryFilePath].length > 0) {
                     if (!tmpLineInlineTrees[lineI]) {
@@ -206,7 +215,7 @@ function SourceView({ file_name }: {
         setCorrespondences(tmpCorrespondences)
         setLineTags(tmpLineTags)
         setLineInlineTrees(tmpLineInlineTrees)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [binaryFilePaths, file_name])
 
     // add decorations for lines with correspondences and tags
@@ -287,8 +296,11 @@ function SourceView({ file_name }: {
                                                 key={tagIndex + line.toString()}
                                                 tagId={tagId}
                                                 inlineTree={inlineTreeData}
+                                                dispatch={dispatch}
+                                                validBinaryFilePaths={validBinaryFilePaths}
+                                                correspondences={correspondences}
                                             >
-                                                <div className="right-tags-container" 
+                                                <div className="right-tags-container"
                                                     style={{
                                                         border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
                                                         color: SOURCE_TAGS[tagIndex].textColor,
@@ -414,7 +426,7 @@ function SourceView({ file_name }: {
                 }
             });
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees]);
 
     // add decoration for selected lines
@@ -475,7 +487,7 @@ function SourceView({ file_name }: {
                 dispatch(clearHoverHighlight())
                 return
             }
-            
+
             const lineNumber = e.target.position.lineNumber - 1
             const addresses: BinarySelection[] = []
             validBinaryFilePaths.forEach((binaryFilePath) => {
@@ -486,7 +498,7 @@ function SourceView({ file_name }: {
                     })
                 }
             })
-            
+
             // Only update if there are addresses to highlight
             if (addresses.length === 0) {
                 dispatch(clearHoverHighlight())
@@ -502,7 +514,7 @@ function SourceView({ file_name }: {
                 binary_hover_highlight: addresses
             }))
         })
-        
+
         editorRef.current.onDidChangeCursorPosition((e) => {
             const selection = editorRef.current!.getPosition()?.lineNumber
             if (!selection || Object.keys(correspondences).length === 0) return
@@ -544,7 +556,7 @@ function SourceView({ file_name }: {
 
         // Add click handler for selection buttons
         const disposable = editorRef.current.onMouseDown((e) => {
-            if (e.target.element?.classList.contains('selection-button-container') || 
+            if (e.target.element?.classList.contains('selection-button-container') ||
                 e.target.element?.parentElement?.classList.contains('selection-button-container')) {
                 const lineNumber = e.target.position?.lineNumber;
                 if (lineNumber) {
@@ -553,11 +565,40 @@ function SourceView({ file_name }: {
             }
         });
 
+        // Add Monaco hover provider for function definitions
+        const hoverProvider = monaco.languages.registerHoverProvider('cpp', {
+            provideHover: (model, position) => {
+                const word = model.getWordAtPosition(position);
+                if (!word) return null;
+
+                // Check if the word might be a function name
+                const functionName = word.word;
+
+                console.log("Function name:", functionName)
+
+                // Get function source code if available
+                const functionInfo = "disvizProcessor.getFunctionSourceCode(validBinaryFilePaths, functionName);"
+
+                if (functionInfo) {
+                    return {
+                        contents: [
+                            {
+                                value: `**${functionName}**`
+                            }
+                        ]
+                    };
+                }
+
+                return null;
+            }
+        });
+
         return () => {
             disposable.dispose();
+            hoverProvider.dispose();
         };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [correspondences, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection, tagsDecorationCollection])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [correspondences, validBinaryFilePaths, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection, tagsDecorationCollection])
 
     return <Suspense fallback={<div>Loading source code...</div>}>
         {/* title row */}

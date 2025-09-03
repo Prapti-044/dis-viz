@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 
 import { useAppSelector } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
+import { selectSourceSelection } from '../features/selections/selectionsSlice'
 import DisassemblyView from './DisassemblyView';
 import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
@@ -21,6 +22,7 @@ import '../styles/app.css';
 const App = () => {
   const dockRef = React.useRef<DockLayout>(null)
   const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
+  const sourceSelection = useAppSelector(selectSourceSelection)
   const [disassemblyViewIds, setDisassemblyViewIds] = React.useState<number[]>([]);
   const [sourceViewStates, setSourceViewStates] = React.useState<{
       file_name: string,
@@ -83,6 +85,26 @@ const App = () => {
       minWidth: 250
     })
   }, [sourceViewStates])
+
+  // Automatically open tabs for files in source_selection
+  React.useEffect(() => {
+    if (sourceSelection.length === 0) return;
+    
+    const sourceViewStatesCopy = [...sourceViewStates];
+    let hasChanges = false;
+    
+    sourceSelection.forEach(selection => {
+      const existingState = sourceViewStatesCopy.find(state => state.file_name === selection.source_file);
+      if (existingState && existingState.status === "closed") {
+        existingState.status = "opened";
+        hasChanges = true;
+      }
+    });
+    
+    if (hasChanges) {
+      setSourceViewStates(sourceViewStatesCopy);
+    }
+  }, [sourceSelection, sourceViewStates])
   
   const onAddDisassemblyView = React.useCallback(() => {
     if (binaryFilePathsRef.current.filter((binaryFilePath) => binaryFilePath !== "").length > 0) {
