@@ -64,6 +64,13 @@ void setInstructionFlags(const InstructionAPI::Instruction &instr, std::unordere
   if (instr.writesMemory()) flags.insert(INST_MEMORY_WRITE);
 }
 
+string demangleName(const string& name) {
+  auto demangleStatus = int();
+  const auto demangledName = abi::__cxa_demangle(name.c_str(), 0, 0, &demangleStatus);
+  return demangledName ? string(demangledName) : name;
+}
+
+
 string print_clean_string(const string &str) {
   static const std::regex pattern("[^a-zA-Z0-9 /:;,\\.{}\\[\\]<>~|\\-_+()&\\*=$!#]");
   return regex_replace(str, pattern, "?");
@@ -404,12 +411,12 @@ string block_to_name(SymtabAPI::Symtab *symtab, const ParseAPI::Function *fn, co
     string pretty_names;
     for (const auto& name : unique_names) {
       if (!pretty_names.empty()) pretty_names += ", ";
-      pretty_names += name;
+      pretty_names += demangleName(name);
     }
     return print_clean_string(pretty_names + ": B" + std::to_string(cur_id));
   }
 
-  return print_clean_string(fn->name() + ": B" + std::to_string(cur_id));
+  return print_clean_string(demangleName(fn->name()) + ": B" + std::to_string(cur_id));
 }
 
 vector<VariableInfo> getInstructionVariables(
@@ -604,9 +611,7 @@ vector<int> getBlockIndents(const vector<BlockInfo> &blocks) {
 
 // Build a hierarchical tree of inlined functions
 InlineEntry createInlineEntry(SymtabAPI::InlinedFunction* inlineFunc) {
-  auto demangleStatus = int();
-  const auto name = abi::__cxa_demangle(inlineFunc->getName().c_str(), 0, 0, &demangleStatus);
-  auto name_str = name ? string(name) : inlineFunc->getName();
+  auto name_str = demangleName(inlineFunc->getName());
   const auto &ranges = inlineFunc->getRanges();
 
   auto inlineRanges = vector<std::pair<unsigned long, unsigned long>>();
@@ -621,8 +626,6 @@ InlineEntry createInlineEntry(SymtabAPI::InlinedFunction* inlineFunc) {
       inlineFunc->getCallsite().second,
       {} // children will be filled below
   };
-
-  free(const_cast<char *>(name));
 
   // Get child inlined functions and create tree structure
   auto ic = SymtabAPI::InlineCollection(inlineFunc->getInlines());
@@ -837,13 +840,13 @@ std::tuple<
       to->getFuncs(funcs);
       if (!funcs.empty()) {
         for (auto j = funcs.begin(); j != funcs.end(); j++)
-          call.targetFuncNames.push_back(print_clean_string((*j)->name()));
+          call.targetFuncNames.push_back(print_clean_string(demangleName((*j)->name())));
       }
       calls.push_back(call);
     }
     
     auto funcInfo = FunctionInfo{
-      print_clean_string(f->name()),
+      print_clean_string(demangleName(f->name())),
       f->entry()->start(),
       {},
       {},
@@ -886,7 +889,7 @@ std::tuple<
       auto blockInfo = BlockInfo{
           block_ids[block],
           {},
-          print_clean_string(f->name()),
+          print_clean_string(demangleName(f->name())),
       };
       funcInfo.basic_blocks.push_back(blockInfo.name);
 
@@ -1161,18 +1164,135 @@ std::tuple<
   return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos, sourceCodeInfo};
 }
 
-auto binaryCacheResult = map<string, BinaryCacheResult*>();
-
 bool isParsable(const string &binaryPath) {
   SymtabAPI::Symtab *symtab;
   return SymtabAPI::Symtab::openFile(symtab, binaryPath);
 }
 
 
+// Helper function to get current date and time
+std::pair<std::string, std::string> getCurrentDateTime() {
+    auto now = std::chrono::system_clock::now();
+    auto time_t = std::chrono::system_clock::to_time_t(now);
+    auto tm = *std::localtime(&time_t);
+    
+    std::stringstream date_stream, time_stream;
+    date_stream << std::put_time(&tm, "%Y-%m-%d");
+    time_stream << std::put_time(&tm, "%H:%M:%S");
+    
+    return {date_stream.str(), time_stream.str()};
+}
 
-BinaryCacheResult* decodeBinaryCache(const string binaryPath) {
-  if (binaryCacheResult.find(binaryPath) != binaryCacheResult.end()) return binaryCacheResult.at(binaryPath);
+// Helper function to extract architecture information
+std::string extractArchitecture(const std::string& binaryPath) {
+    // Try to extract architecture using file command or ELF headers
+    // For now, return a placeholder - this can be enhanced with proper binary analysis
+    try {
+        std::string command = "file " + binaryPath + " 2>/dev/null";
+        FILE* pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            std::string result;
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+            pclose(pipe);
+            
+            // Parse architecture from file output
+            if (result.find("x86-64") != std::string::npos || result.find("x86_64") != std::string::npos) {
+                return "x86_64";
+            } else if (result.find("i386") != std::string::npos || result.find("80386") != std::string::npos) {
+                return "i386";
+            } else if (result.find("aarch64") != std::string::npos || result.find("ARM64") != std::string::npos) {
+                return "aarch64";
+            } else if (result.find("ARM") != std::string::npos) {
+                return "arm";
+            } else if (result.find("PowerPC") != std::string::npos || result.find("ppc64") != std::string::npos) {
+                return "ppc64";
+            }
+        }
+    } catch (...) {
+        // Fallback to unknown if file command fails
+    }
+    return "unknown";
+}
 
+// Helper function to extract compiler information
+std::pair<std::string, std::vector<std::string>> extractCompilerInfo(const std::string& binaryPath) {
+    std::string compiler = "unknown";
+    std::vector<std::string> flags;
+    
+    try {
+        // Try to extract compiler information from debug sections
+        // This is a simplified implementation - can be enhanced with DWARF parsing
+        std::string command = "objdump -s -j .comment " + binaryPath + " 2>/dev/null | grep -v 'Contents of section'";
+        FILE* pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            std::string result;
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                result += buffer;
+            }
+            pclose(pipe);
+            
+            // Parse compiler from comment section
+            if (result.find("GCC") != std::string::npos || result.find("gcc") != std::string::npos) {
+                compiler = "gcc";
+            } else if (result.find("clang") != std::string::npos || result.find("Clang") != std::string::npos) {
+                compiler = "clang";
+            } else if (result.find("icc") != std::string::npos || result.find("Intel") != std::string::npos) {
+                compiler = "icc";
+            }
+        }
+        
+        // Try to extract flags from debug information
+        // This is a placeholder - real implementation would parse DWARF debug info
+        command = "objdump -g " + binaryPath + " 2>/dev/null | grep -i 'producer\\|compile' | head -5";
+        pipe = popen(command.c_str(), "r");
+        if (pipe) {
+            char buffer[1024];
+            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
+                std::string line(buffer);
+                if (line.find("-O") != std::string::npos) {
+                    if (line.find("-O0") != std::string::npos) flags.push_back("-O0");
+                    else if (line.find("-O1") != std::string::npos) flags.push_back("-O1");
+                    else if (line.find("-O2") != std::string::npos) flags.push_back("-O2");
+                    else if (line.find("-O3") != std::string::npos) flags.push_back("-O3");
+                }
+                if (line.find("-g") != std::string::npos) flags.push_back("-g");
+                if (line.find("-fPIC") != std::string::npos) flags.push_back("-fPIC");
+            }
+            pclose(pipe);
+        }
+    } catch (...) {
+        // Fallback if extraction fails
+    }
+    
+    if (flags.empty()) {
+        flags.push_back("unknown");
+    }
+    
+    return {compiler, flags};
+}
+
+
+// Helper function to create metadata for binary
+BinaryMetadata createBinaryMetadata(const std::string& binaryPath) {
+    auto [date, time] = getCurrentDateTime();
+    auto architecture = extractArchitecture(binaryPath);
+    auto [compiler, flags] = extractCompilerInfo(binaryPath);
+    
+    return BinaryMetadata{
+        .architecture = architecture,
+        .analysis_date = date,
+        .analysis_time = time,
+        .compiler_used = compiler,
+        .compiler_flags = flags
+    };
+}
+
+
+BinaryDecodeResult* decodeBinary(const string binaryPath) {
   SymtabAPI::Symtab *symtab;
   auto isParsable = SymtabAPI::Symtab::openFile(symtab, binaryPath);
   if (!isParsable) {
@@ -1194,7 +1314,9 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath) {
   auto source_files = vector<string>(unique_sourcefiles.begin(),
                                         unique_sourcefiles.end());
   
-  binaryCacheResult[binaryPath] = new BinaryCacheResult({
+  auto metadata = createBinaryMetadata(binaryPath);
+
+  return new BinaryDecodeResult({
       {addressOrderBlocks, loopOrderBlocks},
       {{
         getBlockHeights(addressOrderBlocks),
@@ -1211,10 +1333,10 @@ BinaryCacheResult* decodeBinaryCache(const string binaryPath) {
       }},
       source_files,
       correspondence,
-      sourceCodeInfo
+      sourceCodeInfo,
+      metadata,
+      functionInfos
   });
-  
-  return binaryCacheResult[binaryPath];
 }
 
 // Optimized system check

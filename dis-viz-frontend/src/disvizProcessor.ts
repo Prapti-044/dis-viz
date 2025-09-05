@@ -1,5 +1,6 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
+import * as dagre from 'dagre';
 import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry } from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
@@ -74,6 +75,91 @@ interface DisvizMetadata {
   time: string;
 }
 
+interface VariableLocation {
+  start: string;
+  end: string;
+  location: string;
+}
+
+interface VariableInfo {
+  name: string;
+  file: string;
+  line: number;
+  locations: VariableLocation[];
+  var_type: "local" | "param";
+}
+
+interface CallInfo {
+  address: number;
+  target: number;
+  target_func_names: string[];
+}
+
+interface LoopBackedge {
+  from: string;
+  to: string;
+}
+
+interface LoopInfo {
+  name: string;
+  header_block: string;
+  latch_block: string;
+  blocks: string[];
+  backedges: LoopBackedge[];
+  loops?: LoopInfo[];
+}
+
+interface HidableInfo {
+  name: string;
+  start: number;
+  end: number;
+}
+
+interface FunctionInfo {
+  name: string;
+  entry: number;
+  basic_blocks: string[];
+  local_vars: VariableInfo[];
+  params: VariableInfo[];
+  calls: CallInfo[];
+  inlines: InlineEntryData[];
+  loops: LoopInfo[];
+  hidables: HidableInfo[];
+}
+
+// Call Graph Types
+export interface CallGraphNode {
+  id: string;
+  name: string;
+  entry: number;
+  isExternal: boolean;
+  callCount: number;
+  level: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface CallGraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  callAddress: number;
+  targetAddress: number;
+  isExternal: boolean;
+  callCount: number;
+  points?: Array<{ x: number; y: number }>; // Control points for curved edges
+}
+
+export interface CallGraph {
+  nodes: CallGraphNode[];
+  edges: CallGraphEdge[];
+  externalFunctions: Set<string>;
+  maxLevel: number;
+  totalFunctions: number;
+}
+
 interface DisvizData {
   disassembly: {
     memory_order_blocks: BlockData[];
@@ -84,6 +170,7 @@ interface DisvizData {
     loop_order: MinimapData;
   };
   source_code_info: SourceCodeInfo[];
+  functionInfos: FunctionInfo[];
   metadata?: DisvizMetadata;
 }
 
@@ -163,7 +250,7 @@ export async function loadDisvizFile(file: File): Promise<string> {
     
     // Extract source files
     const sourceFiles = new Map<string, string>();
-    for (const [path, content] of extractedFiles) {
+    for (const [path, content] of Array.from(extractedFiles)) {
       if (path.startsWith('sources/')) {
         const text = new TextDecoder().decode(content);
         sourceFiles.set(path, text);
@@ -626,4 +713,240 @@ export function reorderFiles(newOrder: string[]): void {
 export function clearAllLoadedFiles(): void {
   loadedFiles.clear();
   fileOrder = [];
+}
+
+// Get all function information for a binary file
+export function getFunctionInfos(filepath: string): FunctionInfo[] {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  return file.data.functionInfos || [];
+}
+
+// Get a specific function by name
+export function getFunctionInfo(filepath: string, functionName: string): FunctionInfo | null {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  return file.data.functionInfos?.find(func => func.name === functionName) || null;
+}
+
+// Get a specific function by entry address
+export function getFunctionInfoByAddress(filepath: string, entryAddress: number): FunctionInfo | null {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  return file.data.functionInfos?.find(func => func.entry === entryAddress) || null;
+}
+
+// Get functions that contain a specific basic block
+export function getFunctionsContainingBlock(filepath: string, blockName: string): FunctionInfo[] {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  return file.data.functionInfos?.filter(func => 
+    func.basic_blocks.includes(blockName)
+  ) || [];
+}
+
+// Get all function names for a binary file
+export function getFunctionNames(filepath: string): string[] {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  return file.data.functionInfos?.map(func => func.name) || [];
+}
+
+// Get function statistics
+export function getFunctionStats(filepath: string): {
+  totalFunctions: number;
+  totalBasicBlocks: number;
+  totalInstructions: number;
+  functionsWithLoops: number;
+  functionsWithInlines: number;
+} {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  const functionInfos = file.data.functionInfos || [];
+  
+  let totalBasicBlocks = 0;
+  let totalInstructions = 0;
+  let functionsWithLoops = 0;
+  let functionsWithInlines = 0;
+  
+  for (const func of functionInfos) {
+    totalBasicBlocks += func.basic_blocks.length;
+    
+    // Count instructions by looking at blocks
+    for (const blockName of func.basic_blocks) {
+      const block = file.data.disassembly.memory_order_blocks.find(b => b.name === blockName);
+      if (block) {
+        totalInstructions += block.n_instructions;
+      }
+    }
+    
+    if (func.loops.length > 0) {
+      functionsWithLoops++;
+    }
+    
+    if (func.inlines.length > 0) {
+      functionsWithInlines++;
+    }
+  }
+  
+  return {
+    totalFunctions: functionInfos.length,
+    totalBasicBlocks,
+    totalInstructions,
+    functionsWithLoops,
+    functionsWithInlines
+  };
+}
+
+// Call Graph Construction Functions
+export function buildCallGraph(filepath: string): CallGraph {
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+  
+  const functionInfos = file.data.functionInfos || [];
+  const nodes: CallGraphNode[] = [];
+  const edges: CallGraphEdge[] = [];
+  
+  // Create a map of function names to their info for quick lookup
+  const functionMap = new Map<string, FunctionInfo>();
+  functionInfos.forEach(func => {
+    functionMap.set(func.name, func);
+  });
+  
+  // Create nodes for all functions
+  functionInfos.forEach((func, index) => {
+    const node: CallGraphNode = {
+      id: `${func.name}-${func.entry}`, // Include entry address to ensure uniqueness
+      name: func.name,
+      entry: func.entry,
+      isExternal: false,
+      callCount: func.calls.length,
+      level: 0, // Will be calculated later
+      x: 0, // Will be calculated during layout
+      y: 0, // Will be calculated during layout
+      width: 120, // Default width
+      height: 60, // Default height
+    };
+    nodes.push(node);
+  });
+  
+  // Process calls and create edges (only internal calls)
+  functionInfos.forEach(func => {
+    func.calls.forEach(call => {
+      // Check if target function exists in our function list
+      const targetFunction = functionMap.get(call.target_func_names[0] || '');
+      
+      if (targetFunction) {
+        // Internal call only
+        const edge: CallGraphEdge = {
+          id: `${func.name}-${targetFunction.name}-${call.address}`,
+          source: `${func.name}-${func.entry}`,
+          target: `${targetFunction.name}-${targetFunction.entry}`,
+          callAddress: call.address,
+          targetAddress: call.target,
+          isExternal: false,
+          callCount: 1
+        };
+        edges.push(edge);
+      }
+      // Skip external calls - they are filtered out
+    });
+  });
+  
+  // Create dagre graph for Sugiyama layout
+  const g = new dagre.graphlib.Graph();
+  
+  // Set graph properties for Sugiyama layout
+  g.setGraph({
+    rankdir: 'TB',        // Top to Bottom direction
+    align: 'UL',          // Upper Left alignment
+    nodesep: 80,          // Horizontal separation between nodes
+    edgesep: 40,          // Separation between edges
+    ranksep: 100,         // Vertical separation between ranks (levels)
+    marginx: 50,          // Horizontal margin
+    marginy: 50,          // Vertical margin
+    acyclicer: 'greedy',  // Algorithm to make graph acyclic
+    ranker: 'tight-tree'  // Ranking algorithm for better hierarchy
+  });
+  
+  // Set default node and edge properties
+  g.setDefaultNodeLabel(() => ({}));
+  g.setDefaultEdgeLabel(() => ({}));
+  
+  // Add nodes to dagre graph
+  nodes.forEach(node => {
+    g.setNode(node.id, {
+      width: node.width,
+      height: node.height,
+      label: node.name
+    });
+  });
+  
+  // Add edges to dagre graph
+  edges.forEach(edge => {
+    g.setEdge(edge.source, edge.target, {
+      weight: edge.callCount // Use call count as edge weight
+    });
+  });
+  
+  // Apply Sugiyama layout algorithm
+  dagre.layout(g);
+  
+  // Update node positions from dagre layout
+  let maxLevel = 0;
+  nodes.forEach(node => {
+    const dagreNode = g.node(node.id);
+    if (dagreNode) {
+      node.x = dagreNode.x - node.width / 2;  // dagre centers nodes, we want top-left
+      node.y = dagreNode.y - node.height / 2;
+      
+      // Calculate level based on y position for compatibility
+      node.level = Math.floor(node.y / 100);
+      maxLevel = Math.max(maxLevel, node.level);
+    }
+  });
+  
+  // Store edge control points for curved rendering
+  edges.forEach(edge => {
+    const dagreEdge = g.edge(edge.source, edge.target);
+    if (dagreEdge && dagreEdge.points) {
+      (edge as any).points = dagreEdge.points;
+    }
+  });
+  
+  return {
+    nodes,
+    edges,
+    externalFunctions: new Set<string>(), // Empty set since we filter out external calls
+    maxLevel,
+    totalFunctions: functionInfos.length
+  };
+}
+
+// Get call graph statistics
+export function getCallGraphStats(filepath: string): {
+  totalNodes: number;
+  totalEdges: number;
+  externalFunctions: number;
+  maxDepth: number;
+  averageCallsPerFunction: number;
+} {
+  const callGraph = buildCallGraph(filepath);
+  
+  const totalCalls = callGraph.edges.reduce((sum, edge) => sum + edge.callCount, 0);
+  const averageCallsPerFunction = callGraph.totalFunctions > 0 ? totalCalls / callGraph.totalFunctions : 0;
+  
+  return {
+    totalNodes: callGraph.nodes.length,
+    totalEdges: callGraph.edges.length,
+    externalFunctions: callGraph.externalFunctions.size,
+    maxDepth: callGraph.maxLevel,
+    averageCallsPerFunction
+  };
 } 

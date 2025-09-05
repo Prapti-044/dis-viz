@@ -16,6 +16,7 @@ import SourceView from './SourceView';
 import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
 import HeaderMenu from './HeaderMenu';
+import CallGraphView from './CallGraphView';
 
 import '../styles/app.css';
 
@@ -24,6 +25,7 @@ const App = () => {
   const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
   const sourceSelection = useAppSelector(selectSourceSelection)
   const [disassemblyViewIds, setDisassemblyViewIds] = React.useState<number[]>([]);
+  const [callGraphViewIds, setCallGraphViewIds] = React.useState<number[]>([]);
   const [sourceViewStates, setSourceViewStates] = React.useState<{
       file_name: string,
       status: "opened" | "closed"
@@ -49,6 +51,20 @@ const App = () => {
       }
     }
   }, [disassemblyViewIds, dockRef])
+
+  const removeSelfCallGraphView = React.useCallback((cgId: number) => {
+    console.log("removing call graph view", cgId)
+    setCallGraphViewIds(callGraphViewIds.filter(id => id !== cgId))
+    if (dockRef.current) {
+      const callGraphViewPanel = dockRef.current.find('CallGraphViewPanel') as PanelData;
+      if (callGraphViewPanel) {
+        const tabToRemove = callGraphViewPanel.tabs.find(tab => tab.id === `CallGraphView:${cgId}`);
+        if (tabToRemove) {
+          dockRef.current.dockMove(tabToRemove, null, 'remove')
+        }
+      }
+    }
+  }, [callGraphViewIds, dockRef])
 
   // Get the source files for each binary file
   React.useEffect(() => {
@@ -136,6 +152,36 @@ const App = () => {
       toast.error("No valid binary file paths found")
     }
   }, [disassemblyViewIds, removeSelfDisassemblyView, showMinimaps])
+
+  const onAddCallGraphView = React.useCallback(() => {
+    if (binaryFilePathsRef.current.filter((binaryFilePath) => binaryFilePath !== "").length > 0) {
+      let newId = 1;
+      for (const callGraphViewId of callGraphViewIds) {
+        if (callGraphViewId === newId) newId++;
+        else break;
+      }
+      const newCallGraphViewId = `CallGraphView:${newId}`;
+      const newCallGraphViewComponent: TabData = {
+        id: newCallGraphViewId,
+        title: `Call Graph View: ${newId}`,
+        content: <TabContent key={`tab-CallGraphView-${newId}`}>
+          <CallGraphView
+            id={newId}
+            removeSelf={() => { removeSelfCallGraphView(newId) }}
+          /></TabContent>,
+        closable: true,
+      };
+      const newPanel: PanelData = {
+        tabs: [newCallGraphViewComponent],
+        x: 10, y: 10, w: 600, h: 500
+      };
+      dockRef.current?.dockMove(newPanel, 'CallGraphViewPanel', 'middle');
+      setCallGraphViewIds([...callGraphViewIds, newId])
+    }
+    else {
+      toast.error("No valid binary file paths found")
+    }
+  }, [callGraphViewIds, removeSelfCallGraphView])
   
   React.useEffect(() => {
     if (dockRef.current === null) return;
@@ -149,6 +195,19 @@ const App = () => {
       > + </button>
     )
   }, [binaryFilePaths, onAddDisassemblyView])
+
+  React.useEffect(() => {
+    if (dockRef.current === null) return;
+    // update the call graph panel extra button with the new validBinaryFilePaths
+    const callGraphViewPanel = dockRef.current.find('CallGraphViewPanel') as PanelData
+    if (callGraphViewPanel === undefined) return
+    callGraphViewPanel.panelLock!.panelExtra = (panelData: PanelData) => (
+      <button
+        className="add-call-graph-view-button"
+        onClick={onAddCallGraphView}
+      > 📊 </button>
+    )
+  }, [binaryFilePaths, onAddCallGraphView])
 
   // Reconcile sourceViewStates and source-views
   React.useEffect(() => {
@@ -272,6 +331,26 @@ const App = () => {
             }
           }]
         },
+        {
+          mode: 'vertical',
+          size: 3,
+          children: [{
+            id: 'CallGraphViewPanel',
+            tabs: [],
+            panelLock: {
+              minWidth: 400,
+              minHeight: 300,
+              panelExtra: (panelData) => (
+                <button
+                  onClick={onAddCallGraphView}
+                  className="add-call-graph-view-button"
+                >
+                📊
+                </button>
+              )
+            }
+          }]
+        },
       ]
     },
   });
@@ -291,6 +370,9 @@ const App = () => {
       }
       else if (currentTabId.split(':')[0] === 'DisassemblyView') {
         setDisassemblyViewIds(disassemblyViewIds.filter(id => id !== parseInt(currentTabId.split(':')[1])))
+      }
+      else if (currentTabId.split(':')[0] === 'CallGraphView') {
+        setCallGraphViewIds(callGraphViewIds.filter(id => id !== parseInt(currentTabId.split(':')[1])))
       }
     }
     setLayout(newLayout)

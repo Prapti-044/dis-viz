@@ -145,7 +145,7 @@ struct BinaryMetadata {
   std::vector<std::string> compiler_flags;
 };
 
-struct BinaryCacheResult {
+struct BinaryDecodeResult {
   struct {
     std::vector<BlockInfo> memory_order_blocks;
     std::vector<BlockInfo> loop_order_blocks;
@@ -158,9 +158,10 @@ struct BinaryCacheResult {
   std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
   std::unordered_map<std::string, SourceCodeInfo> sourceCodeInfo;
   BinaryMetadata metadata;
+  std::vector<FunctionInfo> functionInfos;
 };
 
 std::string getSimplifiedFunctionName(const std::string& signature);
 
 bool isParsable(const std::string &binaryPath);
-BinaryCacheResult* decodeBinaryCache(std::string binaryPath);
+BinaryDecodeResult* decodeBinary(std::string binaryPath);

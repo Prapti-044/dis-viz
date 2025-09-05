@@ -275,9 +275,128 @@ json convertSourceCodeInfoNlohmann(const std::unordered_map<std::string, SourceC
     return result;
 }
 
-json convertBinaryCacheNlohmann(const BinaryCacheResult& res, 
-                                const std::unordered_map<std::string, std::string>& source_mapping,
-                                const BinaryMetadata& metadata) {
+json convertVariableInfoNlohmann(const VariableInfo& var) {
+    json result{
+        {"name", var.name},
+        {"file", var.file},
+        {"line", var.line},
+        {"var_type", (var.var_type == VariableInfo::VAR_TYPE_LOCAL) ? "local" : "param"}
+    };
+    
+    // Convert locations
+    json locations = json::array();
+    for (const auto& loc : var.locations) {
+        locations.emplace_back(json{
+            {"start", loc.start},
+            {"end", loc.end},
+            {"location", loc.location}
+        });
+    }
+    result["locations"] = std::move(locations);
+    
+    return result;
+}
+
+json convertCallNlohmann(const Call& call) {
+    return json{
+        {"address", call.address},
+        {"target", call.target},
+        {"target_func_names", call.targetFuncNames}
+    };
+}
+
+json convertLoopEntryNlohmann(const LoopEntry& loop) {
+    json result{
+        {"name", loop.name},
+        {"header_block", loop.header_block},
+        {"latch_block", loop.latch_block},
+        {"blocks", loop.blocks}
+    };
+    
+    // Convert backedges
+    json backedges = json::array();
+    for (const auto& backedge : loop.backedges) {
+        backedges.emplace_back(json{
+            {"from", backedge.first},
+            {"to", backedge.second}
+        });
+    }
+    result["backedges"] = std::move(backedges);
+    
+    // Convert nested loops recursively
+    if (!loop.loops.empty()) {
+        json nested_loops = json::array();
+        for (const auto& nested_loop : loop.loops) {
+            nested_loops.emplace_back(convertLoopEntryNlohmann(nested_loop));
+        }
+        result["loops"] = std::move(nested_loops);
+    }
+    
+    return result;
+}
+
+json convertHidableNlohmann(const Hidable& hidable) {
+    return json{
+        {"name", hidable.name},
+        {"start", hidable.start},
+        {"end", hidable.end}
+    };
+}
+
+json convertFunctionInfoNlohmann(const FunctionInfo& func) {
+    json result{
+        {"name", func.name},
+        {"entry", func.entry},
+        {"basic_blocks", func.basic_blocks}
+    };
+    
+    // Convert local variables
+    json local_vars = json::array();
+    for (const auto& var : func.localVars) {
+        local_vars.emplace_back(convertVariableInfoNlohmann(var));
+    }
+    result["local_vars"] = std::move(local_vars);
+    
+    // Convert parameters
+    json params = json::array();
+    for (const auto& param : func.params) {
+        params.emplace_back(convertVariableInfoNlohmann(param));
+    }
+    result["params"] = std::move(params);
+    
+    // Convert calls
+    json calls = json::array();
+    for (const auto& call : func.calls) {
+        calls.emplace_back(convertCallNlohmann(call));
+    }
+    result["calls"] = std::move(calls);
+    
+    // Convert inlines
+    json inlines = json::array();
+    for (const auto& inline_entry : func.inlines) {
+        inlines.emplace_back(convertInlineEntryNlohmann(inline_entry));
+    }
+    result["inlines"] = std::move(inlines);
+    
+    // Convert loops
+    json loops = json::array();
+    for (const auto& loop : func.loops) {
+        loops.emplace_back(convertLoopEntryNlohmann(loop));
+    }
+    result["loops"] = std::move(loops);
+    
+    // Convert hidables
+    json hidables = json::array();
+    for (const auto& hidable : func.hidables) {
+        hidables.emplace_back(convertHidableNlohmann(hidable));
+    }
+    result["hidables"] = std::move(hidables);
+    
+    return result;
+}
+
+json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res, 
+                                const std::unordered_map<std::string, std::string>& source_mapping) {
     
     // Convert disassembly blocks
     json memory_order_blocks = json::array();
@@ -289,14 +408,14 @@ json convertBinaryCacheNlohmann(const BinaryCacheResult& res,
     for (const auto& block : res.disassembly.loop_order_blocks) {
         loop_order_blocks.emplace_back(convertBlockInfoNlohmann(block));
     }
-    
+
     return json{
-        {"metadata", json{
-            {"architecture", metadata.architecture},
-            {"date", metadata.analysis_date},
-            {"time", metadata.analysis_time},
-            {"compiler", metadata.compiler_used},
-            {"flags", metadata.compiler_flags}
+        {"metadata", {
+            {"architecture", res.metadata.architecture},
+            {"date", res.metadata.analysis_date},
+            {"time", res.metadata.analysis_time},
+            {"compiler", res.metadata.compiler_used},
+            {"flags", res.metadata.compiler_flags}
         }},
         {"disassembly", json{
             {"memory_order_blocks", std::move(memory_order_blocks)},
@@ -306,7 +425,14 @@ json convertBinaryCacheNlohmann(const BinaryCacheResult& res,
             {"memory_order", convertMinimapInfoNlohmann(res.minimap.memory_order)},
             {"loop_order", convertMinimapInfoNlohmann(res.minimap.loop_order)}
         }},
-        {"source_code_info", convertSourceCodeInfoNlohmann(res.sourceCodeInfo, res.correspondences, res.source_files, source_mapping)}
+        {"source_code_info", convertSourceCodeInfoNlohmann(res.sourceCodeInfo, res.correspondences, res.source_files, source_mapping)},
+        {"functionInfos", [&res]() {
+            json function_infos = json::array();
+            for (const auto& func : res.functionInfos) {
+                function_infos.emplace_back(convertFunctionInfoNlohmann(func));
+            }
+            return function_infos;
+        }()}
     };
 }
 
@@ -456,126 +582,6 @@ std::unordered_map<std::string, std::string> createDisVizArchive(
     return source_mapping;
 }
 
-// Helper function to get current date and time
-std::pair<std::string, std::string> getCurrentDateTime() {
-    auto now = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now);
-    auto tm = *std::localtime(&time_t);
-    
-    std::stringstream date_stream, time_stream;
-    date_stream << std::put_time(&tm, "%Y-%m-%d");
-    time_stream << std::put_time(&tm, "%H:%M:%S");
-    
-    return {date_stream.str(), time_stream.str()};
-}
-
-// Helper function to extract architecture information
-std::string extractArchitecture(const std::string& binaryPath) {
-    // Try to extract architecture using file command or ELF headers
-    // For now, return a placeholder - this can be enhanced with proper binary analysis
-    try {
-        std::string command = "file " + binaryPath + " 2>/dev/null";
-        FILE* pipe = popen(command.c_str(), "r");
-        if (pipe) {
-            char buffer[1024];
-            std::string result;
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                result += buffer;
-            }
-            pclose(pipe);
-            
-            // Parse architecture from file output
-            if (result.find("x86-64") != std::string::npos || result.find("x86_64") != std::string::npos) {
-                return "x86_64";
-            } else if (result.find("i386") != std::string::npos || result.find("80386") != std::string::npos) {
-                return "i386";
-            } else if (result.find("aarch64") != std::string::npos || result.find("ARM64") != std::string::npos) {
-                return "aarch64";
-            } else if (result.find("ARM") != std::string::npos) {
-                return "arm";
-            } else if (result.find("PowerPC") != std::string::npos || result.find("ppc64") != std::string::npos) {
-                return "ppc64";
-            }
-        }
-    } catch (...) {
-        // Fallback to unknown if file command fails
-    }
-    return "unknown";
-}
-
-// Helper function to extract compiler information
-std::pair<std::string, std::vector<std::string>> extractCompilerInfo(const std::string& binaryPath) {
-    std::string compiler = "unknown";
-    std::vector<std::string> flags;
-    
-    try {
-        // Try to extract compiler information from debug sections
-        // This is a simplified implementation - can be enhanced with DWARF parsing
-        std::string command = "objdump -s -j .comment " + binaryPath + " 2>/dev/null | grep -v 'Contents of section'";
-        FILE* pipe = popen(command.c_str(), "r");
-        if (pipe) {
-            char buffer[1024];
-            std::string result;
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                result += buffer;
-            }
-            pclose(pipe);
-            
-            // Parse compiler from comment section
-            if (result.find("GCC") != std::string::npos || result.find("gcc") != std::string::npos) {
-                compiler = "gcc";
-            } else if (result.find("clang") != std::string::npos || result.find("Clang") != std::string::npos) {
-                compiler = "clang";
-            } else if (result.find("icc") != std::string::npos || result.find("Intel") != std::string::npos) {
-                compiler = "icc";
-            }
-        }
-        
-        // Try to extract flags from debug information
-        // This is a placeholder - real implementation would parse DWARF debug info
-        command = "objdump -g " + binaryPath + " 2>/dev/null | grep -i 'producer\\|compile' | head -5";
-        pipe = popen(command.c_str(), "r");
-        if (pipe) {
-            char buffer[1024];
-            while (fgets(buffer, sizeof(buffer), pipe) != nullptr) {
-                std::string line(buffer);
-                if (line.find("-O") != std::string::npos) {
-                    if (line.find("-O0") != std::string::npos) flags.push_back("-O0");
-                    else if (line.find("-O1") != std::string::npos) flags.push_back("-O1");
-                    else if (line.find("-O2") != std::string::npos) flags.push_back("-O2");
-                    else if (line.find("-O3") != std::string::npos) flags.push_back("-O3");
-                }
-                if (line.find("-g") != std::string::npos) flags.push_back("-g");
-                if (line.find("-fPIC") != std::string::npos) flags.push_back("-fPIC");
-            }
-            pclose(pipe);
-        }
-    } catch (...) {
-        // Fallback if extraction fails
-    }
-    
-    if (flags.empty()) {
-        flags.push_back("unknown");
-    }
-    
-    return {compiler, flags};
-}
-
-// Helper function to create metadata for binary
-BinaryMetadata createBinaryMetadata(const std::string& binaryPath) {
-    auto [date, time] = getCurrentDateTime();
-    auto architecture = extractArchitecture(binaryPath);
-    auto [compiler, flags] = extractCompilerInfo(binaryPath);
-    
-    return BinaryMetadata{
-        .architecture = architecture,
-        .analysis_date = date,
-        .analysis_time = time,
-        .compiler_used = compiler,
-        .compiler_flags = flags
-    };
-}
-
 int main(int argc, char* argv[]) {
     std::vector<std::string> binary_paths;
     std::string binary_paths_file;
@@ -646,7 +652,7 @@ int main(int argc, char* argv[]) {
         for (const auto& [binary_name, binary_path] : binary_list) {
             std::cout << "Processing: " << binary_path << std::endl;
             
-            const auto binary_result = decodeBinaryCache(binary_path);
+            const auto binary_result = decodeBinary(binary_path);
             if (!binary_result) {
                 std::cerr << "Failed to process binary: " << binary_path << std::endl;
                 continue;
@@ -654,7 +660,7 @@ int main(int argc, char* argv[]) {
             
             // First create the JSON without source mapping to get initial structure
             std::unordered_map<std::string, std::string> empty_mapping;
-            auto binary_json = convertBinaryCacheNlohmann(*binary_result, empty_mapping, createBinaryMetadata(binary_path));
+            auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
             
             // Create .disviz archive with source files and get the mapping
             const auto source_mapping = createDisVizArchive(
@@ -665,7 +671,7 @@ int main(int argc, char* argv[]) {
             );
             
             // Update the JSON with correct source mapping
-            binary_json = convertBinaryCacheNlohmann(*binary_result, source_mapping, createBinaryMetadata(binary_path));
+            binary_json = convertBinaryDecodeNlohmann(*binary_result, source_mapping);
             
             // Recreate the archive with updated JSON
             createDisVizArchive(binary_result->source_files, output_path, binary_name, binary_json);

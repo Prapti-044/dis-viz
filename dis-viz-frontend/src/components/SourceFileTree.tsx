@@ -58,7 +58,9 @@ const getFileIcon = (fileName: string) => {
 };
 
 // Styled TreeItem with vertical lines and proper hover behavior
-const StyledTreeItem = styled(TreeItem)<TreeItemProps & { 
+const StyledTreeItem = styled(TreeItem, {
+    shouldForwardProp: (prop) => !['isSelected', 'fileType', 'isOpened'].includes(prop as string),
+})<TreeItemProps & { 
     isSelected?: boolean; 
     fileType?: "file" | "directory"; 
     isOpened?: boolean;

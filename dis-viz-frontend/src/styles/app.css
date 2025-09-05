@@ -29,6 +29,24 @@
     background-color: rgba(34, 56, 97, 0.1);
 }
 
+.add-call-graph-view-button {
+    background: none;
+    border: none;
+    color: #252525;
+    font-size: 16px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s ease;
+}
+
+.add-call-graph-view-button:hover {
+    background-color: rgba(34, 56, 97, 0.1);
+}
+
 /* These styles are kept for compatibility but are no longer used for the header */
 .file-menus {
     display: none;
