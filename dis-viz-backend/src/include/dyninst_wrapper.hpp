@@ -83,6 +83,7 @@ struct FunctionInfo {
   std::vector<InlineEntry> inlines;
   std::vector<LoopEntry> loops;
   std::vector<Hidable> hidables;
+  bool is_builtin;
 };
 struct BlockLoopState {
   std::string name;

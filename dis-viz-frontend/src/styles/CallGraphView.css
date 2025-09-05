@@ -79,6 +79,24 @@
   background: #c82333;
 }
 
+.toggle-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #495057;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle-checkbox {
+  cursor: pointer;
+}
+
+.toggle-text {
+  font-weight: 500;
+}
+
 .call-graph-stats {
   padding: 12px 16px;
   background: #f8f9fa;
@@ -156,6 +174,24 @@
 .call-graph-node.hovered {
   fill: #e1f5fe;
   stroke: #0277bd;
+  stroke-width: 3;
+}
+
+.call-graph-node.builtin {
+  fill: #fff3e0;
+  stroke: #f57c00;
+  stroke-width: 2;
+}
+
+.call-graph-node.builtin:hover {
+  fill: #ffe0b2;
+  stroke: #e65100;
+  stroke-width: 3;
+}
+
+.call-graph-node.builtin.hovered {
+  fill: #ffcc02;
+  stroke: #ff9800;
   stroke-width: 3;
 }
 
@@ -293,5 +329,24 @@
   .call-graph-tooltip {
     background: #1a1a1a;
     border-color: #666;
+  }
+  
+  .toggle-label {
+    color: #aaa;
+  }
+  
+  .call-graph-node.builtin {
+    fill: #2d2d2d;
+    stroke: #ff9800;
+  }
+  
+  .call-graph-node.builtin:hover {
+    fill: #404040;
+    stroke: #ffb74d;
+  }
+  
+  .call-graph-node.builtin.hovered {
+    fill: #424242;
+    stroke: #ffa726;
   }
 }

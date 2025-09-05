@@ -854,7 +854,8 @@ std::tuple<
       calls,
       inlineTree,
       funcLoops,
-      {}
+      {},
+      false
     };
     
     // Function variables
@@ -1067,7 +1068,6 @@ std::tuple<
         funcLoopOrderBlocks.push_back(block.value());
       }
     }
-
     // remove normal blocks if there is a pseudo block
     auto it = funcLoopOrderBlocks.begin();
     while(it != funcLoopOrderBlocks.end()) {
@@ -1085,17 +1085,21 @@ std::tuple<
       }
       it++;
     }
+
+    // Determine if function is built-in by checking if any of its blocks are built-in
+    // TODO: This is not correct way to identify built-in functions.
+    auto builtInBlocks = getIsBuiltInBlock(funcBlocks);
+    funcInfo.is_builtin = std::any_of(builtInBlocks.begin(), builtInBlocks.end(),[](const bool b) { return b; });
+
     // move all funcLoopOrderBlocks to loopOrderBlocks
     loopOrderBlocks.insert(loopOrderBlocks.end(), make_move_iterator(funcLoopOrderBlocks.begin()), make_move_iterator(funcLoopOrderBlocks.end()));
     
     auto blockI = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&funcBlocks](const BlockInfo &b) {
       return funcBlocks.front().startAddress < b.startAddress;
     });
-    addressOrderBlocks.insert(blockI, make_move_iterator(funcBlocks.begin()), make_move_iterator(funcBlocks.end()));
-    
-    functionInfos.push_back(std::move(funcInfo));
+    addressOrderBlocks.insert(blockI, funcBlocks.begin(), funcBlocks.end());
 
-    
+    functionInfos.push_back(std::move(funcInfo));
     
     bar.tick();
   }
@@ -1346,15 +1350,4 @@ bool isSystemLocation(const string &sourceFile) {
       return sourceFile.size() > systemLocation.size() &&
              sourceFile.substr(0, systemLocation.size()) == systemLocation;
     });
-}
-
-bool isBuiltInBlock(const BlockInfo &block) {
-  for (const auto &inst : block.instructions) {
-    for (const auto &correspondence : inst.correspondence) {
-      if (isSystemLocation(correspondence.first)) {
-        return true;
-      }
-    }
-  }
-  return false;
 }

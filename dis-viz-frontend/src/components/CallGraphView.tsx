@@ -32,6 +32,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
     const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
+    const [hideBuiltInFunctions, setHideBuiltInFunctions] = useState<boolean>(false);
 
     const svgRef = useRef<SVGSVGElement>(null);
     const gRef = useRef<SVGGElement>(null);
@@ -73,9 +74,31 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         }
     }, [selectedBinary]);
 
+    // Filter call graph based on hideBuiltInFunctions toggle
+    const filteredCallGraph = React.useMemo(() => {
+        if (!callGraph) return null;
+        
+        if (!hideBuiltInFunctions) return callGraph;
+        
+        // Filter out built-in nodes
+        const filteredNodes = callGraph.nodes.filter(node => !node.isBuiltIn);
+        const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
+        
+        // Filter out edges that connect to/from built-in functions
+        const filteredEdges = callGraph.edges.filter(edge => 
+            filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
+        );
+        
+        return {
+            ...callGraph,
+            nodes: filteredNodes,
+            edges: filteredEdges
+        };
+    }, [callGraph, hideBuiltInFunctions]);
+
     // Initialize D3 zoom behavior
     useEffect(() => {
-        if (!svgRef.current || !callGraph) return;
+        if (!svgRef.current || !filteredCallGraph) return;
 
         const svg = select(svgRef.current);
         
@@ -97,7 +120,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         return () => {
             svg.on('.zoom', null);
         };
-    }, [callGraph]);
+    }, [filteredCallGraph]);
 
     // Handle node hover
     const handleNodeHover = useCallback((nodeId: string | null, event?: React.MouseEvent) => {
@@ -125,13 +148,13 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
 
     // Fit to view
     const fitToView = useCallback(() => {
-        if (callGraph && svgRef.current && zoomBehaviorRef.current && containerRef.current) {
+        if (filteredCallGraph && svgRef.current && zoomBehaviorRef.current && containerRef.current) {
             const svg = svgRef.current;
             const containerRect = containerRef.current.getBoundingClientRect();
 
             // Calculate bounds of all nodes
             let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            callGraph.nodes.forEach(node => {
+            filteredCallGraph.nodes.forEach(node => {
                 minX = Math.min(minX, node.x);
                 maxX = Math.max(maxX, node.x + node.width);
                 minY = Math.min(minY, node.y);
@@ -157,7 +180,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                 zoomIdentity.translate(translateX, translateY).scale(scale)
             );
         }
-    }, [callGraph]);
+    }, [filteredCallGraph]);
 
     if (!selectedBinary) {
         return (
@@ -173,7 +196,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         );
     }
 
-    if (!callGraph) {
+    if (!filteredCallGraph) {
         return (
             <div className="call-graph-view">
                 <div className="call-graph-header">
@@ -201,6 +224,15 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                             <option key={path} value={path}>{path}</option>
                         ))}
                     </select>
+                    <label className="toggle-label">
+                        <input
+                            type="checkbox"
+                            checked={hideBuiltInFunctions}
+                            onChange={(e) => setHideBuiltInFunctions(e.target.checked)}
+                            className="toggle-checkbox"
+                        />
+                        <span className="toggle-text">Hide Built-in Functions</span>
+                    </label>
                     <button onClick={resetView} className="control-button">Reset View</button>
                     <button onClick={fitToView} className="control-button">Fit to View</button>
                     <button onClick={removeSelf} className="close-button">×</button>
@@ -250,9 +282,9 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                         transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
                     >
                     {/* Render edges */}
-                    {callGraph.edges.map((edge: disvizProcessor.CallGraphEdge) => {
-                        const sourceNode = callGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.source);
-                        const targetNode = callGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.target);
+                    {filteredCallGraph.edges.map((edge: disvizProcessor.CallGraphEdge) => {
+                        const sourceNode = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.source);
+                        const targetNode = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.target);
 
                         if (!sourceNode || !targetNode) return null;
 
@@ -294,14 +326,14 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     })}
 
                     {/* Render nodes */}
-                    {callGraph.nodes.map((node: disvizProcessor.CallGraphNode) => (
+                    {filteredCallGraph.nodes.map((node: disvizProcessor.CallGraphNode) => (
                         <g key={node.id}>
                             <rect
                                 x={node.x}
                                 y={node.y}
                                 width={node.width}
                                 height={node.height}
-                                className={`call-graph-node ${hoveredNode === node.id ? 'hovered' : ''}`}
+                                className={`call-graph-node ${node.isBuiltIn ? 'builtin' : ''} ${hoveredNode === node.id ? 'hovered' : ''}`}
                                 onMouseEnter={(e) => handleNodeHover(node.id, e)}
                                 onMouseLeave={() => handleNodeHover(null)}
                                 rx={8}
@@ -378,13 +410,14 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     }}
                 >
                     {(() => {
-                        const node = callGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === hoveredNode);
+                        const node = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === hoveredNode);
                         return node ? (
                             <>
                                 <div className="tooltip-title">{node.name}</div>
                                 <div className="tooltip-content">
                                     <div><strong>Entry Address:</strong> 0x{node.entry.toString(16)}</div>
                                     <div><strong>Call Count:</strong> {node.callCount}</div>
+                                    <div><strong>Type:</strong> {node.isBuiltIn ? 'Built-in' : 'User-defined'}</div>
                                 </div>
                             </>
                         ) : null;

@@ -125,6 +125,7 @@ interface FunctionInfo {
   inlines: InlineEntryData[];
   loops: LoopInfo[];
   hidables: HidableInfo[];
+  is_builtin: boolean;
 }
 
 // Call Graph Types
@@ -133,6 +134,7 @@ export interface CallGraphNode {
   name: string;
   entry: number;
   isExternal: boolean;
+  isBuiltIn: boolean;
   callCount: number;
   level: number;
   x: number;
@@ -826,6 +828,7 @@ export function buildCallGraph(filepath: string): CallGraph {
       name: func.name,
       entry: func.entry,
       isExternal: false,
+      isBuiltIn: func.is_builtin,
       callCount: func.calls.length,
       level: 0, // Will be calculated later
       x: 0, // Will be calculated during layout
