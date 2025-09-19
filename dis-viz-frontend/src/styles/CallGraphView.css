@@ -154,8 +154,13 @@
   stroke: #1976d2;
   stroke-width: 2;
   cursor: pointer;
-  transition: all 0.2s ease-in-out;
+  transition: all 0.3s ease-in-out;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.call-graph-node:active {
+  transform: scale(0.95);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 .call-graph-node:hover {
@@ -166,9 +171,22 @@
 
 .call-graph-node.selected {
   fill: #c8e6c9;
-  stroke: #388e3c;
-  stroke-width: 3;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+  stroke: #2e7d32;
+  stroke-width: 4;
+  filter: drop-shadow(0 6px 12px rgba(46, 125, 50, 0.4));
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    stroke-width: 4;
+  }
+  50% {
+    stroke-width: 5;
+  }
+  100% {
+    stroke-width: 4;
+  }
 }
 
 .call-graph-node.hovered {

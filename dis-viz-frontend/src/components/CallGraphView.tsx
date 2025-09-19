@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as disvizProcessor from '../disvizProcessor';
-import { useAppSelector } from '../app/hooks';
+import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
+import { selectBinarySelection, selectSourceSelection } from '../features/selections/selectionsSlice';
 import { line, curveBasis } from 'd3-shape';
 import { select } from 'd3-selection';
 import { zoom, zoomIdentity, ZoomBehavior } from 'd3-zoom';
@@ -20,15 +21,22 @@ interface Transform {
 }
 
 const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
+    const dispatch = useAppDispatch();
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
+    const binarySelection = useAppSelector(selectBinarySelection);
+    const sourceSelection = useAppSelector(selectSourceSelection);
+    
     const [selectedBinary, setSelectedBinary] = useState<string>('');
-    const [callGraph, setCallGraph] = useState<disvizProcessor.CallGraph | null>(null);
-      const [stats, setStats] = useState<{
-    totalNodes: number;
-    totalEdges: number;
-    maxDepth: number;
-    averageCallsPerFunction: number;
-  } | null>(null);
+    const [fullCallGraph, setFullCallGraph] = useState<disvizProcessor.CallGraph | null>(null);
+    const [currentSubgraph, setCurrentSubgraph] = useState<disvizProcessor.CallGraph | null>(null);
+    const [visibleNodeIds, setVisibleNodeIds] = useState<Set<string>>(new Set());
+    const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+    const [stats, setStats] = useState<{
+        totalNodes: number;
+        totalEdges: number;
+        maxDepth: number;
+        averageCallsPerFunction: number;
+    } | null>(null);
     const [hoveredNode, setHoveredNode] = useState<string | null>(null);
     const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
     const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
@@ -53,8 +61,34 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
             try {
                 const graph = disvizProcessor.buildCallGraph(selectedBinary);
                 const graphStats = disvizProcessor.getCallGraphStats(selectedBinary);
-                setCallGraph(graph);
+                setFullCallGraph(graph);
                 setStats(graphStats);
+
+                // Find main function and initialize subgraph
+                const mainNode = disvizProcessor.findMainFunctionNode(graph);
+                if (mainNode) {
+                    const initialNodeIds = new Set([mainNode.id]);
+                    const mainNeighbors = disvizProcessor.getNodeNeighbors(graph, mainNode.id);
+                    
+                    // Add main's neighbors to the initial subgraph
+                    mainNeighbors.forEach(neighborId => {
+                        if (!hideBuiltInFunctions || !graph.nodes.find(n => n.id === neighborId)?.isBuiltIn) {
+                            initialNodeIds.add(neighborId);
+                        }
+                    });
+                    
+                    setVisibleNodeIds(initialNodeIds);
+                    setSelectedNodeId(mainNode.id);
+                    
+                    const subgraph = disvizProcessor.buildSubgraph(graph, initialNodeIds);
+                    setCurrentSubgraph(subgraph);
+                } else {
+                    // Fallback: show first few nodes if no main found
+                    const initialNodeIds = new Set(graph.nodes.slice(0, 5).map(n => n.id));
+                    setVisibleNodeIds(initialNodeIds);
+                    const subgraph = disvizProcessor.buildSubgraph(graph, initialNodeIds);
+                    setCurrentSubgraph(subgraph);
+                }
 
                 // Reset transform
                 setTransform({ x: 0, y: 0, k: 1 });
@@ -68,37 +102,82 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                 }
             } catch (error) {
                 console.error('Error building call graph:', error);
-                setCallGraph(null);
+                setFullCallGraph(null);
+                setCurrentSubgraph(null);
                 setStats(null);
             }
         }
-    }, [selectedBinary]);
+    }, [selectedBinary, hideBuiltInFunctions]);
 
-    // Filter call graph based on hideBuiltInFunctions toggle
-    const filteredCallGraph = React.useMemo(() => {
-        if (!callGraph) return null;
+    // Handle node expansion when clicked
+    const expandNode = useCallback((nodeId: string) => {
+        if (!fullCallGraph || !currentSubgraph) return;
         
-        if (!hideBuiltInFunctions) return callGraph;
+        const newVisibleNodeIds = new Set(visibleNodeIds);
+        const neighbors = disvizProcessor.getNodeNeighbors(fullCallGraph, nodeId);
         
-        // Filter out built-in nodes
-        const filteredNodes = callGraph.nodes.filter(node => !node.isBuiltIn);
-        const filteredNodeIds = new Set(filteredNodes.map(node => node.id));
+        // Add neighbors to visible nodes (respecting hideBuiltInFunctions filter)
+        neighbors.forEach(neighborId => {
+            const neighborNode = fullCallGraph.nodes.find(n => n.id === neighborId);
+            if (neighborNode && (!hideBuiltInFunctions || !neighborNode.isBuiltIn)) {
+                newVisibleNodeIds.add(neighborId);
+            }
+        });
         
-        // Filter out edges that connect to/from built-in functions
-        const filteredEdges = callGraph.edges.filter(edge => 
-            filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
-        );
+        // Update state
+        setVisibleNodeIds(newVisibleNodeIds);
+        setSelectedNodeId(nodeId);
         
-        return {
-            ...callGraph,
-            nodes: filteredNodes,
-            edges: filteredEdges
-        };
-    }, [callGraph, hideBuiltInFunctions]);
+        // Rebuild subgraph with expanded nodes
+        const newSubgraph = disvizProcessor.buildSubgraph(fullCallGraph, newVisibleNodeIds);
+        setCurrentSubgraph(newSubgraph);
+    }, [fullCallGraph, currentSubgraph, visibleNodeIds, hideBuiltInFunctions]);
+    
+    // Handle selection from other views
+    useEffect(() => {
+        if (!selectedBinary || !fullCallGraph) return;
+        
+        // Handle binary selection (from disassembly view)
+        const binarySelectionForFile = binarySelection.find(sel => sel.binary_file === selectedBinary);
+        if (binarySelectionForFile && binarySelectionForFile.addresses.length > 0) {
+            const address = binarySelectionForFile.addresses[0];
+            const func = disvizProcessor.getFunctionContainingAddress(selectedBinary, address);
+            if (func) {
+                const nodeId = fullCallGraph.nodes.find(n => n.name === func.name)?.id;
+                if (nodeId && !visibleNodeIds.has(nodeId)) {
+                    expandNode(nodeId);
+                } else if (nodeId) {
+                    setSelectedNodeId(nodeId);
+                }
+            }
+        }
+        
+        // Handle source selection
+        if (sourceSelection.length > 0) {
+            // Find corresponding addresses for the selected source lines
+            const sourceFile = sourceSelection[0].source_file;
+            const sourceLine = sourceSelection[0].source_lines[0];
+            const correspondences = disvizProcessor.getSourceLinesFromBinary([selectedBinary], sourceFile, sourceLine);
+            const addresses = correspondences[selectedBinary];
+            
+            if (addresses && addresses.length > 0) {
+                const address = addresses[0];
+                const func = disvizProcessor.getFunctionContainingAddress(selectedBinary, address);
+                if (func) {
+                    const nodeId = fullCallGraph.nodes.find(n => n.name === func.name)?.id;
+                    if (nodeId && !visibleNodeIds.has(nodeId)) {
+                        expandNode(nodeId);
+                    } else if (nodeId) {
+                        setSelectedNodeId(nodeId);
+                    }
+                }
+            }
+        }
+    }, [binarySelection, sourceSelection, selectedBinary, fullCallGraph, visibleNodeIds, expandNode]);
 
     // Initialize D3 zoom behavior
     useEffect(() => {
-        if (!svgRef.current || !filteredCallGraph) return;
+        if (!svgRef.current || !currentSubgraph) return;
 
         const svg = select(svgRef.current);
         
@@ -120,7 +199,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         return () => {
             svg.on('.zoom', null);
         };
-    }, [filteredCallGraph]);
+    }, [currentSubgraph]);
 
     // Handle node hover
     const handleNodeHover = useCallback((nodeId: string | null, event?: React.MouseEvent) => {
@@ -148,13 +227,13 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
 
     // Fit to view
     const fitToView = useCallback(() => {
-        if (filteredCallGraph && svgRef.current && zoomBehaviorRef.current && containerRef.current) {
+        if (currentSubgraph && svgRef.current && zoomBehaviorRef.current && containerRef.current) {
             const svg = svgRef.current;
             const containerRect = containerRef.current.getBoundingClientRect();
 
             // Calculate bounds of all nodes
             let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
-            filteredCallGraph.nodes.forEach(node => {
+            currentSubgraph.nodes.forEach(node => {
                 minX = Math.min(minX, node.x);
                 maxX = Math.max(maxX, node.x + node.width);
                 minY = Math.min(minY, node.y);
@@ -180,7 +259,47 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                 zoomIdentity.translate(translateX, translateY).scale(scale)
             );
         }
-    }, [filteredCallGraph]);
+    }, [currentSubgraph]);
+    
+    // Handle node click
+    const handleNodeClick = useCallback((nodeId: string) => {
+        expandNode(nodeId);
+    }, [expandNode]);
+    
+    // Reset to main function
+    const resetToMain = useCallback(() => {
+        if (!fullCallGraph) return;
+        
+        const mainNode = disvizProcessor.findMainFunctionNode(fullCallGraph);
+        if (mainNode) {
+            const initialNodeIds = new Set([mainNode.id]);
+            const mainNeighbors = disvizProcessor.getNodeNeighbors(fullCallGraph, mainNode.id);
+            
+            // Add main's neighbors to the initial subgraph
+            mainNeighbors.forEach(neighborId => {
+                if (!hideBuiltInFunctions || !fullCallGraph.nodes.find(n => n.id === neighborId)?.isBuiltIn) {
+                    initialNodeIds.add(neighborId);
+                }
+            });
+            
+            setVisibleNodeIds(initialNodeIds);
+            setSelectedNodeId(mainNode.id);
+            
+            const subgraph = disvizProcessor.buildSubgraph(fullCallGraph, initialNodeIds);
+            setCurrentSubgraph(subgraph);
+            
+            // Reset transform
+            setTransform({ x: 0, y: 0, k: 1 });
+            
+            // Reset D3 zoom transform
+            if (svgRef.current && zoomBehaviorRef.current) {
+                select(svgRef.current).call(
+                    zoomBehaviorRef.current.transform,
+                    zoomIdentity
+                );
+            }
+        }
+    }, [fullCallGraph, hideBuiltInFunctions]);
 
     if (!selectedBinary) {
         return (
@@ -196,7 +315,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         );
     }
 
-    if (!filteredCallGraph) {
+    if (!currentSubgraph) {
         return (
             <div className="call-graph-view">
                 <div className="call-graph-header">
@@ -235,24 +354,29 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     </label>
                     <button onClick={resetView} className="control-button">Reset View</button>
                     <button onClick={fitToView} className="control-button">Fit to View</button>
+                    <button onClick={resetToMain} className="control-button">Reset to Main</button>
                     <button onClick={removeSelf} className="close-button">×</button>
                 </div>
             </div>
 
             <div className="call-graph-stats">
-                {stats && (
+                {stats && currentSubgraph && (
                     <div className="stats-grid">
                         <div className="stat-item">
-                            <span className="stat-label">Functions:</span>
+                            <span className="stat-label">Visible Functions:</span>
+                            <span className="stat-value">{currentSubgraph.nodes.length}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">Visible Calls:</span>
+                            <span className="stat-value">{currentSubgraph.edges.length}</span>
+                        </div>
+                        <div className="stat-item">
+                            <span className="stat-label">Total Functions:</span>
                             <span className="stat-value">{stats.totalNodes}</span>
                         </div>
                         <div className="stat-item">
-                            <span className="stat-label">Calls:</span>
-                            <span className="stat-value">{stats.totalEdges}</span>
-                        </div>
-                        <div className="stat-item">
-                            <span className="stat-label">Max Depth:</span>
-                            <span className="stat-value">{stats.maxDepth}</span>
+                            <span className="stat-label">Selected:</span>
+                            <span className="stat-value">{selectedNodeId ? currentSubgraph.nodes.find(n => n.id === selectedNodeId)?.name || 'None' : 'None'}</span>
                         </div>
                     </div>
                 )}
@@ -282,9 +406,9 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                         transform={`translate(${transform.x}, ${transform.y}) scale(${transform.k})`}
                     >
                     {/* Render edges */}
-                    {filteredCallGraph.edges.map((edge: disvizProcessor.CallGraphEdge) => {
-                        const sourceNode = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.source);
-                        const targetNode = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.target);
+                    {currentSubgraph.edges.map((edge: disvizProcessor.CallGraphEdge) => {
+                        const sourceNode = currentSubgraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.source);
+                        const targetNode = currentSubgraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === edge.target);
 
                         if (!sourceNode || !targetNode) return null;
 
@@ -326,16 +450,17 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     })}
 
                     {/* Render nodes */}
-                    {filteredCallGraph.nodes.map((node: disvizProcessor.CallGraphNode) => (
+                    {currentSubgraph.nodes.map((node: disvizProcessor.CallGraphNode) => (
                         <g key={node.id}>
                             <rect
                                 x={node.x}
                                 y={node.y}
                                 width={node.width}
                                 height={node.height}
-                                className={`call-graph-node ${node.isBuiltIn ? 'builtin' : ''} ${hoveredNode === node.id ? 'hovered' : ''}`}
+                                className={`call-graph-node ${node.isBuiltIn ? 'builtin' : ''} ${hoveredNode === node.id ? 'hovered' : ''} ${selectedNodeId === node.id ? 'selected' : ''}`}
                                 onMouseEnter={(e) => handleNodeHover(node.id, e)}
                                 onMouseLeave={() => handleNodeHover(null)}
+                                onClick={() => handleNodeClick(node.id)}
                                 rx={8}
                                 ry={8}
                             />
@@ -347,6 +472,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                                 dominantBaseline="middle"
                                 onMouseEnter={(e) => handleNodeHover(node.id, e)}
                                 onMouseLeave={() => handleNodeHover(null)}
+                                onClick={() => handleNodeClick(node.id)}
                             >
                                 {node.name.length > 15 ? node.name.substring(0, 15) + '...' : node.name}
                             </text>
@@ -410,7 +536,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     }}
                 >
                     {(() => {
-                        const node = filteredCallGraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === hoveredNode);
+                        const node = currentSubgraph.nodes.find((n: disvizProcessor.CallGraphNode) => n.id === hoveredNode);
                         return node ? (
                             <>
                                 <div className="tooltip-title">{node.name}</div>
@@ -418,6 +544,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                                     <div><strong>Entry Address:</strong> 0x{node.entry.toString(16)}</div>
                                     <div><strong>Call Count:</strong> {node.callCount}</div>
                                     <div><strong>Type:</strong> {node.isBuiltIn ? 'Built-in' : 'User-defined'}</div>
+                                    <div><strong>Status:</strong> {selectedNodeId === node.id ? 'Selected' : 'Click to expand'}</div>
                                 </div>
                             </>
                         ) : null;

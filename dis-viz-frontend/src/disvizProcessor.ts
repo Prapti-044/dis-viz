@@ -952,4 +952,138 @@ export function getCallGraphStats(filepath: string): {
     maxDepth: callGraph.maxLevel,
     averageCallsPerFunction
   };
+}
+
+// Find the main function node in the call graph
+export function findMainFunctionNode(callGraph: CallGraph): CallGraphNode | null {
+  // Try to find "main" function first
+  let mainNode = callGraph.nodes.find(node => node.name === 'main');
+  if (mainNode) return mainNode;
+  
+  // Try alternative main function names
+  const mainVariants = ['_main', '__main', 'Main', 'MAIN'];
+  for (const variant of mainVariants) {
+    mainNode = callGraph.nodes.find(node => node.name === variant);
+    if (mainNode) return mainNode;
+  }
+  
+  // If no main found, find the node with the lowest entry address (likely entry point)
+  const sortedNodes = [...callGraph.nodes].sort((a, b) => a.entry - b.entry);
+  return sortedNodes.length > 0 ? sortedNodes[0] : null;
+}
+
+// Get direct neighbors of a node (both incoming and outgoing)
+export function getNodeNeighbors(callGraph: CallGraph, nodeId: string): Set<string> {
+  const neighbors = new Set<string>();
+  
+  // Find outgoing edges (functions this node calls)
+  callGraph.edges
+    .filter(edge => edge.source === nodeId)
+    .forEach(edge => neighbors.add(edge.target));
+  
+  // Find incoming edges (functions that call this node)
+  callGraph.edges
+    .filter(edge => edge.target === nodeId)
+    .forEach(edge => neighbors.add(edge.source));
+  
+  return neighbors;
+}
+
+// Build a subgraph containing specified node IDs and their connections
+export function buildSubgraph(callGraph: CallGraph, nodeIds: Set<string>): CallGraph {
+  // Filter nodes to only include specified IDs
+  const filteredNodes = callGraph.nodes.filter(node => nodeIds.has(node.id));
+  
+  // Filter edges to only include connections between included nodes
+  const filteredEdges = callGraph.edges.filter(edge => 
+    nodeIds.has(edge.source) && nodeIds.has(edge.target)
+  );
+  
+  // Recalculate layout for the subgraph
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
+    rankdir: 'TB',
+    align: 'UL',
+    nodesep: 80,
+    edgesep: 40,
+    ranksep: 100,
+    marginx: 50,
+    marginy: 50,
+    acyclicer: 'greedy',
+    ranker: 'tight-tree'
+  });
+  
+  g.setDefaultNodeLabel(() => ({}));
+  g.setDefaultEdgeLabel(() => ({}));
+  
+  // Add nodes to dagre graph
+  filteredNodes.forEach(node => {
+    g.setNode(node.id, {
+      width: node.width,
+      height: node.height,
+      label: node.name
+    });
+  });
+  
+  // Add edges to dagre graph
+  filteredEdges.forEach(edge => {
+    g.setEdge(edge.source, edge.target, {
+      weight: edge.callCount
+    });
+  });
+  
+  // Apply layout
+  dagre.layout(g);
+  
+  // Update node positions from dagre layout
+  let maxLevel = 0;
+  const updatedNodes = filteredNodes.map(node => {
+    const dagreNode = g.node(node.id);
+    if (dagreNode) {
+      const updatedNode = { ...node };
+      updatedNode.x = dagreNode.x - node.width / 2;
+      updatedNode.y = dagreNode.y - node.height / 2;
+      updatedNode.level = Math.floor(updatedNode.y / 100);
+      maxLevel = Math.max(maxLevel, updatedNode.level);
+      return updatedNode;
+    }
+    return node;
+  });
+  
+  // Store edge control points for curved rendering
+  const updatedEdges = filteredEdges.map(edge => {
+    const dagreEdge = g.edge(edge.source, edge.target);
+    if (dagreEdge && dagreEdge.points) {
+      return { ...edge, points: dagreEdge.points };
+    }
+    return edge;
+  });
+  
+  return {
+    nodes: updatedNodes,
+    edges: updatedEdges,
+    externalFunctions: callGraph.externalFunctions,
+    maxLevel,
+    totalFunctions: filteredNodes.length
+  };
+}
+
+// Find function containing a specific address
+export function getFunctionContainingAddress(filepath: string, address: number): FunctionInfo | null {
+  const file = loadedFiles.get(filepath);
+  if (!file) return null;
+  
+  const functionInfos = file.data.functionInfos || [];
+  
+  // Find function whose basic blocks contain the address
+  for (const func of functionInfos) {
+    for (const blockName of func.basic_blocks) {
+      const block = file.data.disassembly.memory_order_blocks.find(b => b.name === blockName);
+      if (block && address >= block.start_address && address <= block.end_address) {
+        return func;
+      }
+    }
+  }
+  
+  return null;
 } 
