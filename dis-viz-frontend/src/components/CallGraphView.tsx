@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as disvizProcessor from '../disvizProcessor';
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { selectBinarySelection, selectSourceSelection } from '../features/selections/selectionsSlice';
 import { line, curveBasis } from 'd3-shape';
@@ -21,7 +21,6 @@ interface Transform {
 }
 
 const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
-    const dispatch = useAppDispatch();
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
     const binarySelection = useAppSelector(selectBinarySelection);
     const sourceSelection = useAppSelector(selectSourceSelection);
