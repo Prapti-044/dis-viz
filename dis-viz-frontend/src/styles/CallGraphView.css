@@ -213,6 +213,48 @@
   stroke-width: 3;
 }
 
+.call-graph-node.inline {
+  fill: #f3e5f5;
+  stroke: #7b1fa2;
+  stroke-width: 2;
+  stroke-dasharray: 5, 3; /* Dashed border to distinguish inline functions */
+}
+
+.call-graph-node.inline:hover {
+  fill: #e1bee7;
+  stroke: #4a148c;
+  stroke-width: 3;
+}
+
+.call-graph-node.inline.hovered {
+  fill: #ce93d8;
+  stroke: #6a1b9a;
+  stroke-width: 3;
+}
+
+.call-graph-node.inline.selected {
+  fill: #d1c4e9;
+  stroke: #512da8;
+  stroke-width: 4;
+  filter: drop-shadow(0 6px 12px rgba(81, 45, 168, 0.4));
+  animation: pulse-inline 2s infinite;
+}
+
+@keyframes pulse-inline {
+  0% {
+    stroke-width: 4;
+    stroke-dasharray: 5, 3;
+  }
+  50% {
+    stroke-width: 5;
+    stroke-dasharray: 8, 3;
+  }
+  100% {
+    stroke-width: 4;
+    stroke-dasharray: 5, 3;
+  }
+}
+
 .call-graph-node-text {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   font-size: 12px;
@@ -366,5 +408,31 @@
   .call-graph-node.builtin.hovered {
     fill: #424242;
     stroke: #ffa726;
+  }
+  
+  .call-graph-node.inline {
+    fill: #2d2d2d;
+    stroke: #9c27b0;
+    stroke-dasharray: 5, 3;
+  }
+  
+  .call-graph-node.inline:hover {
+    fill: #404040;
+    stroke: #ba68c8;
+    stroke-width: 3;
+  }
+  
+  .call-graph-node.inline.hovered {
+    fill: #424242;
+    stroke: #ab47bc;
+    stroke-width: 3;
+  }
+  
+  .call-graph-node.inline.selected {
+    fill: #424242;
+    stroke: #8e24aa;
+    stroke-width: 4;
+    filter: drop-shadow(0 6px 12px rgba(142, 36, 170, 0.4));
+    animation: pulse-inline 2s infinite;
   }
 }

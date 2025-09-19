@@ -41,6 +41,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
     const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null);
     const [transform, setTransform] = useState<Transform>({ x: 0, y: 0, k: 1 });
     const [hideBuiltInFunctions, setHideBuiltInFunctions] = useState<boolean>(false);
+    const [hideInlineFunctions, setHideInlineFunctions] = useState<boolean>(false);
 
     const svgRef = useRef<SVGSVGElement>(null);
     const gRef = useRef<SVGGElement>(null);
@@ -72,7 +73,10 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                     
                     // Add main's neighbors to the initial subgraph
                     mainNeighbors.forEach(neighborId => {
-                        if (!hideBuiltInFunctions || !graph.nodes.find(n => n.id === neighborId)?.isBuiltIn) {
+                        const neighborNode = graph.nodes.find(n => n.id === neighborId);
+                        if (neighborNode && 
+                            (!hideBuiltInFunctions || !neighborNode.isBuiltIn) &&
+                            (!hideInlineFunctions || !neighborNode.isInline)) {
                             initialNodeIds.add(neighborId);
                         }
                     });
@@ -107,7 +111,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                 setStats(null);
             }
         }
-    }, [selectedBinary, hideBuiltInFunctions]);
+    }, [selectedBinary, hideBuiltInFunctions, hideInlineFunctions]);
 
     // Handle node expansion when clicked
     const expandNode = useCallback((nodeId: string) => {
@@ -116,10 +120,12 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         const newVisibleNodeIds = new Set(visibleNodeIds);
         const neighbors = disvizProcessor.getNodeNeighbors(fullCallGraph, nodeId);
         
-        // Add neighbors to visible nodes (respecting hideBuiltInFunctions filter)
+        // Add neighbors to visible nodes (respecting filters)
         neighbors.forEach(neighborId => {
             const neighborNode = fullCallGraph.nodes.find(n => n.id === neighborId);
-            if (neighborNode && (!hideBuiltInFunctions || !neighborNode.isBuiltIn)) {
+            if (neighborNode && 
+                (!hideBuiltInFunctions || !neighborNode.isBuiltIn) &&
+                (!hideInlineFunctions || !neighborNode.isInline)) {
                 newVisibleNodeIds.add(neighborId);
             }
         });
@@ -131,7 +137,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
         // Rebuild subgraph with expanded nodes
         const newSubgraph = disvizProcessor.buildSubgraph(fullCallGraph, newVisibleNodeIds);
         setCurrentSubgraph(newSubgraph);
-    }, [fullCallGraph, currentSubgraph, visibleNodeIds, hideBuiltInFunctions]);
+    }, [fullCallGraph, currentSubgraph, visibleNodeIds, hideBuiltInFunctions, hideInlineFunctions]);
     
     // Handle selection from other views
     useEffect(() => {
@@ -277,7 +283,10 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
             
             // Add main's neighbors to the initial subgraph
             mainNeighbors.forEach(neighborId => {
-                if (!hideBuiltInFunctions || !fullCallGraph.nodes.find(n => n.id === neighborId)?.isBuiltIn) {
+                const neighborNode = fullCallGraph.nodes.find(n => n.id === neighborId);
+                if (neighborNode && 
+                    (!hideBuiltInFunctions || !neighborNode.isBuiltIn) &&
+                    (!hideInlineFunctions || !neighborNode.isInline)) {
                     initialNodeIds.add(neighborId);
                 }
             });
@@ -299,7 +308,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                 );
             }
         }
-    }, [fullCallGraph, hideBuiltInFunctions]);
+    }, [fullCallGraph, hideBuiltInFunctions, hideInlineFunctions]);
 
     if (!selectedBinary) {
         return (
@@ -352,6 +361,15 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                         />
                         <span className="toggle-text">Hide Built-in Functions</span>
                     </label>
+                    <label className="toggle-label">
+                        <input
+                            type="checkbox"
+                            checked={hideInlineFunctions}
+                            onChange={(e) => setHideInlineFunctions(e.target.checked)}
+                            className="toggle-checkbox"
+                        />
+                        <span className="toggle-text">Hide Inline Functions</span>
+                    </label>
                     <button onClick={resetView} className="control-button">Reset View</button>
                     <button onClick={fitToView} className="control-button">Fit to View</button>
                     <button onClick={resetToMain} className="control-button">Reset to Main</button>
@@ -375,8 +393,12 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                             <span className="stat-value">{stats.totalNodes}</span>
                         </div>
                         <div className="stat-item">
+                            <span className="stat-label">Inline Functions:</span>
+                            <span className="stat-value">{currentSubgraph.nodes.filter(n => n.isInline).length}</span>
+                        </div>
+                        <div className="stat-item">
                             <span className="stat-label">Selected:</span>
-                            <span className="stat-value">{selectedNodeId ? currentSubgraph.nodes.find(n => n.id === selectedNodeId)?.name || 'None' : 'None'}</span>
+                            <span className="stat-value">{selectedNodeId ? currentSubgraph.nodes.find(n => n.id === selectedNodeId)?.name?.split('::').pop()?.substring(0, 12) || 'None' : 'None'}</span>
                         </div>
                     </div>
                 )}
@@ -457,7 +479,7 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                                 y={node.y}
                                 width={node.width}
                                 height={node.height}
-                                className={`call-graph-node ${node.isBuiltIn ? 'builtin' : ''} ${hoveredNode === node.id ? 'hovered' : ''} ${selectedNodeId === node.id ? 'selected' : ''}`}
+                                className={`call-graph-node ${node.isBuiltIn ? 'builtin' : ''} ${node.isInline ? 'inline' : ''} ${hoveredNode === node.id ? 'hovered' : ''} ${selectedNodeId === node.id ? 'selected' : ''}`}
                                 onMouseEnter={(e) => handleNodeHover(node.id, e)}
                                 onMouseLeave={() => handleNodeHover(null)}
                                 onClick={() => handleNodeClick(node.id)}
@@ -474,7 +496,16 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                                 onMouseLeave={() => handleNodeHover(null)}
                                 onClick={() => handleNodeClick(node.id)}
                             >
-                                {node.name.length > 15 ? node.name.substring(0, 15) + '...' : node.name}
+                                {(() => {
+                                    if (node.isInline) {
+                                        // For inline functions, use simplified name if available
+                                        const displayName = node.simplifiedName || node.name.split('::').pop() || node.name;
+                                        return displayName.length > 12 ? displayName.substring(0, 12) + '...' : displayName;
+                                    } else {
+                                        // For regular functions
+                                        return node.name.length > 15 ? node.name.substring(0, 15) + '...' : node.name;
+                                    }
+                                })()}
                             </text>
                             {node.callCount > 0 && (
                                 <text
@@ -543,7 +574,18 @@ const CallGraphView: React.FC<CallGraphViewProps> = ({ id, removeSelf }) => {
                                 <div className="tooltip-content">
                                     <div><strong>Entry Address:</strong> 0x{node.entry.toString(16)}</div>
                                     <div><strong>Call Count:</strong> {node.callCount}</div>
-                                    <div><strong>Type:</strong> {node.isBuiltIn ? 'Built-in' : 'User-defined'}</div>
+                                    <div><strong>Type:</strong> {
+                                        node.isInline ? 'Inline Function' : 
+                                        node.isBuiltIn ? 'Built-in' : 'User-defined'
+                                    }</div>
+                                    {node.isInline && node.parentFunction && (
+                                        <>
+                                            <div><strong>Parent Function:</strong> {node.parentFunction}</div>
+                                            {node.callsiteFile && (
+                                                <div><strong>Callsite:</strong> {node.callsiteFile.split('/').pop()}:{node.callsiteLine}</div>
+                                            )}
+                                        </>
+                                    )}
                                     <div><strong>Status:</strong> {selectedNodeId === node.id ? 'Selected' : 'Click to expand'}</div>
                                 </div>
                             </>

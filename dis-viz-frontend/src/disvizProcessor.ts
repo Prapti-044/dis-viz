@@ -135,6 +135,12 @@ export interface CallGraphNode {
   entry: number;
   isExternal: boolean;
   isBuiltIn: boolean;
+  isInline: boolean;
+  parentFunction?: string; // For inline functions, the parent function name
+  simplifiedName?: string; // For inline functions, the simplified name
+  callsiteFile?: string;
+  callsiteLine?: number;
+  addressRanges?: Array<{ start: number; end: number }>; // For inline functions
   callCount: number;
   level: number;
   x: number;
@@ -806,6 +812,85 @@ export function getFunctionStats(filepath: string): {
   };
 }
 
+// Helper function to recursively process inline functions
+function processInlineFunction(
+  inlineData: InlineEntryData,
+  parentFunctionName: string,
+  nodes: CallGraphNode[],
+  edges: CallGraphEdge[],
+  processedInlines: Set<string>
+): void {
+  // Create unique ID for inline function
+  const inlineId = `inline-${parentFunctionName}-${inlineData.simplified_name}-${inlineData.callsite_line}`;
+  
+  // Avoid processing the same inline function multiple times
+  if (processedInlines.has(inlineId)) return;
+  processedInlines.add(inlineId);
+  
+  // Calculate entry address as the first address range start
+  const entryAddress = inlineData.ranges.length > 0 ? inlineData.ranges[0].start : 0;
+  
+  // Create inline function node
+  const inlineNode: CallGraphNode = {
+    id: inlineId,
+    name: inlineData.name,
+    entry: entryAddress,
+    isExternal: false,
+    isBuiltIn: false,
+    isInline: true,
+    parentFunction: parentFunctionName,
+    simplifiedName: inlineData.simplified_name,
+    callsiteFile: inlineData.callsite_file,
+    callsiteLine: inlineData.callsite_line,
+    addressRanges: inlineData.ranges,
+    callCount: 0, // Inline functions don't make calls in the traditional sense
+    level: 0,
+    x: 0,
+    y: 0,
+    width: 140, // Slightly wider for inline functions to accommodate longer names
+    height: 50,  // Slightly shorter to distinguish visually
+  };
+  
+  nodes.push(inlineNode);
+  
+  // Create edge from parent function to inline function
+  const parentNode = nodes.find(n => n.name === parentFunctionName && !n.isInline);
+  if (parentNode) {
+    const edgeId = `${parentNode.id}-${inlineId}`;
+    const edge: CallGraphEdge = {
+      id: edgeId,
+      source: parentNode.id,
+      target: inlineId,
+      callAddress: entryAddress,
+      targetAddress: entryAddress,
+      isExternal: false,
+      callCount: 1
+    };
+    edges.push(edge);
+  }
+  
+  // Recursively process children inline functions
+  if (inlineData.children) {
+    for (const child of inlineData.children) {
+      processInlineFunction(child, parentFunctionName, nodes, edges, processedInlines);
+      
+      // Create edge from this inline function to its child
+      const childId = `inline-${parentFunctionName}-${child.simplified_name}-${child.callsite_line}`;
+      const childEdgeId = `${inlineId}-${childId}`;
+      const childEdge: CallGraphEdge = {
+        id: childEdgeId,
+        source: inlineId,
+        target: childId,
+        callAddress: child.ranges.length > 0 ? child.ranges[0].start : 0,
+        targetAddress: child.ranges.length > 0 ? child.ranges[0].start : 0,
+        isExternal: false,
+        callCount: 1
+      };
+      edges.push(childEdge);
+    }
+  }
+}
+
 // Call Graph Construction Functions
 export function buildCallGraph(filepath: string): CallGraph {
   const file = loadedFiles.get(filepath);
@@ -822,6 +907,8 @@ export function buildCallGraph(filepath: string): CallGraph {
   });
   
   // Create nodes for all functions
+  const processedInlines = new Set<string>();
+  
   functionInfos.forEach((func, index) => {
     const node: CallGraphNode = {
       id: `${func.name}-${func.entry}`, // Include entry address to ensure uniqueness
@@ -829,6 +916,7 @@ export function buildCallGraph(filepath: string): CallGraph {
       entry: func.entry,
       isExternal: false,
       isBuiltIn: func.is_builtin,
+      isInline: false,
       callCount: func.calls.length,
       level: 0, // Will be calculated later
       x: 0, // Will be calculated during layout
@@ -837,6 +925,13 @@ export function buildCallGraph(filepath: string): CallGraph {
       height: 60, // Default height
     };
     nodes.push(node);
+    
+    // Process inline functions for this function
+    if (func.inlines) {
+      for (const inlineData of func.inlines) {
+        processInlineFunction(inlineData, func.name, nodes, edges, processedInlines);
+      }
+    }
   });
   
   // Process calls and create edges (only internal calls)
@@ -985,6 +1080,28 @@ export function getNodeNeighbors(callGraph: CallGraph, nodeId: string): Set<stri
   callGraph.edges
     .filter(edge => edge.target === nodeId)
     .forEach(edge => neighbors.add(edge.source));
+  
+  // For inline functions, also include their parent and children
+  const node = callGraph.nodes.find(n => n.id === nodeId);
+  if (node && node.isInline && node.parentFunction) {
+    // Add parent function
+    const parentNode = callGraph.nodes.find(n => n.name === node.parentFunction && !n.isInline);
+    if (parentNode) {
+      neighbors.add(parentNode.id);
+    }
+    
+    // Add sibling inline functions from the same parent
+    callGraph.nodes
+      .filter(n => n.isInline && n.parentFunction === node.parentFunction && n.id !== nodeId)
+      .forEach(sibling => neighbors.add(sibling.id));
+  }
+  
+  // For regular functions, include their inline functions
+  if (node && !node.isInline) {
+    callGraph.nodes
+      .filter(n => n.isInline && n.parentFunction === node.name)
+      .forEach(inline => neighbors.add(inline.id));
+  }
   
   return neighbors;
 }
