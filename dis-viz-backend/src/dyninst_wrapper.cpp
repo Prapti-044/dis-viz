@@ -5,7 +5,6 @@
 #include <set>
 #include <algorithm>
 #include <boost/range/adaptor/indexed.hpp>
-#include <filesystem>
 #include <sstream>
 
 #include <CodeObject.h>
@@ -855,7 +854,10 @@ std::tuple<
       inlineTree,
       funcLoops,
       {},
-      false
+      false,
+      0,  // call_graph_in_degree - will be calculated later
+      0,  // call_graph_out_degree - will be calculated later
+      {}  // source_info - will be populated later
     };
     
     // Function variables
@@ -1160,6 +1162,68 @@ std::tuple<
               }
             }
           }
+        }
+      }
+    }
+  }
+
+  // Calculate call graph in-degrees and out-degrees
+  std::unordered_map<std::string, int> inDegreeMap;
+  std::unordered_map<std::string, int> outDegreeMap;
+  
+  // Initialize all functions with 0 degrees
+  for (const auto &funcInfo : functionInfos) {
+    inDegreeMap[funcInfo.name] = 0;
+    outDegreeMap[funcInfo.name] = 0;
+  }
+  
+  // Calculate out-degrees and in-degrees from call information
+  for (const auto &funcInfo : functionInfos) {
+    std::unordered_set<std::string> uniqueCallees;
+    for (const auto &call : funcInfo.calls) {
+      for (const auto &targetFuncName : call.targetFuncNames) {
+        uniqueCallees.insert(targetFuncName);
+      }
+    }
+    outDegreeMap[funcInfo.name] = uniqueCallees.size();
+    
+    // Update in-degrees for called functions
+    for (const auto &callee : uniqueCallees) {
+      if (inDegreeMap.find(callee) != inDegreeMap.end()) {
+        inDegreeMap[callee]++;
+      }
+    }
+  }
+  
+  // Assign calculated degrees to function infos
+  for (auto &funcInfo : functionInfos) {
+    funcInfo.call_graph_in_degree = inDegreeMap[funcInfo.name];
+    funcInfo.call_graph_out_degree = outDegreeMap[funcInfo.name];
+  }
+  
+  // Integrate source function information
+  for (const auto &sourceFile : unique_sourcefiles) {
+    auto sourceCodeData = parseSourceCode(sourceFile);
+    
+    for (const auto &sourceFunc : sourceCodeData.functions) {
+      // Try to match source function to binary function by name
+      for (auto &funcInfo : functionInfos) {
+        // Match by simplified name or exact name
+        auto simplifiedBinaryName = getSimplifiedFunctionName(funcInfo.name);
+        
+        if (sourceFunc.name == funcInfo.name || 
+            sourceFunc.name == simplifiedBinaryName ||
+            funcInfo.name.find(sourceFunc.name) != std::string::npos) {
+          
+          funcInfo.source_info.line = sourceFunc.line;
+          funcInfo.source_info.returnType = sourceFunc.returnType;
+          funcInfo.source_info.parameters.clear();
+          
+          for (const auto &param : sourceFunc.parameters) {
+            funcInfo.source_info.parameters.push_back({param.type, param.name});
+          }
+          
+          break; // Found a match, move to next source function
         }
       }
     }

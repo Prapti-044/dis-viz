@@ -33,23 +33,36 @@ export class InlineEntry {
     }
 }
 
+export interface CallGraphInfo {
+    functionName: string;
+    calledFunctions: string[];
+    callingFunctions: string[];
+    returnType: string;
+    parameters: { type: string; name: string }[];
+    inDegree: number;
+    outDegree: number;
+}
+
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: { [binaryFilePath: string]: number[] };
     @Expose() tags: { [binaryFilePath: string]: SourceCodeFlag[] };
     @Type(() => InlineEntry)
     @Expose() inline_tree: { [binaryFilePath: string]: InlineEntry[] };
+    @Expose() call_graph_info?: { [binaryFilePath: string]: CallGraphInfo };
 
     constructor(
         line: string, 
         addresses: { [binaryFilePath: string]: number[] }, 
         tags: { [binaryFilePath: string]: SourceCodeFlag[] },
-        inline_tree: { [binaryFilePath: string]: InlineEntry[] } = {}
+        inline_tree: { [binaryFilePath: string]: InlineEntry[] } = {},
+        call_graph_info: { [binaryFilePath: string]: CallGraphInfo } = {}
     ) {
         this.line = line
         this.addresses = addresses
         this.tags = tags
         this.inline_tree = inline_tree
+        this.call_graph_info = call_graph_info
     }
 }
 

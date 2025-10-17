@@ -115,6 +115,17 @@ interface HidableInfo {
   end: number;
 }
 
+interface SourceFunctionParam {
+  type: string;
+  name: string;
+}
+
+interface SourceFunctionInfo {
+  line: number;
+  return_type: string;
+  parameters: SourceFunctionParam[];
+}
+
 interface FunctionInfo {
   name: string;
   entry: number;
@@ -126,6 +137,9 @@ interface FunctionInfo {
   loops: LoopInfo[];
   hidables: HidableInfo[];
   is_builtin: boolean;
+  call_graph_in_degree: number;
+  call_graph_out_degree: number;
+  source_info: SourceFunctionInfo;
 }
 
 // Call Graph Types
@@ -372,7 +386,11 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
     flags: { [binaryFilePath: string]: (typeof SOURCE_TAGS)[number]['id'][] };
     correspondences: { [binaryFilePath: string]: number[] };
     inline_tree: { [binaryFilePath: string]: InlineEntryData[] };
+    call_graph_info?: { [binaryFilePath: string]: any };
   }[] = [];
+
+  // Build a map of function definition lines for each binary
+  const functionLineMap: { [binaryFilePath: string]: Map<number, FunctionInfo> } = {};
 
   for (const binaryFileName of binaryFiles) {
     const binaryFile = loadedFiles.get(binaryFileName);
@@ -413,12 +431,113 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
           }
         }
       }
+
+      // Build function line map for call graph information
+      functionLineMap[binaryFileName] = new Map();
+      const allFunctions = binaryFile.data.functionInfos || [];
+      
+      for (const func of allFunctions) {
+        // Check if this function is defined in the current source file
+        if (func.source_info && func.source_info.line > 0) {
+          // The source_info.line is 1-based, which matches our line numbers
+          functionLineMap[binaryFileName].set(func.source_info.line, func);
+        }
+      }
+      
+      // Ensure function definition lines are in the lines array even if they don't have correspondences
+      for (const [funcLine, func] of functionLineMap[binaryFileName].entries()) {
+        const lineIndex = funcLine - 1; // funcLine is 1-based, but lines array uses 0-based indices
+        let existingLine = lines.find(l => l.line === lineIndex);
+        if (!existingLine) {
+          existingLine = {
+            line: lineIndex,
+            correspondences: {},
+            flags: {},
+            inline_tree: {}
+          };
+          // Initialize for all binary files
+          for (const binFile of binaryFiles) {
+            existingLine.correspondences[binFile] = [];
+            existingLine.flags[binFile] = [];
+            existingLine.inline_tree[binFile] = [];
+          }
+          lines.push(existingLine);
+        } else {
+          // Ensure this binary's data is initialized
+          if (!existingLine.correspondences[binaryFileName]) {
+            existingLine.correspondences[binaryFileName] = [];
+          }
+          if (!existingLine.flags[binaryFileName]) {
+            existingLine.flags[binaryFileName] = [];
+          }
+          if (!existingLine.inline_tree[binaryFileName]) {
+            existingLine.inline_tree[binaryFileName] = [];
+          }
+        }
+      }
     }
   }
+  
+  // Sort lines by line number
+  lines.sort((a, b) => a.line - b.line);
   
   if (!file || !total_lines || !copiedPath) {
     throw new Error(`Source file not found: ${sourceFile}`);
   }
+  
+  // Add call graph tags to lines with function definitions
+  for (const lineInfo of lines) {
+    for (const binaryFileName of binaryFiles) {
+      const lookupLine = lineInfo.line + 1; // +1 because lineInfo.line is 0-based
+      const funcAtLine = functionLineMap[binaryFileName]?.get(lookupLine);
+      if (funcAtLine) {
+        // Add CALL_IN tag if in-degree > 0
+        if (funcAtLine.call_graph_in_degree > 0) {
+          if (!lineInfo.flags[binaryFileName].includes('CALL_IN')) {
+            lineInfo.flags[binaryFileName].push('CALL_IN');
+          }
+        }
+        // Add CALL_OUT tag if out-degree > 0
+        if (funcAtLine.call_graph_out_degree > 0) {
+          if (!lineInfo.flags[binaryFileName].includes('CALL_OUT')) {
+            lineInfo.flags[binaryFileName].push('CALL_OUT');
+          }
+        }
+
+        // Build call graph info
+        const binaryFile = loadedFiles.get(binaryFileName);
+        if (binaryFile) {
+          const allFunctions = binaryFile.data.functionInfos || [];
+          
+          // Find functions this function calls
+          const calledFunctions = funcAtLine.calls
+            .flatMap(call => call.target_func_names)
+            .filter((name, index, self) => self.indexOf(name) === index); // unique names
+          
+          // Find functions that call this function
+          const callingFunctions = allFunctions
+            .filter(f => f.calls.some(call => call.target_func_names.includes(funcAtLine.name)))
+            .map(f => f.name)
+            .filter((name, index, self) => self.indexOf(name) === index); // unique names
+          
+          if (!lineInfo.call_graph_info) {
+            lineInfo.call_graph_info = {};
+          }
+          
+          lineInfo.call_graph_info[binaryFileName] = {
+            functionName: funcAtLine.name,
+            calledFunctions,
+            callingFunctions,
+            returnType: funcAtLine.source_info.return_type || 'void',
+            parameters: funcAtLine.source_info.parameters || [],
+            inDegree: funcAtLine.call_graph_in_degree,
+            outDegree: funcAtLine.call_graph_out_degree
+          };
+        }
+      }
+    }
+  }
+
   
   // Get the actual source file content
   let sourceContent = '';
@@ -436,7 +555,6 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
     if (lineInfo) {
       // Convert inline tree data
       const inlineTreeConverted: { [binaryFilePath: string]: InlineEntry[] } = {};
-      console.log(lineInfo)
       for (const [binaryFile, inlineData] of Object.entries(lineInfo.inline_tree)) {
         inlineTreeConverted[binaryFile] = inlineData.map(convertInlineEntryData);
       }
@@ -445,7 +563,8 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
         lineContent, 
         lineInfo.correspondences, 
         lineInfo.flags,
-        inlineTreeConverted
+        inlineTreeConverted,
+        lineInfo.call_graph_info || {}
       );
     }
     else {
@@ -453,7 +572,8 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
         lineContent,
         Object.fromEntries(binaryFiles.map(f => [f, []])),
         Object.fromEntries(binaryFiles.map(f => [f, []])),
-        Object.fromEntries(binaryFiles.map(f => [f, []]))
+        Object.fromEntries(binaryFiles.map(f => [f, []])),
+        {}
       );
     }
   });

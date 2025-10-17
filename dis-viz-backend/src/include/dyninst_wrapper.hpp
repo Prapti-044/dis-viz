@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <map>
 #include <unordered_set>
+#include "parse_source.hpp"
 
 #define MAX_NAME_LENGTH 128
 
@@ -73,6 +74,13 @@ struct Call {
   unsigned long target;
   std::vector<std::string> targetFuncNames;
 };
+
+struct SourceFunctionInfo {
+  unsigned int line;
+  std::string returnType;
+  std::vector<SourceFunctionParam> parameters;
+};
+
 struct FunctionInfo {
   std::string name;
   unsigned long entry;
@@ -84,6 +92,9 @@ struct FunctionInfo {
   std::vector<LoopEntry> loops;
   std::vector<Hidable> hidables;
   bool is_builtin;
+  int call_graph_in_degree;  // Number of functions calling this function
+  int call_graph_out_degree; // Number of functions this function calls
+  SourceFunctionInfo source_info; // Information from source code parsing
 };
 struct BlockLoopState {
   std::string name;

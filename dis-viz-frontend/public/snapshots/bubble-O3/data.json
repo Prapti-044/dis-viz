@@ -1,0 +1,7216 @@
+{
+  "disassembly": {
+    "loop_order_blocks": [
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4114,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4096,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 4100,
+            "flags": [],
+            "instruction": "sub $0x8,%rsp"
+          },
+          {
+            "address": 4104,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x2fc9(%rip),%rax"
+          },
+          {
+            "address": 4111,
+            "flags": [],
+            "instruction": "test %rax,%rax"
+          },
+          {
+            "address": 4114,
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x4(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "_init: B0",
+        "next_block_numbers": [
+          "_init: B2",
+          "_init: B1"
+        ],
+        "start_address": 4096
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4116,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4116,
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call %rax"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B1",
+        "next_block_numbers": [
+          "_init: B2"
+        ],
+        "start_address": 4116
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4122,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4118,
+            "flags": [],
+            "instruction": "add $0x8,%rsp"
+          },
+          {
+            "address": 4122,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "_init: B2",
+        "next_block_numbers": [],
+        "start_address": 4118
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4144,
+        "function_name": "std::ostream::put(char)",
+        "instructions": [
+          {
+            "address": 4144,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fca(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B3",
+        "next_block_numbers": [],
+        "start_address": 4144
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4160,
+        "function_name": "std::ostream::flush()",
+        "instructions": [
+          {
+            "address": 4160,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fc2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B4",
+        "next_block_numbers": [],
+        "start_address": 4160
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4176,
+        "function_name": "__stack_chk_fail",
+        "instructions": [
+          {
+            "address": 4176,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fba(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B5",
+        "next_block_numbers": [],
+        "start_address": 4176
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4192,
+        "function_name": "std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)",
+        "instructions": [
+          {
+            "address": 4192,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fb2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B6",
+        "next_block_numbers": [],
+        "start_address": 4192
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4208,
+        "function_name": "std::ctype<char>::_M_widen_init() const",
+        "instructions": [
+          {
+            "address": 4208,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2faa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B7",
+        "next_block_numbers": [],
+        "start_address": 4208
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4224,
+        "function_name": "std::__throw_bad_cast()",
+        "instructions": [
+          {
+            "address": 4224,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fa2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B8",
+        "next_block_numbers": [],
+        "start_address": 4224
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4240,
+        "function_name": "std::ostream::operator<<(int)",
+        "instructions": [
+          {
+            "address": 4240,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2f9a(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B9",
+        "next_block_numbers": [],
+        "start_address": 4240
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4288,
+        "function_name": "printArray.cold",
+        "instructions": [
+          {
+            "address": 4288,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                51
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffffc0(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray.cold: B10",
+        "next_block_numbers": [
+          "_init: B8"
+        ],
+        "start_address": 4288
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4353,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4304,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbx"
+          },
+          {
+            "address": 4305,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                32
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x5,%esi"
+          },
+          {
+            "address": 4310,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x20,%rsp"
+          },
+          {
+            "address": 4314,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_READ",
+              "VECTORIZED"
+            ],
+            "instruction": "movdqa 0xf3e(%rip),%xmm0"
+          },
+          {
+            "address": 4322,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov $0x28,%rax"
+          },
+          {
+            "address": 4331,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "mov %rax,0x18(%rsp)"
+          },
+          {
+            "address": 4336,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [],
+            "instruction": "xor %eax,%eax"
+          },
+          {
+            "address": 4338,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30,
+                32
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rsp,%rdi"
+          },
+          {
+            "address": 4341,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "mov $0x8,0x10(%rsp)"
+          },
+          {
+            "address": 4349,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                31,
+                32,
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "VECTORIZED"
+            ],
+            "instruction": "movaps %xmm0,(%rsp)"
+          },
+          {
+            "address": 4353,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                32
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0x17f(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 11,
+        "name": "main: B11",
+        "next_block_numbers": [
+          "main: B12"
+        ],
+        "start_address": 4304
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4377,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4358,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                33
+              ],
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                733,
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xef9(%rip),%rsi"
+          },
+          {
+            "address": 4365,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0xf,%edx"
+          },
+          {
+            "address": 4370,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2f67(%rip),%rdi"
+          },
+          {
+            "address": 4377,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffff47(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "main: B12",
+        "next_block_numbers": [
+          "_init: B6",
+          "main: B13"
+        ],
+        "start_address": 4358
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4390,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4382,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34,
+                34
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x5,%esi"
+          },
+          {
+            "address": 4387,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rsp,%rdi"
+          },
+          {
+            "address": 4390,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0x1da(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "main: B13",
+        "next_block_numbers": [
+          "main: B14"
+        ],
+        "start_address": 4382
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4409,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4395,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                35,
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x18(%rsp),%rax"
+          },
+          {
+            "address": 4400,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "sub $0x28,%rax"
+          },
+          {
+            "address": 4409,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "main: B14",
+        "next_block_numbers": [
+          "main: B16",
+          "main: B15"
+        ],
+        "start_address": 4395
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4418,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4411,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x20,%rsp"
+          },
+          {
+            "address": 4415,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [],
+            "instruction": "xor %eax,%eax"
+          },
+          {
+            "address": 4417,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbx"
+          },
+          {
+            "address": 4418,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "main: B15",
+        "next_block_numbers": [],
+        "start_address": 4411
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4419,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4419,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffff0d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "main: B16",
+        "next_block_numbers": [
+          "_init: B5"
+        ],
+        "start_address": 4419
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4463,
+        "function_name": "_start",
+        "instructions": [
+          {
+            "address": 4432,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 4436,
+            "flags": [],
+            "instruction": "xor %ebp,%ebp"
+          },
+          {
+            "address": 4438,
+            "flags": [],
+            "instruction": "mov %rdx,%r9"
+          },
+          {
+            "address": 4441,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rsi"
+          },
+          {
+            "address": 4442,
+            "flags": [],
+            "instruction": "mov %rsp,%rdx"
+          },
+          {
+            "address": 4445,
+            "flags": [],
+            "instruction": "and $0xfffffff0,%rsp"
+          },
+          {
+            "address": 4449,
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rax"
+          },
+          {
+            "address": 4450,
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rsp"
+          },
+          {
+            "address": 4451,
+            "flags": [],
+            "instruction": "xor %r8d,%r8d"
+          },
+          {
+            "address": 4454,
+            "flags": [],
+            "instruction": "xor %ecx,%ecx"
+          },
+          {
+            "address": 4456,
+            "flags": [],
+            "instruction": "lea 0xffffff61(%rip),%rdi"
+          },
+          {
+            "address": 4463,
+            "flags": [
+              "MEMORY_WRITE",
+              "MEMORY_READ",
+              "CALL"
+            ],
+            "instruction": "call 0x2e53(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 12,
+        "name": "_start: B17",
+        "next_block_numbers": [
+          "_start: B18"
+        ],
+        "start_address": 4432
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4469,
+        "function_name": "_start",
+        "instructions": [
+          {
+            "address": 4469,
+            "flags": [],
+            "instruction": "hlt "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_start: B18",
+        "next_block_numbers": [],
+        "start_address": 4469
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4742,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4736,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                7
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rdi,%r8"
+          },
+          {
+            "address": 4739,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                8,
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4742,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0x69(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "bubbleSort: B19",
+        "next_block_numbers": [
+          "bubbleSort: B27",
+          "bubbleSort: B20"
+        ],
+        "start_address": 4736
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4748,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4744,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x4(%rdi),%r9"
+          },
+          {
+            "address": 4748,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "bubbleSort: B20",
+        "next_block_numbers": [
+          "bubbleSort: B21"
+        ],
+        "start_address": 4744
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4755,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4752,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4755,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0x5d(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 1,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B21",
+        "next_block_numbers": [
+          "bubbleSort: B28",
+          "bubbleSort: B22"
+        ],
+        "start_address": 4752
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4789,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4757,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xfffffffe(%rsi),%edx"
+          },
+          {
+            "address": 4760,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %r8,%rax"
+          },
+          {
+            "address": 4763,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x0(%r9,%rdx,4),%rdi"
+          },
+          {
+            "address": 4767,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          },
+          {
+            "address": 4778,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          },
+          {
+            "address": 4789,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 6,
+        "name": "bubbleSort: B22",
+        "next_block_numbers": [
+          "bubbleSort: B23"
+        ],
+        "start_address": 4757
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4819,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4800,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14,
+                14
+              ]
+            },
+            "flags": [
+              "MEMORY_READ",
+              "VECTORIZED"
+            ],
+            "instruction": "movq (%rax),%xmm0"
+          },
+          {
+            "address": 4804,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "pshufd $0xe5,%xmm0,%xmm1"
+          },
+          {
+            "address": 4809,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "movd %xmm0,%dx"
+          },
+          {
+            "address": 4813,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "movd %xmm1,%cx"
+          },
+          {
+            "address": 4817,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %edx,%ecx"
+          },
+          {
+            "address": 4819,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jge 0xb(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 1,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 6,
+        "name": "bubbleSort: B23",
+        "next_block_numbers": [
+          "bubbleSort: B24",
+          "bubbleSort: B25"
+        ],
+        "start_address": 4800
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4826,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4821,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                15
+              ],
+              "/usr/include/c++/15.2.1/bits/move.h": [
+                226,
+                235
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "pshufd $0xe1,%xmm0,%xmm0"
+          },
+          {
+            "address": 4826,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/move.h": [
+                235
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "VECTORIZED"
+            ],
+            "instruction": "movq %xmm0,(%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 2,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B24",
+        "next_block_numbers": [
+          "bubbleSort: B25"
+        ],
+        "start_address": 4821
+      },
+      {
+        "backedges": [
+          "bubbleSort: B23"
+        ],
+        "block_type": "normal",
+        "end_address": 4837,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4830,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13,
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x4,%rax"
+          },
+          {
+            "address": 4834,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rdi,%rax"
+          },
+          {
+            "address": 4837,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffdb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 3,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 3,
+        "name": "bubbleSort: B25",
+        "next_block_numbers": [
+          "bubbleSort: B23",
+          "bubbleSort: B26"
+        ],
+        "start_address": 4830
+      },
+      {
+        "backedges": [
+          "bubbleSort: B21"
+        ],
+        "block_type": "normal",
+        "end_address": 4845,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4839,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x1,%esi"
+          },
+          {
+            "address": 4842,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4845,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffa3(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 3,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 3,
+        "name": "bubbleSort: B26",
+        "next_block_numbers": [
+          "bubbleSort: B21",
+          "bubbleSort: B27"
+        ],
+        "start_address": 4839
+      },
+      {
+        "backedges": [
+          "bubbleSort: B21"
+        ],
+        "block_type": "pseudoloop",
+        "end_address": 4851,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4848,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x1,%esi"
+          },
+          {
+            "address": 4851,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffff9d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 4,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B28",
+        "next_block_numbers": [
+          "bubbleSort: B21"
+        ],
+        "start_address": 4848
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4847,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4847,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                16
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "bubbleSort: B27",
+        "next_block_numbers": [
+          "main: B12"
+        ],
+        "start_address": 4847
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4870,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4864,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20,
+                21,
+                22,
+                22,
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %r12"
+          },
+          {
+            "address": 4866,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbp"
+          },
+          {
+            "address": 4867,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbx"
+          },
+          {
+            "address": 4868,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "test %esi,%esi"
+          },
+          {
+            "address": 4870,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0xaa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B29",
+        "next_block_numbers": [
+          "printArray: B43",
+          "printArray: B30"
+        ],
+        "start_address": 4864
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4893,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4876,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "movsxd %esi,%rsi"
+          },
+          {
+            "address": 4879,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rdi,%rbx"
+          },
+          {
+            "address": 4882,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2d67(%rip),%rbp"
+          },
+          {
+            "address": 4889,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x0(%rdi,%rsi,4),%r12"
+          },
+          {
+            "address": 4893,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "nop (%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B30",
+        "next_block_numbers": [
+          "printArray: B31"
+        ],
+        "start_address": 4876
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4905,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4896,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23,
+                23
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov (%rbx),%esi"
+          },
+          {
+            "address": 4898,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbp,%rdi"
+          },
+          {
+            "address": 4901,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x4,%rbx"
+          },
+          {
+            "address": 4905,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffd67(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 1,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 4,
+        "name": "printArray: B31",
+        "next_block_numbers": [
+          "_init: B9",
+          "printArray: B32"
+        ],
+        "start_address": 4896
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4925,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4910,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                733,
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x1,%edx"
+          },
+          {
+            "address": 4915,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xcca(%rip),%rsi"
+          },
+          {
+            "address": 4922,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rax,%rdi"
+          },
+          {
+            "address": 4925,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffd23(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 4,
+        "name": "printArray: B32",
+        "next_block_numbers": [
+          "_init: B6",
+          "printArray: B33"
+        ],
+        "start_address": 4910
+      },
+      {
+        "backedges": [
+          "printArray: B31"
+        ],
+        "block_type": "normal",
+        "end_address": 4933,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4930,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22,
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rbx,%r12"
+          },
+          {
+            "address": 4933,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffdb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 3,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "printArray: B33",
+        "next_block_numbers": [
+          "printArray: B31",
+          "printArray: B34"
+        ],
+        "start_address": 4930
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4957,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4935,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                24
+              ],
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                115
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                65,
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x2d32(%rip),%rax"
+          },
+          {
+            "address": 4942,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0xffffffe8(%rax),%rax"
+          },
+          {
+            "address": 4946,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0xf0(%rbp,%rax,1),%rbx"
+          },
+          {
+            "address": 4954,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                463,
+                48,
+                50
+              ]
+            },
+            "flags": [],
+            "instruction": "test %rbx,%rbx"
+          },
+          {
+            "address": 4957,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                50
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x5c(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B34",
+        "next_block_numbers": [
+          "printArray: B44",
+          "printArray: B35"
+        ],
+        "start_address": 4935
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4963,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4959,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                881,
+                883
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "cmp $0x0,0x38(%rbx)"
+          },
+          {
+            "address": 4963,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                883
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x1d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B35",
+        "next_block_numbers": [
+          "printArray: B39",
+          "printArray: B36"
+        ],
+        "start_address": 4959
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4965,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4965,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                884
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "movsx 0x43(%rbx),%esi"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray: B36",
+        "next_block_numbers": [
+          "printArray: B37"
+        ],
+        "start_address": 4965
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4972,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4969,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbp,%rdi"
+          },
+          {
+            "address": 4972,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffcc4(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B37",
+        "next_block_numbers": [
+          "_init: B3",
+          "printArray: B38"
+        ],
+        "start_address": 4969
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4984,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4977,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                87
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbx"
+          },
+          {
+            "address": 4978,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbp"
+          },
+          {
+            "address": 4979,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                88
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rax,%rdi"
+          },
+          {
+            "address": 4982,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %r12"
+          },
+          {
+            "address": 4984,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                88
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xfffffcc8(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B38",
+        "next_block_numbers": [
+          "_init: B4"
+        ],
+        "start_address": 4977
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4995,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4992,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                881,
+                885,
+                885
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbx,%rdi"
+          },
+          {
+            "address": 4995,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                885
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffced(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B39",
+        "next_block_numbers": [
+          "_init: B7",
+          "printArray: B40"
+        ],
+        "start_address": 4992
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5022,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5000,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886,
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov (%rbx),%rax"
+          },
+          {
+            "address": 5003,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0xa,%esi"
+          },
+          {
+            "address": 5008,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x29(%rip),%rdx"
+          },
+          {
+            "address": 5015,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x30(%rax),%rax"
+          },
+          {
+            "address": 5019,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rdx,%rax"
+          },
+          {
+            "address": 5022,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0xffffffcb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 6,
+        "name": "printArray: B40",
+        "next_block_numbers": [
+          "printArray: B37",
+          "printArray: B41"
+        ],
+        "start_address": 5000
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5027,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5024,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbx,%rdi"
+          },
+          {
+            "address": 5027,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call %rax"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B41",
+        "next_block_numbers": [
+          "printArray: B42"
+        ],
+        "start_address": 5024
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5032,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5029,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "movsx %al,%esi"
+          },
+          {
+            "address": 5032,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffffc1(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B42",
+        "next_block_numbers": [
+          "printArray: B37"
+        ],
+        "start_address": 5029
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5047,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5040,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2cc9(%rip),%rbp"
+          },
+          {
+            "address": 5047,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffff90(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B43",
+        "next_block_numbers": [
+          "printArray: B34"
+        ],
+        "start_address": 5040
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5049,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5049,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xfffffd07(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray: B44",
+        "next_block_numbers": [
+          "printArray.cold: B10"
+        ],
+        "start_address": 5049
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5058,
+        "function_name": "std::ctype<char>::do_widen",
+        "instructions": [
+          {
+            "address": 5056,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                1093,
+                1094,
+                1093
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %esi,%eax"
+          },
+          {
+            "address": 5058,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                1094
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "std::ctype<char>::do_widen: B45",
+        "next_block_numbers": [],
+        "start_address": 5056
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5072,
+        "function_name": "_fini",
+        "instructions": [
+          {
+            "address": 5060,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 5064,
+            "flags": [],
+            "instruction": "sub $0x8,%rsp"
+          },
+          {
+            "address": 5068,
+            "flags": [],
+            "instruction": "add $0x8,%rsp"
+          },
+          {
+            "address": 5072,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "_fini: B46",
+        "next_block_numbers": [],
+        "start_address": 5060
+      }
+    ],
+    "memory_order_blocks": [
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4114,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4096,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 4100,
+            "flags": [],
+            "instruction": "sub $0x8,%rsp"
+          },
+          {
+            "address": 4104,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x2fc9(%rip),%rax"
+          },
+          {
+            "address": 4111,
+            "flags": [],
+            "instruction": "test %rax,%rax"
+          },
+          {
+            "address": 4114,
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x4(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "_init: B0",
+        "next_block_numbers": [
+          "_init: B2",
+          "_init: B1"
+        ],
+        "start_address": 4096
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4116,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4116,
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call %rax"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B1",
+        "next_block_numbers": [
+          "_init: B2"
+        ],
+        "start_address": 4116
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4122,
+        "function_name": "_init",
+        "instructions": [
+          {
+            "address": 4118,
+            "flags": [],
+            "instruction": "add $0x8,%rsp"
+          },
+          {
+            "address": 4122,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "_init: B2",
+        "next_block_numbers": [],
+        "start_address": 4118
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4144,
+        "function_name": "std::ostream::put(char)",
+        "instructions": [
+          {
+            "address": 4144,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fca(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B3",
+        "next_block_numbers": [],
+        "start_address": 4144
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4160,
+        "function_name": "std::ostream::flush()",
+        "instructions": [
+          {
+            "address": 4160,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fc2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B4",
+        "next_block_numbers": [],
+        "start_address": 4160
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4176,
+        "function_name": "__stack_chk_fail",
+        "instructions": [
+          {
+            "address": 4176,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fba(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B5",
+        "next_block_numbers": [],
+        "start_address": 4176
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4192,
+        "function_name": "std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)",
+        "instructions": [
+          {
+            "address": 4192,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fb2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B6",
+        "next_block_numbers": [],
+        "start_address": 4192
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4208,
+        "function_name": "std::ctype<char>::_M_widen_init() const",
+        "instructions": [
+          {
+            "address": 4208,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2faa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B7",
+        "next_block_numbers": [],
+        "start_address": 4208
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4224,
+        "function_name": "std::__throw_bad_cast()",
+        "instructions": [
+          {
+            "address": 4224,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2fa2(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B8",
+        "next_block_numbers": [],
+        "start_address": 4224
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4240,
+        "function_name": "std::ostream::operator<<(int)",
+        "instructions": [
+          {
+            "address": 4240,
+            "flags": [
+              "MEMORY_READ",
+              "BRANCH"
+            ],
+            "instruction": "jmp 0x2f9a(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_init: B9",
+        "next_block_numbers": [],
+        "start_address": 4240
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4288,
+        "function_name": "printArray.cold",
+        "instructions": [
+          {
+            "address": 4288,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                51
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffffc0(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray.cold: B10",
+        "next_block_numbers": [
+          "_init: B8"
+        ],
+        "start_address": 4288
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4353,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4304,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbx"
+          },
+          {
+            "address": 4305,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                32
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x5,%esi"
+          },
+          {
+            "address": 4310,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x20,%rsp"
+          },
+          {
+            "address": 4314,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_READ",
+              "VECTORIZED"
+            ],
+            "instruction": "movdqa 0xf3e(%rip),%xmm0"
+          },
+          {
+            "address": 4322,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov $0x28,%rax"
+          },
+          {
+            "address": 4331,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "mov %rax,0x18(%rsp)"
+          },
+          {
+            "address": 4336,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                29
+              ]
+            },
+            "flags": [],
+            "instruction": "xor %eax,%eax"
+          },
+          {
+            "address": 4338,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30,
+                32
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rsp,%rdi"
+          },
+          {
+            "address": 4341,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "mov $0x8,0x10(%rsp)"
+          },
+          {
+            "address": 4349,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                31,
+                32,
+                30
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "VECTORIZED"
+            ],
+            "instruction": "movaps %xmm0,(%rsp)"
+          },
+          {
+            "address": 4353,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                32
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0x17f(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 11,
+        "name": "main: B11",
+        "next_block_numbers": [
+          "main: B12"
+        ],
+        "start_address": 4304
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4377,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4358,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                33
+              ],
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                733,
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xef9(%rip),%rsi"
+          },
+          {
+            "address": 4365,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0xf,%edx"
+          },
+          {
+            "address": 4370,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2f67(%rip),%rdi"
+          },
+          {
+            "address": 4377,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffff47(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "main: B12",
+        "next_block_numbers": [
+          "_init: B6",
+          "main: B13"
+        ],
+        "start_address": 4358
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4390,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4382,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34,
+                34
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x5,%esi"
+          },
+          {
+            "address": 4387,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rsp,%rdi"
+          },
+          {
+            "address": 4390,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                34
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0x1da(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "main: B13",
+        "next_block_numbers": [
+          "main: B14"
+        ],
+        "start_address": 4382
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4409,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4395,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                35,
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x18(%rsp),%rax"
+          },
+          {
+            "address": 4400,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "sub $0x28,%rax"
+          },
+          {
+            "address": 4409,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "main: B14",
+        "next_block_numbers": [
+          "main: B16",
+          "main: B15"
+        ],
+        "start_address": 4395
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4418,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4411,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x20,%rsp"
+          },
+          {
+            "address": 4415,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [],
+            "instruction": "xor %eax,%eax"
+          },
+          {
+            "address": 4417,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbx"
+          },
+          {
+            "address": 4418,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "main: B15",
+        "next_block_numbers": [],
+        "start_address": 4411
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4419,
+        "function_name": "main",
+        "instructions": [
+          {
+            "address": 4419,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                36
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xffffff0d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "main: B16",
+        "next_block_numbers": [
+          "_init: B5"
+        ],
+        "start_address": 4419
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4463,
+        "function_name": "_start",
+        "instructions": [
+          {
+            "address": 4432,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 4436,
+            "flags": [],
+            "instruction": "xor %ebp,%ebp"
+          },
+          {
+            "address": 4438,
+            "flags": [],
+            "instruction": "mov %rdx,%r9"
+          },
+          {
+            "address": 4441,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rsi"
+          },
+          {
+            "address": 4442,
+            "flags": [],
+            "instruction": "mov %rsp,%rdx"
+          },
+          {
+            "address": 4445,
+            "flags": [],
+            "instruction": "and $0xfffffff0,%rsp"
+          },
+          {
+            "address": 4449,
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rax"
+          },
+          {
+            "address": 4450,
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rsp"
+          },
+          {
+            "address": 4451,
+            "flags": [],
+            "instruction": "xor %r8d,%r8d"
+          },
+          {
+            "address": 4454,
+            "flags": [],
+            "instruction": "xor %ecx,%ecx"
+          },
+          {
+            "address": 4456,
+            "flags": [],
+            "instruction": "lea 0xffffff61(%rip),%rdi"
+          },
+          {
+            "address": 4463,
+            "flags": [
+              "MEMORY_WRITE",
+              "MEMORY_READ",
+              "CALL"
+            ],
+            "instruction": "call 0x2e53(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 12,
+        "name": "_start: B17",
+        "next_block_numbers": [
+          "_start: B18"
+        ],
+        "start_address": 4432
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4469,
+        "function_name": "_start",
+        "instructions": [
+          {
+            "address": 4469,
+            "flags": [],
+            "instruction": "hlt "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "_start: B18",
+        "next_block_numbers": [],
+        "start_address": 4469
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4742,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4736,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                7
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rdi,%r8"
+          },
+          {
+            "address": 4739,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                8,
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4742,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0x69(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 3,
+        "name": "bubbleSort: B19",
+        "next_block_numbers": [
+          "bubbleSort: B27",
+          "bubbleSort: B20"
+        ],
+        "start_address": 4736
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4748,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4744,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x4(%rdi),%r9"
+          },
+          {
+            "address": 4748,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "bubbleSort: B20",
+        "next_block_numbers": [
+          "bubbleSort: B21"
+        ],
+        "start_address": 4744
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4755,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4752,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4755,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0x5d(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 1,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B21",
+        "next_block_numbers": [
+          "bubbleSort: B28",
+          "bubbleSort: B22"
+        ],
+        "start_address": 4752
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4789,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4757,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xfffffffe(%rsi),%edx"
+          },
+          {
+            "address": 4760,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %r8,%rax"
+          },
+          {
+            "address": 4763,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x0(%r9,%rdx,4),%rdi"
+          },
+          {
+            "address": 4767,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          },
+          {
+            "address": 4778,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          },
+          {
+            "address": 4789,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "nop 0x0(%rax,%rax,1)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 6,
+        "name": "bubbleSort: B22",
+        "next_block_numbers": [
+          "bubbleSort: B23"
+        ],
+        "start_address": 4757
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4819,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4800,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14,
+                14
+              ]
+            },
+            "flags": [
+              "MEMORY_READ",
+              "VECTORIZED"
+            ],
+            "instruction": "movq (%rax),%xmm0"
+          },
+          {
+            "address": 4804,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "pshufd $0xe5,%xmm0,%xmm1"
+          },
+          {
+            "address": 4809,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "movd %xmm0,%dx"
+          },
+          {
+            "address": 4813,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "movd %xmm1,%cx"
+          },
+          {
+            "address": 4817,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %edx,%ecx"
+          },
+          {
+            "address": 4819,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                14
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jge 0xb(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 1,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 6,
+        "name": "bubbleSort: B23",
+        "next_block_numbers": [
+          "bubbleSort: B24",
+          "bubbleSort: B25"
+        ],
+        "start_address": 4800
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4826,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4821,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                15
+              ],
+              "/usr/include/c++/15.2.1/bits/move.h": [
+                226,
+                235
+              ]
+            },
+            "flags": [
+              "VECTORIZED"
+            ],
+            "instruction": "pshufd $0xe1,%xmm0,%xmm0"
+          },
+          {
+            "address": 4826,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/move.h": [
+                235
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "VECTORIZED"
+            ],
+            "instruction": "movq %xmm0,(%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 2,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B24",
+        "next_block_numbers": [
+          "bubbleSort: B25"
+        ],
+        "start_address": 4821
+      },
+      {
+        "backedges": [
+          "bubbleSort: B23"
+        ],
+        "block_type": "normal",
+        "end_address": 4837,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4830,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13,
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x4,%rax"
+          },
+          {
+            "address": 4834,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rdi,%rax"
+          },
+          {
+            "address": 4837,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                13
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffdb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 4,
+            "name": "loop_1"
+          },
+          {
+            "loop_count": 3,
+            "loop_total": 3,
+            "name": "loop_1.1"
+          }
+        ],
+        "n_instructions": 3,
+        "name": "bubbleSort: B25",
+        "next_block_numbers": [
+          "bubbleSort: B23",
+          "bubbleSort: B26"
+        ],
+        "start_address": 4830
+      },
+      {
+        "backedges": [
+          "bubbleSort: B21"
+        ],
+        "block_type": "normal",
+        "end_address": 4845,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4839,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x1,%esi"
+          },
+          {
+            "address": 4842,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp $0x1,%esi"
+          },
+          {
+            "address": 4845,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffa3(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 3,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 3,
+        "name": "bubbleSort: B26",
+        "next_block_numbers": [
+          "bubbleSort: B21",
+          "bubbleSort: B27"
+        ],
+        "start_address": 4839
+      },
+      {
+        "backedges": [
+          "bubbleSort: B21"
+        ],
+        "block_type": "pseudoloop",
+        "end_address": 4851,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4848,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x1,%esi"
+          },
+          {
+            "address": 4851,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffff9d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 4,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B28",
+        "next_block_numbers": [
+          "bubbleSort: B21"
+        ],
+        "start_address": 4848
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4847,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4847,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                16
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "bubbleSort: B27",
+        "next_block_numbers": [
+          "main: B12"
+        ],
+        "start_address": 4847
+      },
+      {
+        "backedges": [
+          "bubbleSort: B21"
+        ],
+        "block_type": "normal",
+        "end_address": 4851,
+        "function_name": "bubbleSort",
+        "instructions": [
+          {
+            "address": 4848,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9,
+                9
+              ]
+            },
+            "flags": [],
+            "instruction": "sub $0x1,%esi"
+          },
+          {
+            "address": 4851,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                9
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffff9d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 4,
+            "loop_total": 4,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "bubbleSort: B28",
+        "next_block_numbers": [
+          "bubbleSort: B21"
+        ],
+        "start_address": 4848
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4870,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4864,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20,
+                21,
+                22,
+                22,
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %r12"
+          },
+          {
+            "address": 4866,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbp"
+          },
+          {
+            "address": 4867,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                20
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE"
+            ],
+            "instruction": "push %rbx"
+          },
+          {
+            "address": 4868,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "test %esi,%esi"
+          },
+          {
+            "address": 4870,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jle 0xaa(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B29",
+        "next_block_numbers": [
+          "printArray: B43",
+          "printArray: B30"
+        ],
+        "start_address": 4864
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4893,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4876,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "movsxd %esi,%rsi"
+          },
+          {
+            "address": 4879,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rdi,%rbx"
+          },
+          {
+            "address": 4882,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2d67(%rip),%rbp"
+          },
+          {
+            "address": 4889,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x0(%rdi,%rsi,4),%r12"
+          },
+          {
+            "address": 4893,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "nop (%rax)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B30",
+        "next_block_numbers": [
+          "printArray: B31"
+        ],
+        "start_address": 4876
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4905,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4896,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23,
+                23
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov (%rbx),%esi"
+          },
+          {
+            "address": 4898,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbp,%rdi"
+          },
+          {
+            "address": 4901,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "add $0x4,%rbx"
+          },
+          {
+            "address": 4905,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                23
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffd67(%rip)"
+          }
+        ],
+        "is_loop_header": true,
+        "loops": [
+          {
+            "loop_count": 1,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 4,
+        "name": "printArray: B31",
+        "next_block_numbers": [
+          "_init: B9",
+          "printArray: B32"
+        ],
+        "start_address": 4896
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4925,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4910,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                733,
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0x1,%edx"
+          },
+          {
+            "address": 4915,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0xcca(%rip),%rsi"
+          },
+          {
+            "address": 4922,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rax,%rdi"
+          },
+          {
+            "address": 4925,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                738
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffd23(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 2,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 4,
+        "name": "printArray: B32",
+        "next_block_numbers": [
+          "_init: B6",
+          "printArray: B33"
+        ],
+        "start_address": 4910
+      },
+      {
+        "backedges": [
+          "printArray: B31"
+        ],
+        "block_type": "normal",
+        "end_address": 4933,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4930,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22,
+                22
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rbx,%r12"
+          },
+          {
+            "address": 4933,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                22
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jne 0xffffffdb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [
+          {
+            "loop_count": 3,
+            "loop_total": 3,
+            "name": "loop_1"
+          }
+        ],
+        "n_instructions": 2,
+        "name": "printArray: B33",
+        "next_block_numbers": [
+          "printArray: B31",
+          "printArray: B34"
+        ],
+        "start_address": 4930
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4957,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4935,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                24
+              ],
+              "/usr/include/c++/15.2.1/bits/ostream.h": [
+                115
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                65,
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x2d32(%rip),%rax"
+          },
+          {
+            "address": 4942,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0xffffffe8(%rax),%rax"
+          },
+          {
+            "address": 4946,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0xf0(%rbp,%rax,1),%rbx"
+          },
+          {
+            "address": 4954,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                463,
+                48,
+                50
+              ]
+            },
+            "flags": [],
+            "instruction": "test %rbx,%rbx"
+          },
+          {
+            "address": 4957,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/basic_ios.h": [
+                50
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x5c(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B34",
+        "next_block_numbers": [
+          "printArray: B44",
+          "printArray: B35"
+        ],
+        "start_address": 4935
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4963,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4959,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                881,
+                883
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "cmp $0x0,0x38(%rbx)"
+          },
+          {
+            "address": 4963,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                883
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0x1d(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B35",
+        "next_block_numbers": [
+          "printArray: B39",
+          "printArray: B36"
+        ],
+        "start_address": 4959
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4965,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4965,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                884
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "movsx 0x43(%rbx),%esi"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray: B36",
+        "next_block_numbers": [
+          "printArray: B37"
+        ],
+        "start_address": 4965
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4972,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4969,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbp,%rdi"
+          },
+          {
+            "address": 4972,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffcc4(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B37",
+        "next_block_numbers": [
+          "_init: B3",
+          "printArray: B38"
+        ],
+        "start_address": 4969
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4984,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4977,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ],
+              "/usr/include/c++/15.2.1/ostream": [
+                87
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbx"
+          },
+          {
+            "address": 4978,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %rbp"
+          },
+          {
+            "address": 4979,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                88
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rax,%rdi"
+          },
+          {
+            "address": 4982,
+            "correspondence": {
+              "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp": [
+                25
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "pop %r12"
+          },
+          {
+            "address": 4984,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                88
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xfffffcc8(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 5,
+        "name": "printArray: B38",
+        "next_block_numbers": [
+          "_init: B4"
+        ],
+        "start_address": 4977
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 4995,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 4992,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                881,
+                885,
+                885
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbx,%rdi"
+          },
+          {
+            "address": 4995,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                885
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call 0xfffffced(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B39",
+        "next_block_numbers": [
+          "_init: B7",
+          "printArray: B40"
+        ],
+        "start_address": 4992
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5022,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5000,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886,
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov (%rbx),%rax"
+          },
+          {
+            "address": 5003,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "mov $0xa,%esi"
+          },
+          {
+            "address": 5008,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x29(%rip),%rdx"
+          },
+          {
+            "address": 5015,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "mov 0x30(%rax),%rax"
+          },
+          {
+            "address": 5019,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "cmp %rdx,%rax"
+          },
+          {
+            "address": 5022,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "je 0xffffffcb(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 6,
+        "name": "printArray: B40",
+        "next_block_numbers": [
+          "printArray: B37",
+          "printArray: B41"
+        ],
+        "start_address": 5000
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5027,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5024,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %rbx,%rdi"
+          },
+          {
+            "address": 5027,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                886
+              ]
+            },
+            "flags": [
+              "MEMORY_WRITE",
+              "CALL"
+            ],
+            "instruction": "call %rax"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B41",
+        "next_block_numbers": [
+          "printArray: B42"
+        ],
+        "start_address": 5024
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5032,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5029,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "movsx %al,%esi"
+          },
+          {
+            "address": 5032,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffffc1(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B42",
+        "next_block_numbers": [
+          "printArray: B37"
+        ],
+        "start_address": 5029
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5047,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5040,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [],
+            "instruction": "lea 0x2cc9(%rip),%rbp"
+          },
+          {
+            "address": 5047,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xffffff90(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "printArray: B43",
+        "next_block_numbers": [
+          "printArray: B34"
+        ],
+        "start_address": 5040
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5049,
+        "function_name": "printArray",
+        "instructions": [
+          {
+            "address": 5049,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/ostream": [
+                66
+              ]
+            },
+            "flags": [
+              "BRANCH"
+            ],
+            "instruction": "jmp 0xfffffd07(%rip)"
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 1,
+        "name": "printArray: B44",
+        "next_block_numbers": [
+          "printArray.cold: B10"
+        ],
+        "start_address": 5049
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5058,
+        "function_name": "std::ctype<char>::do_widen",
+        "instructions": [
+          {
+            "address": 5056,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                1093,
+                1094,
+                1093
+              ]
+            },
+            "flags": [],
+            "instruction": "mov %esi,%eax"
+          },
+          {
+            "address": 5058,
+            "correspondence": {
+              "/usr/include/c++/15.2.1/bits/locale_facets.h": [
+                1094
+              ]
+            },
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 2,
+        "name": "std::ctype<char>::do_widen: B45",
+        "next_block_numbers": [],
+        "start_address": 5056
+      },
+      {
+        "backedges": [],
+        "block_type": "normal",
+        "end_address": 5072,
+        "function_name": "_fini",
+        "instructions": [
+          {
+            "address": 5060,
+            "flags": [],
+            "instruction": "endbr64 "
+          },
+          {
+            "address": 5064,
+            "flags": [],
+            "instruction": "sub $0x8,%rsp"
+          },
+          {
+            "address": 5068,
+            "flags": [],
+            "instruction": "add $0x8,%rsp"
+          },
+          {
+            "address": 5072,
+            "flags": [
+              "MEMORY_READ"
+            ],
+            "instruction": "ret near "
+          }
+        ],
+        "is_loop_header": false,
+        "loops": [],
+        "n_instructions": 4,
+        "name": "_fini: B46",
+        "next_block_numbers": [],
+        "start_address": 5060
+      }
+    ]
+  },
+  "functionInfos": [
+    {
+      "basic_blocks": [
+        "_init: B0",
+        "_init: B1",
+        "_init: B2"
+      ],
+      "call_graph_in_degree": 0,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4116,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4096,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "_init",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B3"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4144,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4144,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::ostream::put(char)",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B4"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4160,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4160,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::ostream::flush()",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B5"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4176,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4176,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "__stack_chk_fail",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B6"
+      ],
+      "call_graph_in_degree": 2,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4192,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4192,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B7"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4208,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4208,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::ctype<char>::_M_widen_init() const",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B8"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4224,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4224,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::__throw_bad_cast()",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_init: B9"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4240,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4240,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::ostream::operator<<(int)",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "printArray.cold: B10"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 1,
+      "calls": [
+        {
+          "address": 4288,
+          "target": 4224,
+          "target_func_names": [
+            "std::__throw_bad_cast()"
+          ]
+        }
+      ],
+      "entry": 4288,
+      "hidables": [],
+      "inlines": [
+        {
+          "callsite_file": "<unknown>",
+          "callsite_line": 0,
+          "name": "std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)",
+          "ranges": [
+            {
+              "end": 4930,
+              "start": 4910
+            }
+          ],
+          "simplified_name": "operator<<"
+        },
+        {
+          "callsite_file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "callsite_line": 25,
+          "children": [
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/bits/ostream.h",
+              "callsite_line": 121,
+              "children": [
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                  "callsite_line": 67,
+                  "children": [
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                      "callsite_line": 465,
+                      "name": "std::ctype<char> const& std::__check_facet<std::ctype<char> >(std::ctype<char> const*)",
+                      "ranges": [
+                        {
+                          "end": 4959,
+                          "start": 4954
+                        },
+                        {
+                          "end": 5054,
+                          "start": 5049
+                        },
+                        {
+                          "end": 4293,
+                          "start": 4288
+                        }
+                      ],
+                      "simplified_name": "__check_facet"
+                    },
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                      "callsite_line": 465,
+                      "children": [
+                        {
+                          "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+                          "callsite_line": 882,
+                          "name": "std::ctype<char>::widen(char) const",
+                          "ranges": [
+                            {
+                              "end": 5029,
+                              "start": 4992
+                            }
+                          ],
+                          "simplified_name": "widen"
+                        }
+                      ],
+                      "name": "std::ctype<char>::widen(char) const",
+                      "ranges": [
+                        {
+                          "end": 4965,
+                          "start": 4959
+                        },
+                        {
+                          "end": 5029,
+                          "start": 4992
+                        }
+                      ],
+                      "simplified_name": "widen"
+                    }
+                  ],
+                  "name": "std::basic_ios<char, std::char_traits<char> >::widen(char) const",
+                  "ranges": [
+                    {
+                      "end": 4965,
+                      "start": 4954
+                    },
+                    {
+                      "end": 5029,
+                      "start": 4992
+                    },
+                    {
+                      "end": 5054,
+                      "start": 5049
+                    },
+                    {
+                      "end": 4293,
+                      "start": 4288
+                    }
+                  ],
+                  "simplified_name": "widen"
+                },
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                  "callsite_line": 67,
+                  "name": "std::basic_ostream<char, std::char_traits<char> >& std::flush<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+                  "ranges": [
+                    {
+                      "end": 4982,
+                      "start": 4979
+                    },
+                    {
+                      "end": 4992,
+                      "start": 4984
+                    }
+                  ],
+                  "simplified_name": "flush"
+                }
+              ],
+              "name": "std::basic_ostream<char, std::char_traits<char> >& std::endl<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+              "ranges": [
+                {
+                  "end": 4977,
+                  "start": 4935
+                },
+                {
+                  "end": 4982,
+                  "start": 4979
+                },
+                {
+                  "end": 5054,
+                  "start": 4984
+                },
+                {
+                  "end": 4293,
+                  "start": 4288
+                }
+              ],
+              "simplified_name": "endl"
+            }
+          ],
+          "name": "std::ostream::operator<<(std::ostream& (*)(std::ostream&))",
+          "ranges": [
+            {
+              "end": 4977,
+              "start": 4935
+            },
+            {
+              "end": 4982,
+              "start": 4979
+            },
+            {
+              "end": 5054,
+              "start": 4984
+            },
+            {
+              "end": 4293,
+              "start": 4288
+            }
+          ],
+          "simplified_name": "operator<<"
+        }
+      ],
+      "is_builtin": true,
+      "local_vars": [
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 21,
+          "locations": [
+            {
+              "end": "0x131d",
+              "location": "$0x0",
+              "start": "0x1300"
+            },
+            {
+              "end": "0x13b9",
+              "location": "$0x0",
+              "start": "0x13aa"
+            }
+          ],
+          "name": "i",
+          "var_type": "local"
+        }
+      ],
+      "loops": [],
+      "name": "printArray.cold",
+      "params": [
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 19,
+          "locations": [
+            {
+              "end": "0x131d",
+              "location": "%rdi",
+              "start": "0x1300"
+            },
+            {
+              "end": "0x13b9",
+              "location": "%rdi",
+              "start": "0x13aa"
+            }
+          ],
+          "name": "arr",
+          "var_type": "param"
+        },
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 19,
+          "locations": [
+            {
+              "end": "0x131d",
+              "location": "%rsi",
+              "start": "0x1300"
+            },
+            {
+              "end": "0x13b9",
+              "location": "%rsi",
+              "start": "0x13aa"
+            }
+          ],
+          "name": "size",
+          "var_type": "param"
+        }
+      ],
+      "source_info": {
+        "line": 20,
+        "parameters": [
+          {
+            "name": "arr",
+            "type": "int[]"
+          },
+          {
+            "name": "size",
+            "type": "int"
+          }
+        ],
+        "return_type": "void"
+      }
+    },
+    {
+      "basic_blocks": [
+        "main: B11",
+        "main: B12",
+        "main: B13",
+        "main: B14",
+        "main: B15",
+        "main: B16"
+      ],
+      "call_graph_in_degree": 0,
+      "call_graph_out_degree": 4,
+      "calls": [
+        {
+          "address": 4353,
+          "target": 4736,
+          "target_func_names": [
+            "bubbleSort"
+          ]
+        },
+        {
+          "address": 4377,
+          "target": 4192,
+          "target_func_names": [
+            "std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)"
+          ]
+        },
+        {
+          "address": 4390,
+          "target": 4864,
+          "target_func_names": [
+            "printArray"
+          ]
+        },
+        {
+          "address": 4419,
+          "target": 4176,
+          "target_func_names": [
+            "__stack_chk_fail"
+          ]
+        }
+      ],
+      "entry": 4304,
+      "hidables": [],
+      "inlines": [
+        {
+          "callsite_file": "<unknown>",
+          "callsite_line": 0,
+          "name": "std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)",
+          "ranges": [
+            {
+              "end": 4382,
+              "start": 4358
+            }
+          ],
+          "simplified_name": "operator<<"
+        }
+      ],
+      "is_builtin": true,
+      "local_vars": [
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 30,
+          "locations": [
+            {
+              "end": "0x10d1",
+              "location": "0xffffffffffffffd8(%rsp)",
+              "start": "0x10d0"
+            },
+            {
+              "end": "0x10da",
+              "location": "0xffffffffffffffe0(%rsp)",
+              "start": "0x10d1"
+            },
+            {
+              "end": "0x113f",
+              "location": "0x0(%rsp)",
+              "start": "0x10da"
+            },
+            {
+              "end": "0x1142",
+              "location": "0xffffffffffffffe0(%rsp)",
+              "start": "0x113f"
+            },
+            {
+              "end": "0x1143",
+              "location": "0xffffffffffffffd8(%rsp)",
+              "start": "0x1142"
+            },
+            {
+              "end": "0x1148",
+              "location": "0x0(%rsp)",
+              "start": "0x1143"
+            }
+          ],
+          "name": "arr",
+          "var_type": "local"
+        }
+      ],
+      "loops": [],
+      "name": "main",
+      "params": [],
+      "source_info": {
+        "line": 29,
+        "parameters": [],
+        "return_type": "int"
+      }
+    },
+    {
+      "basic_blocks": [
+        "_start: B17",
+        "_start: B18"
+      ],
+      "call_graph_in_degree": 0,
+      "call_graph_out_degree": 0,
+      "calls": [
+        {
+          "address": 4463,
+          "target": 0,
+          "target_func_names": []
+        }
+      ],
+      "entry": 4432,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "_start",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "bubbleSort: B19",
+        "bubbleSort: B20",
+        "bubbleSort: B21",
+        "bubbleSort: B22",
+        "bubbleSort: B23",
+        "bubbleSort: B24",
+        "bubbleSort: B25",
+        "bubbleSort: B26",
+        "bubbleSort: B27",
+        "bubbleSort: B28"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 0,
+      "calls": [],
+      "entry": 4736,
+      "hidables": [],
+      "inlines": [
+        {
+          "callsite_file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "callsite_line": 16,
+          "name": "std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<int> >, std::is_move_constructible<int>, std::is_move_assignable<int> >::value, void>::type std::swap<int>(int&, int&)",
+          "ranges": [
+            {
+              "end": 4830,
+              "start": 4821
+            }
+          ],
+          "simplified_name": "swap"
+        }
+      ],
+      "is_builtin": true,
+      "local_vars": [
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 8,
+          "locations": [
+            {
+              "end": "0x128c",
+              "location": "$0x0",
+              "start": "0x1283"
+            }
+          ],
+          "name": "i",
+          "var_type": "local"
+        },
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 8,
+          "locations": [
+            {
+              "end": "0x129f",
+              "location": "$0x0",
+              "start": "0x128c"
+            },
+            {
+              "end": "0x12f5",
+              "location": "$0x0",
+              "start": "0x12f0"
+            }
+          ],
+          "name": "j",
+          "var_type": "local"
+        }
+      ],
+      "loops": [
+        {
+          "backedges": [
+            {
+              "from": "bubbleSort: B26",
+              "to": "bubbleSort: B21"
+            },
+            {
+              "from": "bubbleSort: B28",
+              "to": "bubbleSort: B21"
+            }
+          ],
+          "blocks": [
+            "bubbleSort: B22",
+            "bubbleSort: B26",
+            "bubbleSort: B21",
+            "bubbleSort: B28",
+            "bubbleSort: B24",
+            "bubbleSort: B23",
+            "bubbleSort: B25"
+          ],
+          "header_block": "bubbleSort: B21",
+          "latch_block": "",
+          "loops": [
+            {
+              "backedges": [
+                {
+                  "from": "bubbleSort: B25",
+                  "to": "bubbleSort: B23"
+                }
+              ],
+              "blocks": [
+                "bubbleSort: B24",
+                "bubbleSort: B23",
+                "bubbleSort: B25"
+              ],
+              "header_block": "bubbleSort: B23",
+              "latch_block": "",
+              "name": "loop_1.1"
+            }
+          ],
+          "name": "loop_1"
+        }
+      ],
+      "name": "bubbleSort",
+      "params": [
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 6,
+          "locations": [
+            {
+              "end": "0x128c",
+              "location": "%rdi",
+              "start": "0x1280"
+            },
+            {
+              "end": "0x12f5",
+              "location": "%r8",
+              "start": "0x128c"
+            }
+          ],
+          "name": "arr",
+          "var_type": "param"
+        },
+        {
+          "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+          "line": 6,
+          "locations": [
+            {
+              "end": "0x128c",
+              "location": "%rsi",
+              "start": "0x1280"
+            }
+          ],
+          "name": "n",
+          "var_type": "param"
+        }
+      ],
+      "source_info": {
+        "line": 7,
+        "parameters": [
+          {
+            "name": "arr",
+            "type": "int[]"
+          },
+          {
+            "name": "n",
+            "type": "int"
+          }
+        ],
+        "return_type": "void"
+      }
+    },
+    {
+      "basic_blocks": [
+        "printArray: B29",
+        "printArray: B30",
+        "printArray: B31",
+        "printArray: B32",
+        "printArray: B33",
+        "printArray: B34",
+        "printArray: B35",
+        "printArray: B36",
+        "printArray: B37",
+        "printArray: B38",
+        "printArray: B39",
+        "printArray: B40",
+        "printArray: B41",
+        "printArray: B42",
+        "printArray: B43",
+        "printArray: B44"
+      ],
+      "call_graph_in_degree": 1,
+      "call_graph_out_degree": 6,
+      "calls": [
+        {
+          "address": 4925,
+          "target": 4192,
+          "target_func_names": [
+            "std::basic_ostream<char, std::char_traits<char> >& std::__ostream_insert<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*, long)"
+          ]
+        },
+        {
+          "address": 5049,
+          "target": 4288,
+          "target_func_names": [
+            "printArray.cold"
+          ]
+        },
+        {
+          "address": 4984,
+          "target": 4160,
+          "target_func_names": [
+            "std::ostream::flush()"
+          ]
+        },
+        {
+          "address": 4972,
+          "target": 4144,
+          "target_func_names": [
+            "std::ostream::put(char)"
+          ]
+        },
+        {
+          "address": 5027,
+          "target": 0,
+          "target_func_names": []
+        },
+        {
+          "address": 4905,
+          "target": 4240,
+          "target_func_names": [
+            "std::ostream::operator<<(int)"
+          ]
+        },
+        {
+          "address": 4995,
+          "target": 4208,
+          "target_func_names": [
+            "std::ctype<char>::_M_widen_init() const"
+          ]
+        }
+      ],
+      "entry": 4864,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": true,
+      "local_vars": [],
+      "loops": [
+        {
+          "backedges": [
+            {
+              "from": "printArray: B33",
+              "to": "printArray: B31"
+            }
+          ],
+          "blocks": [
+            "printArray: B32",
+            "printArray: B33",
+            "printArray: B31"
+          ],
+          "header_block": "printArray: B31",
+          "latch_block": "",
+          "name": "loop_1"
+        }
+      ],
+      "name": "printArray",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "std::ctype<char>::do_widen: B45"
+      ],
+      "call_graph_in_degree": 0,
+      "call_graph_out_degree": 0,
+      "calls": [],
+      "entry": 5056,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": true,
+      "local_vars": [],
+      "loops": [],
+      "name": "std::ctype<char>::do_widen",
+      "params": [
+        {
+          "file": "",
+          "line": -1,
+          "locations": [
+            {
+              "end": "0x13c3",
+              "location": "%rdi",
+              "start": "0x13c0"
+            }
+          ],
+          "name": "this",
+          "var_type": "param"
+        },
+        {
+          "file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+          "line": 1093,
+          "locations": [
+            {
+              "end": "0x13c3",
+              "location": "%rsi",
+              "start": "0x13c0"
+            }
+          ],
+          "name": "__c",
+          "var_type": "param"
+        }
+      ],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    },
+    {
+      "basic_blocks": [
+        "_fini: B46"
+      ],
+      "call_graph_in_degree": 0,
+      "call_graph_out_degree": 0,
+      "calls": [],
+      "entry": 5060,
+      "hidables": [],
+      "inlines": [],
+      "is_builtin": false,
+      "local_vars": [],
+      "loops": [],
+      "name": "_fini",
+      "params": [],
+      "source_info": {
+        "line": 0,
+        "parameters": [],
+        "return_type": ""
+      }
+    }
+  ],
+  "metadata": {
+    "architecture": "x86_64",
+    "compiler": "gcc",
+    "date": "2025-10-17",
+    "flags": [
+      "-O3",
+      "-g"
+    ],
+    "time": "00:27:11"
+  },
+  "minimap": {
+    "loop_order": {
+      "block_heights": [
+        5,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        11,
+        4,
+        3,
+        3,
+        4,
+        1,
+        12,
+        1,
+        3,
+        2,
+        2,
+        6,
+        6,
+        2,
+        3,
+        3,
+        0,
+        1,
+        5,
+        5,
+        4,
+        4,
+        2,
+        5,
+        2,
+        1,
+        2,
+        5,
+        2,
+        6,
+        2,
+        2,
+        2,
+        1,
+        2,
+        4
+      ],
+      "block_loop_indents": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        0,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "block_start_address": [
+        4096,
+        4116,
+        4118,
+        4144,
+        4160,
+        4176,
+        4192,
+        4208,
+        4224,
+        4240,
+        4288,
+        4304,
+        4358,
+        4382,
+        4395,
+        4411,
+        4419,
+        4432,
+        4469,
+        4736,
+        4744,
+        4752,
+        4757,
+        4800,
+        4821,
+        4830,
+        4839,
+        4848,
+        4847,
+        4864,
+        4876,
+        4896,
+        4910,
+        4930,
+        4935,
+        4959,
+        4965,
+        4969,
+        4977,
+        4992,
+        5000,
+        5024,
+        5029,
+        5040,
+        5049,
+        5056,
+        5060
+      ],
+      "block_types": [
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "vectorized",
+          "call",
+          "memory_read",
+          "memory_write"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_write",
+          "call",
+          "memory_read"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "vectorized",
+          "memory_read"
+        ],
+        [
+          "memory_write",
+          "vectorized"
+        ],
+        [],
+        [],
+        [],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_write"
+        ],
+        [],
+        [
+          "memory_write",
+          "call",
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [],
+        [],
+        [],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ]
+      ],
+      "built_in_block": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ]
+    },
+    "memory_order": {
+      "block_heights": [
+        5,
+        1,
+        2,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        11,
+        4,
+        3,
+        3,
+        4,
+        1,
+        12,
+        1,
+        3,
+        2,
+        2,
+        6,
+        6,
+        2,
+        3,
+        3,
+        0,
+        1,
+        2,
+        5,
+        5,
+        4,
+        4,
+        2,
+        5,
+        2,
+        1,
+        2,
+        5,
+        2,
+        6,
+        2,
+        2,
+        2,
+        1,
+        2,
+        4
+      ],
+      "block_loop_indents": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        1,
+        2,
+        2,
+        2,
+        1,
+        1,
+        0,
+        1,
+        0,
+        0,
+        1,
+        1,
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "block_start_address": [
+        4096,
+        4116,
+        4118,
+        4144,
+        4160,
+        4176,
+        4192,
+        4208,
+        4224,
+        4240,
+        4288,
+        4304,
+        4358,
+        4382,
+        4395,
+        4411,
+        4419,
+        4432,
+        4469,
+        4736,
+        4744,
+        4752,
+        4757,
+        4800,
+        4821,
+        4830,
+        4839,
+        4848,
+        4847,
+        4848,
+        4864,
+        4876,
+        4896,
+        4910,
+        4930,
+        4935,
+        4959,
+        4965,
+        4969,
+        4977,
+        4992,
+        5000,
+        5024,
+        5029,
+        5040,
+        5049,
+        5056,
+        5060
+      ],
+      "block_types": [
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "vectorized",
+          "call",
+          "memory_read",
+          "memory_write"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_write",
+          "call",
+          "memory_read"
+        ],
+        [],
+        [],
+        [],
+        [],
+        [],
+        [
+          "vectorized",
+          "memory_read"
+        ],
+        [
+          "memory_write",
+          "vectorized"
+        ],
+        [],
+        [],
+        [],
+        [
+          "memory_read"
+        ],
+        [],
+        [
+          "memory_write"
+        ],
+        [],
+        [
+          "memory_write",
+          "call",
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [
+          "memory_read"
+        ],
+        [
+          "call",
+          "memory_write"
+        ],
+        [],
+        [],
+        [],
+        [
+          "memory_read"
+        ],
+        [
+          "memory_read"
+        ]
+      ],
+      "built_in_block": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        false,
+        true,
+        false,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        true,
+        false
+      ]
+    }
+  },
+  "source_code_info": [
+    {
+      "copied_path": "sources/move.h",
+      "file": "/usr/include/c++/15.2.1/bits/move.h",
+      "lines": [
+        {
+          "correspondences": [
+            4821
+          ],
+          "flags": [
+            "VECTORIZED"
+          ],
+          "inline_tree": [],
+          "line": 226
+        },
+        {
+          "correspondences": [
+            4821,
+            4826
+          ],
+          "flags": [
+            "MEMORY_WRITE",
+            "VECTORIZED"
+          ],
+          "inline_tree": [],
+          "line": 235
+        }
+      ],
+      "total_lines": 262
+    },
+    {
+      "copied_path": "sources/locale_facets.h",
+      "file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+      "lines": [
+        {
+          "correspondences": [
+            4959,
+            4992
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 881
+        },
+        {
+          "correspondences": [],
+          "flags": [
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+              "callsite_line": 882,
+              "name": "std::ctype<char>::widen(char) const",
+              "ranges": [
+                {
+                  "end": 5029,
+                  "start": 4992
+                }
+              ],
+              "simplified_name": "widen"
+            }
+          ],
+          "line": 882
+        },
+        {
+          "correspondences": [
+            4959,
+            4963
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 883
+        },
+        {
+          "correspondences": [
+            4965
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 884
+        },
+        {
+          "correspondences": [
+            4992,
+            4992,
+            4995
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 885
+        },
+        {
+          "correspondences": [
+            5000,
+            5000,
+            5003,
+            5008,
+            5015,
+            5019,
+            5022,
+            5024,
+            5027
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 886
+        },
+        {
+          "correspondences": [
+            5056,
+            5058
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 1094
+        }
+      ],
+      "total_lines": 2703
+    },
+    {
+      "copied_path": "sources/basic_ios.h",
+      "file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+      "lines": [
+        {
+          "correspondences": [
+            4288
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 51
+        },
+        {
+          "correspondences": [],
+          "flags": [
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+              "callsite_line": 465,
+              "name": "std::ctype<char> const& std::__check_facet<std::ctype<char> >(std::ctype<char> const*)",
+              "ranges": [
+                {
+                  "end": 4959,
+                  "start": 4954
+                },
+                {
+                  "end": 5054,
+                  "start": 5049
+                },
+                {
+                  "end": 4293,
+                  "start": 4288
+                }
+              ],
+              "simplified_name": "__check_facet"
+            },
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+              "callsite_line": 465,
+              "children": [
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+                  "callsite_line": 882,
+                  "name": "std::ctype<char>::widen(char) const",
+                  "ranges": [
+                    {
+                      "end": 5029,
+                      "start": 4992
+                    }
+                  ],
+                  "simplified_name": "widen"
+                }
+              ],
+              "name": "std::ctype<char>::widen(char) const",
+              "ranges": [
+                {
+                  "end": 4965,
+                  "start": 4959
+                },
+                {
+                  "end": 5029,
+                  "start": 4992
+                }
+              ],
+              "simplified_name": "widen"
+            }
+          ],
+          "line": 465
+        }
+      ],
+      "total_lines": 533
+    },
+    {
+      "copied_path": "sources/ostream",
+      "file": "/usr/include/c++/15.2.1/ostream",
+      "lines": [
+        {
+          "correspondences": [
+            4935
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 65
+        },
+        {
+          "correspondences": [
+            4935,
+            4942,
+            4946,
+            4965,
+            4969,
+            4972,
+            5029,
+            5032,
+            5040,
+            5047,
+            5049
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 66
+        },
+        {
+          "correspondences": [],
+          "flags": [
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/ostream",
+              "callsite_line": 67,
+              "children": [
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                  "callsite_line": 465,
+                  "name": "std::ctype<char> const& std::__check_facet<std::ctype<char> >(std::ctype<char> const*)",
+                  "ranges": [
+                    {
+                      "end": 4959,
+                      "start": 4954
+                    },
+                    {
+                      "end": 5054,
+                      "start": 5049
+                    },
+                    {
+                      "end": 4293,
+                      "start": 4288
+                    }
+                  ],
+                  "simplified_name": "__check_facet"
+                },
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                  "callsite_line": 465,
+                  "children": [
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+                      "callsite_line": 882,
+                      "name": "std::ctype<char>::widen(char) const",
+                      "ranges": [
+                        {
+                          "end": 5029,
+                          "start": 4992
+                        }
+                      ],
+                      "simplified_name": "widen"
+                    }
+                  ],
+                  "name": "std::ctype<char>::widen(char) const",
+                  "ranges": [
+                    {
+                      "end": 4965,
+                      "start": 4959
+                    },
+                    {
+                      "end": 5029,
+                      "start": 4992
+                    }
+                  ],
+                  "simplified_name": "widen"
+                }
+              ],
+              "name": "std::basic_ios<char, std::char_traits<char> >::widen(char) const",
+              "ranges": [
+                {
+                  "end": 4965,
+                  "start": 4954
+                },
+                {
+                  "end": 5029,
+                  "start": 4992
+                },
+                {
+                  "end": 5054,
+                  "start": 5049
+                },
+                {
+                  "end": 4293,
+                  "start": 4288
+                }
+              ],
+              "simplified_name": "widen"
+            },
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/ostream",
+              "callsite_line": 67,
+              "name": "std::basic_ostream<char, std::char_traits<char> >& std::flush<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+              "ranges": [
+                {
+                  "end": 4982,
+                  "start": 4979
+                },
+                {
+                  "end": 4992,
+                  "start": 4984
+                }
+              ],
+              "simplified_name": "flush"
+            }
+          ],
+          "line": 67
+        },
+        {
+          "correspondences": [
+            4977
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 87
+        }
+      ],
+      "total_lines": 296
+    },
+    {
+      "copied_path": "sources/ostream.h",
+      "file": "/usr/include/c++/15.2.1/bits/ostream.h",
+      "lines": [
+        {
+          "correspondences": [
+            4935
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 115
+        },
+        {
+          "correspondences": [],
+          "flags": [
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/usr/include/c++/15.2.1/bits/ostream.h",
+              "callsite_line": 121,
+              "children": [
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                  "callsite_line": 67,
+                  "children": [
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                      "callsite_line": 465,
+                      "name": "std::ctype<char> const& std::__check_facet<std::ctype<char> >(std::ctype<char> const*)",
+                      "ranges": [
+                        {
+                          "end": 4959,
+                          "start": 4954
+                        },
+                        {
+                          "end": 5054,
+                          "start": 5049
+                        },
+                        {
+                          "end": 4293,
+                          "start": 4288
+                        }
+                      ],
+                      "simplified_name": "__check_facet"
+                    },
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                      "callsite_line": 465,
+                      "children": [
+                        {
+                          "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+                          "callsite_line": 882,
+                          "name": "std::ctype<char>::widen(char) const",
+                          "ranges": [
+                            {
+                              "end": 5029,
+                              "start": 4992
+                            }
+                          ],
+                          "simplified_name": "widen"
+                        }
+                      ],
+                      "name": "std::ctype<char>::widen(char) const",
+                      "ranges": [
+                        {
+                          "end": 4965,
+                          "start": 4959
+                        },
+                        {
+                          "end": 5029,
+                          "start": 4992
+                        }
+                      ],
+                      "simplified_name": "widen"
+                    }
+                  ],
+                  "name": "std::basic_ios<char, std::char_traits<char> >::widen(char) const",
+                  "ranges": [
+                    {
+                      "end": 4965,
+                      "start": 4954
+                    },
+                    {
+                      "end": 5029,
+                      "start": 4992
+                    },
+                    {
+                      "end": 5054,
+                      "start": 5049
+                    },
+                    {
+                      "end": 4293,
+                      "start": 4288
+                    }
+                  ],
+                  "simplified_name": "widen"
+                },
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                  "callsite_line": 67,
+                  "name": "std::basic_ostream<char, std::char_traits<char> >& std::flush<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+                  "ranges": [
+                    {
+                      "end": 4982,
+                      "start": 4979
+                    },
+                    {
+                      "end": 4992,
+                      "start": 4984
+                    }
+                  ],
+                  "simplified_name": "flush"
+                }
+              ],
+              "name": "std::basic_ostream<char, std::char_traits<char> >& std::endl<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+              "ranges": [
+                {
+                  "end": 4977,
+                  "start": 4935
+                },
+                {
+                  "end": 4982,
+                  "start": 4979
+                },
+                {
+                  "end": 5054,
+                  "start": 4984
+                },
+                {
+                  "end": 4293,
+                  "start": 4288
+                }
+              ],
+              "simplified_name": "endl"
+            }
+          ],
+          "line": 121
+        },
+        {
+          "correspondences": [
+            4358,
+            4365,
+            4370,
+            4377,
+            4910,
+            4915,
+            4922,
+            4925
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 738
+        }
+      ],
+      "total_lines": 846
+    },
+    {
+      "copied_path": "sources/bubble_sort.cpp",
+      "file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+      "lines": [
+        {
+          "correspondences": [
+            4800,
+            4800,
+            4804,
+            4809,
+            4813,
+            4817,
+            4819
+          ],
+          "flags": [
+            "VECTORIZED",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 14
+        },
+        {
+          "correspondences": [
+            4821
+          ],
+          "flags": [
+            "VECTORIZED"
+          ],
+          "inline_tree": [],
+          "line": 15
+        },
+        {
+          "correspondences": [
+            4847
+          ],
+          "flags": [
+            "MEMORY_READ",
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+              "callsite_line": 16,
+              "name": "std::enable_if<std::__and_<std::__not_<std::__is_tuple_like<int> >, std::is_move_constructible<int>, std::is_move_assignable<int> >::value, void>::type std::swap<int>(int&, int&)",
+              "ranges": [
+                {
+                  "end": 4830,
+                  "start": 4821
+                }
+              ],
+              "simplified_name": "swap"
+            }
+          ],
+          "line": 16
+        },
+        {
+          "correspondences": [
+            4864,
+            4864,
+            4866,
+            4867
+          ],
+          "flags": [
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 20
+        },
+        {
+          "correspondences": [
+            4864
+          ],
+          "flags": [
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 21
+        },
+        {
+          "correspondences": [
+            4864,
+            4864,
+            4868,
+            4870,
+            4876,
+            4879,
+            4882,
+            4889,
+            4893,
+            4901,
+            4930,
+            4930,
+            4933
+          ],
+          "flags": [
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 22
+        },
+        {
+          "correspondences": [
+            4896,
+            4896,
+            4898,
+            4905
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 23
+        },
+        {
+          "correspondences": [
+            4935
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 24
+        },
+        {
+          "correspondences": [
+            4977,
+            4978,
+            4982
+          ],
+          "flags": [
+            "MEMORY_READ",
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "/home/insane/prapti/dis-viz/sample_inputs/bubble_sort.cpp",
+              "callsite_line": 25,
+              "children": [
+                {
+                  "callsite_file": "/usr/include/c++/15.2.1/bits/ostream.h",
+                  "callsite_line": 121,
+                  "children": [
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                      "callsite_line": 67,
+                      "children": [
+                        {
+                          "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                          "callsite_line": 465,
+                          "name": "std::ctype<char> const& std::__check_facet<std::ctype<char> >(std::ctype<char> const*)",
+                          "ranges": [
+                            {
+                              "end": 4959,
+                              "start": 4954
+                            },
+                            {
+                              "end": 5054,
+                              "start": 5049
+                            },
+                            {
+                              "end": 4293,
+                              "start": 4288
+                            }
+                          ],
+                          "simplified_name": "__check_facet"
+                        },
+                        {
+                          "callsite_file": "/usr/include/c++/15.2.1/bits/basic_ios.h",
+                          "callsite_line": 465,
+                          "children": [
+                            {
+                              "callsite_file": "/usr/include/c++/15.2.1/bits/locale_facets.h",
+                              "callsite_line": 882,
+                              "name": "std::ctype<char>::widen(char) const",
+                              "ranges": [
+                                {
+                                  "end": 5029,
+                                  "start": 4992
+                                }
+                              ],
+                              "simplified_name": "widen"
+                            }
+                          ],
+                          "name": "std::ctype<char>::widen(char) const",
+                          "ranges": [
+                            {
+                              "end": 4965,
+                              "start": 4959
+                            },
+                            {
+                              "end": 5029,
+                              "start": 4992
+                            }
+                          ],
+                          "simplified_name": "widen"
+                        }
+                      ],
+                      "name": "std::basic_ios<char, std::char_traits<char> >::widen(char) const",
+                      "ranges": [
+                        {
+                          "end": 4965,
+                          "start": 4954
+                        },
+                        {
+                          "end": 5029,
+                          "start": 4992
+                        },
+                        {
+                          "end": 5054,
+                          "start": 5049
+                        },
+                        {
+                          "end": 4293,
+                          "start": 4288
+                        }
+                      ],
+                      "simplified_name": "widen"
+                    },
+                    {
+                      "callsite_file": "/usr/include/c++/15.2.1/ostream",
+                      "callsite_line": 67,
+                      "name": "std::basic_ostream<char, std::char_traits<char> >& std::flush<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+                      "ranges": [
+                        {
+                          "end": 4982,
+                          "start": 4979
+                        },
+                        {
+                          "end": 4992,
+                          "start": 4984
+                        }
+                      ],
+                      "simplified_name": "flush"
+                    }
+                  ],
+                  "name": "std::basic_ostream<char, std::char_traits<char> >& std::endl<char, std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&)",
+                  "ranges": [
+                    {
+                      "end": 4977,
+                      "start": 4935
+                    },
+                    {
+                      "end": 4982,
+                      "start": 4979
+                    },
+                    {
+                      "end": 5054,
+                      "start": 4984
+                    },
+                    {
+                      "end": 4293,
+                      "start": 4288
+                    }
+                  ],
+                  "simplified_name": "endl"
+                }
+              ],
+              "name": "std::ostream::operator<<(std::ostream& (*)(std::ostream&))",
+              "ranges": [
+                {
+                  "end": 4977,
+                  "start": 4935
+                },
+                {
+                  "end": 4982,
+                  "start": 4979
+                },
+                {
+                  "end": 5054,
+                  "start": 4984
+                },
+                {
+                  "end": 4293,
+                  "start": 4288
+                }
+              ],
+              "simplified_name": "operator<<"
+            }
+          ],
+          "line": 25
+        },
+        {
+          "correspondences": [
+            4304,
+            4310,
+            4322,
+            4331,
+            4336
+          ],
+          "flags": [
+            "MEMORY_READ",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 29
+        },
+        {
+          "correspondences": [
+            4314,
+            4338,
+            4341,
+            4349
+          ],
+          "flags": [
+            "MEMORY_WRITE",
+            "VECTORIZED",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 30
+        },
+        {
+          "correspondences": [
+            4349
+          ],
+          "flags": [
+            "VECTORIZED",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 31
+        },
+        {
+          "correspondences": [
+            4305,
+            4338,
+            4349,
+            4353
+          ],
+          "flags": [
+            "CALL",
+            "VECTORIZED",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 32
+        },
+        {
+          "correspondences": [
+            4382,
+            4382,
+            4387,
+            4390
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE"
+          ],
+          "inline_tree": [],
+          "line": 34
+        },
+        {
+          "correspondences": [
+            4395
+          ],
+          "flags": [
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 35
+        },
+        {
+          "correspondences": [
+            4395,
+            4400,
+            4409,
+            4411,
+            4415,
+            4417,
+            4418,
+            4419
+          ],
+          "flags": [
+            "CALL",
+            "MEMORY_WRITE",
+            "MEMORY_READ"
+          ],
+          "inline_tree": [],
+          "line": 36
+        }
+      ],
+      "total_lines": 37
+    },
+    {
+      "copied_path": null,
+      "file": "<unknown>",
+      "lines": [
+        {
+          "correspondences": [],
+          "flags": [
+            "INLINE"
+          ],
+          "inline_tree": [
+            {
+              "callsite_file": "<unknown>",
+              "callsite_line": 0,
+              "name": "std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)",
+              "ranges": [
+                {
+                  "end": 4930,
+                  "start": 4910
+                }
+              ],
+              "simplified_name": "operator<<"
+            },
+            {
+              "callsite_file": "<unknown>",
+              "callsite_line": 0,
+              "name": "std::basic_ostream<char, std::char_traits<char> >& std::operator<< <std::char_traits<char> >(std::basic_ostream<char, std::char_traits<char> >&, char const*)",
+              "ranges": [
+                {
+                  "end": 4382,
+                  "start": 4358
+                }
+              ],
+              "simplified_name": "operator<<"
+            }
+          ],
+          "line": 0
+        }
+      ],
+      "total_lines": 0
+    }
+  ]
+}

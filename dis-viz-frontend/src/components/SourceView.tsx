@@ -12,7 +12,8 @@ import * as monaco from 'monaco-editor'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
 import { useFloating, autoUpdate, offset, flip, shift, useHover, useDismiss, useRole, useInteractions, FloatingPortal } from '@floating-ui/react'
 import InlineTreeTooltip from './InlineTreeTooltip'
-import { InlineEntry } from '../types'
+import CallGraphTooltip from './CallGraphTooltip'
+import { InlineEntry, CallGraphInfo } from '../types'
 import { AppDispatch } from '../app/store'
 
 loader.config({ monaco });
@@ -21,11 +22,12 @@ loader.config({ monaco });
 const TooltipWrapper: React.FC<{
     children: React.ReactNode;
     inlineTree?: InlineEntry[];
+    callGraphInfo?: CallGraphInfo;
     tagId: string;
     dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-}> = ({ children, inlineTree, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
+}> = ({ children, inlineTree, callGraphInfo, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const { refs, floatingStyles, context } = useFloating({
@@ -51,8 +53,10 @@ const TooltipWrapper: React.FC<{
         role,
     ]);
 
-    // Only show tooltip for inline tags that have actual inline tree data
-    const shouldShowTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
+    // Check if we should show tooltip
+    const shouldShowInlineTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
+    const shouldShowCallGraphTooltip = (tagId === 'CALL_IN' || tagId === 'CALL_OUT') && callGraphInfo;
+    const shouldShowTooltip = shouldShowInlineTooltip || shouldShowCallGraphTooltip;
 
     if (!shouldShowTooltip) {
         return <>{children}</>;
@@ -74,12 +78,21 @@ const TooltipWrapper: React.FC<{
                         }}
                         {...getFloatingProps()}
                     >
-                        <InlineTreeTooltip
-                            inlineTree={inlineTree}
-                            dispatch={dispatch}
-                            validBinaryFilePaths={validBinaryFilePaths}
-                            correspondences={correspondences}
-                        />
+                        {shouldShowInlineTooltip && inlineTree && (
+                            <InlineTreeTooltip
+                                inlineTree={inlineTree}
+                                dispatch={dispatch}
+                                validBinaryFilePaths={validBinaryFilePaths}
+                                correspondences={correspondences}
+                            />
+                        )}
+                        {shouldShowCallGraphTooltip && callGraphInfo && (
+                            <CallGraphTooltip
+                                callGraphInfo={callGraphInfo}
+                                tagType={tagId as 'CALL_IN' | 'CALL_OUT'}
+                                dispatch={dispatch}
+                            />
+                        )}
                     </div>
                 </FloatingPortal>
             )}
@@ -102,6 +115,7 @@ function SourceView({ file_name }: {
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
     const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary]
     const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({})
+    const [lineCallGraphInfo, setLineCallGraphInfo] = React.useState<{ [line: number]: { [binary: string]: CallGraphInfo } }>({})
     const enabledTags = useAppSelector(selectAllTagStates);
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -178,6 +192,7 @@ function SourceView({ file_name }: {
             setCorrespondences({})
             setLineTags([])
             setLineInlineTrees({})
+            setLineCallGraphInfo({})
             return
         }
         console.log("Use Effect Loading source file")
@@ -192,6 +207,7 @@ function SourceView({ file_name }: {
         const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
         const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
         const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {}
+        const tmpLineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } } = {}
 
         validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
             tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
@@ -210,11 +226,20 @@ function SourceView({ file_name }: {
                     }
                     tmpLineInlineTrees[lineI][binaryFilePath] = line.inline_tree[binaryFilePath]
                 }
+
+                // Extract call graph info
+                if (line.call_graph_info && line.call_graph_info[binaryFilePath]) {
+                    if (!tmpLineCallGraphInfo[lineI]) {
+                        tmpLineCallGraphInfo[lineI] = {}
+                    }
+                    tmpLineCallGraphInfo[lineI][binaryFilePath] = line.call_graph_info[binaryFilePath]
+                }
             })
         })
         setCorrespondences(tmpCorrespondences)
         setLineTags(tmpLineTags)
         setLineInlineTrees(tmpLineInlineTrees)
+        setLineCallGraphInfo(tmpLineCallGraphInfo)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [binaryFilePaths, file_name])
 
@@ -279,7 +304,9 @@ function SourceView({ file_name }: {
 
                                         const tagId = SOURCE_TAGS[tagIndex].id;
                                         const inlineTreeForLine = lineInlineTrees[line];
+                                        const callGraphInfoForLine = lineCallGraphInfo[line];
                                         let inlineTreeData: InlineEntry[] = [];
+                                        let callGraphData: CallGraphInfo | undefined = undefined;
 
                                         // Get inline tree data for this line from any binary that has it
                                         if (tagId === 'INLINE' && inlineTreeForLine) {
@@ -291,11 +318,22 @@ function SourceView({ file_name }: {
                                             }
                                         }
 
+                                        // Get call graph data for this line from any binary that has it
+                                        if ((tagId === 'CALL_IN' || tagId === 'CALL_OUT') && callGraphInfoForLine) {
+                                            for (const binaryPath of validBinaryFilePaths) {
+                                                if (callGraphInfoForLine[binaryPath]) {
+                                                    callGraphData = callGraphInfoForLine[binaryPath];
+                                                    break;
+                                                }
+                                            }
+                                        }
+
                                         return (
                                             <TooltipWrapper
                                                 key={tagIndex + line.toString()}
                                                 tagId={tagId}
                                                 inlineTree={inlineTreeData}
+                                                callGraphInfo={callGraphData}
                                                 dispatch={dispatch}
                                                 validBinaryFilePaths={validBinaryFilePaths}
                                                 correspondences={correspondences}
@@ -427,7 +465,7 @@ function SourceView({ file_name }: {
             });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees]);
+    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees, lineCallGraphInfo]);
 
     // add decoration for selected lines
     React.useEffect(() => {

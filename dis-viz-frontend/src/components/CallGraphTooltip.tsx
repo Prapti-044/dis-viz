@@ -1,0 +1,163 @@
+import React from 'react';
+import { AppDispatch } from '../app/store';
+
+interface CallGraphInfo {
+    functionName: string;
+    calledFunctions: string[];  // Functions this function calls (out-degree)
+    callingFunctions: string[]; // Functions that call this function (in-degree)
+    returnType: string;
+    parameters: { type: string; name: string }[];
+    inDegree: number;
+    outDegree: number;
+}
+
+interface CallGraphTooltipProps {
+    callGraphInfo: CallGraphInfo;
+    tagType: 'CALL_IN' | 'CALL_OUT';
+    dispatch: AppDispatch;
+}
+
+const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
+    callGraphInfo,
+    tagType,
+    dispatch
+}) => {
+    const { functionName, calledFunctions, callingFunctions, returnType, parameters, inDegree, outDegree } = callGraphInfo;
+
+    return (
+        <div
+            style={{
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                maxWidth: '500px',
+                fontFamily: 'Consolas, monospace',
+                fontSize: '12px',
+                zIndex: 1000
+            }}
+        >
+            {/* Function Signature */}
+            <div style={{
+                marginBottom: '12px',
+                paddingBottom: '8px',
+                borderBottom: '1px solid #eee',
+                fontWeight: 'bold'
+            }}>
+                <div style={{ color: '#0066cc', marginBottom: '4px' }}>
+                    {returnType} <span style={{ color: '#000' }}>{functionName}</span>(
+                </div>
+                <div style={{ paddingLeft: '16px' }}>
+                    {parameters.length === 0 ? (
+                        <span style={{ color: '#666' }}>void</span>
+                    ) : (
+                        parameters.map((param, index) => (
+                            <div key={index} style={{ color: '#666' }}>
+                                <span style={{ color: '#0066cc' }}>{param.type}</span> {param.name}
+                                {index < parameters.length - 1 ? ',' : ''}
+                            </div>
+                        ))
+                    )}
+                </div>
+                <div>)</div>
+            </div>
+
+            {/* Call Graph Information */}
+            {tagType === 'CALL_OUT' && (
+                <div>
+                    <div style={{
+                        fontWeight: 'bold',
+                        marginBottom: '6px',
+                        color: '#2e7d32'
+                    }}>
+                        Calls {outDegree} function{outDegree !== 1 ? 's' : ''}:
+                    </div>
+                    {calledFunctions.length === 0 ? (
+                        <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
+                            No functions called
+                        </div>
+                    ) : (
+                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            {calledFunctions.map((funcName, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        padding: '4px 8px',
+                                        marginBottom: '2px',
+                                        backgroundColor: '#f0f9f0',
+                                        borderLeft: '3px solid #4caf50',
+                                        borderRadius: '2px',
+                                        cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#e1f5e1';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#f0f9f0';
+                                    }}
+                                >
+                                    → {funcName}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {tagType === 'CALL_IN' && (
+                <div>
+                    <div style={{
+                        fontWeight: 'bold',
+                        marginBottom: '6px',
+                        color: '#1565c0'
+                    }}>
+                        Called by {inDegree} function{inDegree !== 1 ? 's' : ''}:
+                    </div>
+                    {callingFunctions.length === 0 ? (
+                        <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
+                            No callers found
+                        </div>
+                    ) : (
+                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                            {callingFunctions.map((funcName, index) => (
+                                <div
+                                    key={index}
+                                    style={{
+                                        padding: '4px 8px',
+                                        marginBottom: '2px',
+                                        backgroundColor: '#f0f7ff',
+                                        borderLeft: '3px solid #2196f3',
+                                        borderRadius: '2px',
+                                        cursor: 'pointer'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#e3f2fd';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.backgroundColor = '#f0f7ff';
+                                    }}
+                                >
+                                    ← {funcName}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            <div style={{
+                marginTop: '8px',
+                paddingTop: '8px',
+                borderTop: '1px solid #eee',
+                fontSize: '10px',
+                color: '#666'
+            }}>
+                <div>In-degree: {inDegree} | Out-degree: {outDegree}</div>
+            </div>
+        </div>
+    );
+};
+
+export default CallGraphTooltip;
+

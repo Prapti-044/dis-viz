@@ -75,6 +75,24 @@ export const SOURCE_TAGS = [
     textColor: 'black',
     defaultEnabled: true,
   },
+  {
+    id: 'CALL_OUT' as const,
+    fullName: 'Calls Functions',
+    shortName: 'out',
+    color: '#a8d5ba',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+    defaultEnabled: true,
+  },
+  {
+    id: 'CALL_IN' as const,
+    fullName: 'Called By Functions',
+    shortName: 'in',
+    color: '#b8c5d6',
+    borderColor: '#FFFFFF',
+    textColor: 'black',
+    defaultEnabled: true,
+  },
 ];
 
 export const INSTRUCTION_TAGS = [

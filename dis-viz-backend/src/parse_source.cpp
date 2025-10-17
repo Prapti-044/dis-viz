@@ -107,6 +107,74 @@ void getLoops(CXCursor cursor, const std::string &filePath, std::vector<LoopData
       &visitorData);
 }
 
+void getFunctions(CXCursor cursor, const std::string &filePath, std::vector<SourceFunction> &functions) {
+  auto location = clang_getCursorLocation(cursor);
+  auto kind = clang_getCursorKind(cursor);
+
+  unsigned int line, column;
+  CXFile file;
+  clang_getSpellingLocation(location, &file, &line, &column, nullptr);
+  auto fileNameStr = std::string();
+  if (file) {
+    fileNameStr = clang_getCString(clang_getFileName(file));
+
+    if (fileNameStr != filePath)
+      return;
+  }
+  
+  // Check if this is a function declaration or definition
+  if (kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod) {
+    CXString funcName = clang_getCursorSpelling(cursor);
+    CXType returnType = clang_getCursorResultType(cursor);
+    CXString returnTypeStr = clang_getTypeSpelling(returnType);
+    
+    SourceFunction func;
+    func.line = line;
+    func.name = clang_getCString(funcName);
+    func.returnType = clang_getCString(returnTypeStr);
+    
+    // Get function parameters
+    int numArgs = clang_Cursor_getNumArguments(cursor);
+    for (int i = 0; i < numArgs; i++) {
+      CXCursor argCursor = clang_Cursor_getArgument(cursor, i);
+      CXString argName = clang_getCursorSpelling(argCursor);
+      CXType argType = clang_getCursorType(argCursor);
+      CXString argTypeStr = clang_getTypeSpelling(argType);
+      
+      SourceFunctionParam param;
+      param.name = clang_getCString(argName);
+      param.type = clang_getCString(argTypeStr);
+      
+      func.parameters.push_back(param);
+      
+      clang_disposeString(argName);
+      clang_disposeString(argTypeStr);
+    }
+    
+    functions.push_back(func);
+    
+    clang_disposeString(funcName);
+    clang_disposeString(returnTypeStr);
+  }
+
+  struct FunctionVisitorData {
+    const std::string& filePath;
+    std::vector<SourceFunction>& functions;
+  };
+
+  FunctionVisitorData visitorData{filePath, functions};
+
+  clang_visitChildren(
+      cursor,
+      [](CXCursor c, CXCursor parent,
+         CXClientData client_data) -> CXChildVisitResult {
+        auto* data = static_cast<FunctionVisitorData*>(client_data);
+        getFunctions(c, data->filePath, data->functions);
+        return CXChildVisit_Continue;
+      },
+      &visitorData);
+}
+
 SourceCodeData parseSourceCode(const std::string &filePath) {
   CXIndex index = clang_createIndex(0, 0);
 
@@ -123,10 +191,12 @@ SourceCodeData parseSourceCode(const std::string &filePath) {
 
   // printAST(rootCursor, filePath, 0);
   std::vector<LoopData> loops;
+  std::vector<SourceFunction> functions;
   getLoops(rootCursor, filePath, loops);
+  getFunctions(rootCursor, filePath, functions);
   
   clang_disposeTranslationUnit(translationUnit);
   clang_disposeIndex(index);
 
-  return SourceCodeData{loops};
+  return SourceCodeData{loops, functions};
 }

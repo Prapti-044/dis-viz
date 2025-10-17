@@ -347,8 +347,27 @@ json convertFunctionInfoNlohmann(const FunctionInfo& func) {
     json result{
         {"name", func.name},
         {"entry", func.entry},
-        {"basic_blocks", func.basic_blocks}
+        {"basic_blocks", func.basic_blocks},
+        {"is_builtin", func.is_builtin},
+        {"call_graph_in_degree", func.call_graph_in_degree},
+        {"call_graph_out_degree", func.call_graph_out_degree}
     };
+    
+    // Convert source info
+    json source_info{
+        {"line", func.source_info.line},
+        {"return_type", func.source_info.returnType}
+    };
+    
+    json source_params = json::array();
+    for (const auto& param : func.source_info.parameters) {
+        source_params.emplace_back(json{
+            {"type", param.type},
+            {"name", param.name}
+        });
+    }
+    source_info["parameters"] = std::move(source_params);
+    result["source_info"] = std::move(source_info);
     
     // Convert local variables
     json local_vars = json::array();
