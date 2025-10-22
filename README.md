@@ -2,6 +2,12 @@
 
 This project visualizes binary executable files and maps it back to the source code. I used Dyninst library that can decompile binary files compiled with Debug flags. The implementation details are listed below.
 
+__Figure: Overview of the Binary Visualization Tool, DisViz shows source-to-assembly correspondence.__
+
+![Binary Visualization Interface](.github/teaser.png)
+
+__The demonstration of the tool, DisViz is shown in the video link below.__
+
 ## [Video Link](https://youtu.be/RVfb3yhSeI4)
 
 ## Quick Start
@@ -12,7 +18,7 @@ To run the project, you can either use the recommended docker, or locally build 
 Make sure your docker is installed with proper permissions. To install docker, follow the [official documentations](https://docs.docker.com/engine/install/). After you have docker set up, run the following command:
 
 ```bash
-cd final-project-binaryviz 			# cd into root of the project
+cd dis-viz 			# cd into root of the project
 docker build -t dis-viz .  			# build the docker from Dockerfile
 docker run -p 8080:8080/tcp dis-viz	# run the docker at port 8080
 ```
@@ -23,7 +29,7 @@ docker run -p 8080:8080/tcp dis-viz	# run the docker at port 8080
 2. Run the following command to build the cpp modules
 
 ```bash
-cd final-project-binaryviz
+cd dis-viz
 ./build.sh
 ```
 3. Compile a c program with -g (debug flag). There are several sample c files in `./sample_inputs/` folder, you can run `compile.sh` to compile them all to `bin` directory.

@@ -6,7 +6,7 @@ cd "$SCRIPT_DIR/dis-viz-backend"
 mkdir -p build
 cd build
 cmake ..
-make -j12
+make -j"$(nproc)"
 
 cd ../../dis-viz-frontend
 npm install

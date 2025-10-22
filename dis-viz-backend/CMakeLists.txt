@@ -53,32 +53,6 @@ add_executable(${PROJECT_NAME} ${SOURCES})
 find_package(Boost REQUIRED COMPONENTS program_options)
 target_include_directories(${PROJECT_NAME} PRIVATE ${Boost_INCLUDE_DIRS})
 
-# Find Clang
-find_path(CLANG_INCLUDE_DIR clang-c/Index.h
-    PATHS
-    /usr/lib/llvm/include
-    /usr/local/include
-    /usr/include/llvm
-    /usr/include
-    /usr/local/opt/llvm/include  # For macOS with Homebrew
-)
-
-find_library(CLANG_LIBRARY
-    NAMES clang libclang
-    PATHS
-    /usr/lib
-    /usr/lib/llvm/lib
-    /usr/local/lib
-    /usr/local/opt/llvm/lib  # For macOS with Homebrew
-)
-
-if(NOT CLANG_INCLUDE_DIR OR NOT CLANG_LIBRARY)
-    message(FATAL_ERROR "Could not find libclang")
-endif()
-
-target_include_directories(${PROJECT_NAME} PRIVATE ${CLANG_INCLUDE_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE ${CLANG_LIBRARY})
-
 target_link_libraries(${PROJECT_NAME} PRIVATE
     symtabAPI parseAPI instructionAPI
     # dynElf dynDwarf 

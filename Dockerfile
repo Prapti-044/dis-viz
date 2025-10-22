@@ -1,30 +1,12 @@
 FROM ubuntu:latest
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential wget cmake git libboost-all-dev libtbb-dev elfutils libdw-dev libiberty-dev npm \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential wget cmake git libboost-all-dev libtbb-dev elfutils libdw-dev libiberty-dev npm libasio-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # All binaries should be in /samples/bin
 WORKDIR /samples
 RUN mkdir bin
-
-# Clone Rajaperf (RELWITHDEBINFO)
-WORKDIR /root/RAJA-PERFSUITE
-RUN git clone --recursive https://github.com/llnl/RAJAPerf.git
-
-WORKDIR /root/RAJA-PERFSUITE/RAJAPerf
-RUN sed -i 's/-DCMAKE_BUILD_TYPE=Release/-DCMAKE_BUILD_TYPE=RELWITHDEBINFO/g' scripts/ubuntu-builds/ubuntu_gcc.sh
-RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 11
-WORKDIR /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-11/
-RUN make -j8
-RUN mv /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-11/bin/raja-perf.exe /samples/bin/raja-perf-RELWITHDEBINFO
-
-WORKDIR /root/RAJA-PERFSUITE/RAJAPerf
-RUN sed -i 's/-DCMAKE_BUILD_TYPE=RELWITHDEBINFO/-DCMAKE_BUILD_TYPE=Debug/g' scripts/ubuntu-builds/ubuntu_gcc.sh
-RUN ./scripts/ubuntu-builds/ubuntu_gcc.sh 11
-WORKDIR /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-11/
-RUN make -j8
-RUN mv /root/RAJA-PERFSUITE/RAJAPerf/build_ubuntu-gcc-11/bin/raja-perf.exe /samples/bin/raja-perf-Debug
 
 # Build lulesh
 WORKDIR /root
@@ -50,8 +32,8 @@ COPY dis-viz-backend/src src
 COPY dis-viz-backend/CMakeLists.txt .
 RUN mkdir build
 WORKDIR /App/build
-RUN cmake -DCMAKE_BUILD_TYPE=Release ..
-RUN make -j8
+RUN cmake ..
+RUN make -j"$(nproc)"
 
 WORKDIR /App
 COPY dis-viz-frontend frontend

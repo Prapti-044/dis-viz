@@ -5,7 +5,7 @@ import { MinimapType } from './features/minimap/minimapSlice';
 
 
 
-const apiURL = 'http://localhost:8080/api/'
+const apiURL = getUrls().backend + '/api/'
 
 export async function getSourceFiles(filepath: string) : Promise<string[]> {
     const response = await fetch(

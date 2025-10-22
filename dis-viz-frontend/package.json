@@ -2,6 +2,7 @@
   "name": "dis-viz-frontend",
   "version": "0.1.0",
   "private": true,
+  "proxy": "http://localhost:8080",
   "dependencies": {
     "@reduxjs/toolkit": "^1.8.3",
     "bootstrap": "^5.1.3",
