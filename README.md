@@ -2,10 +2,14 @@
 
 This project visualizes binary executable files and maps it back to the source code. I used Dyninst library that can decompile binary files compiled with Debug flags. The implementation details are listed below.
 
-__Due to requirement of a high power back-end, I hosted this on Google Cloud Platform (GCP) and shared the demo link below.__
+__Figure: Overview of the Binary Visualization Tool, DisViz shows source-to-assembly correspondence.__
 
-## [Video Link]([https://youtu.be/JzdskO-FHIU](https://drive.google.com/file/d/1tGopztmKr1JtXu4geoLLKAnrK_8LNzw4/view?usp=drive_link))
-## [Website Demo Link](http://155.98.19.71:9000/)
+![Binary Visualization Interface](./teaser.png)
+
+
+__The demonstration of the tool, DisViz is shown in the video link below.__
+
+## [Video Link](https://drive.google.com/file/d/1BvClldRn6Asy-Io0XCR4rCZjctX2lyoc/view?usp=drive_link)
 
 ## Quick Start
 
