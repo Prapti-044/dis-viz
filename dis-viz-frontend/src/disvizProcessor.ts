@@ -1,10 +1,62 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
 import * as dagre from 'dagre';
-import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry } from './types';
+import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo } from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
 import { INSTRUCTION_TAGS, SOURCE_TAGS } from './utils';
+
+// Helper function to transform old memory flags to new merged flag
+function transformMemoryFlags(flags: string[]): string[] {
+  const hasMemoryRead = flags.includes('MEMORY_READ');
+  const hasMemoryWrite = flags.includes('MEMORY_WRITE');
+  
+  if (hasMemoryRead || hasMemoryWrite) {
+    // Remove old flags and add new merged flag
+    return flags
+      .filter(f => f !== 'MEMORY_READ' && f !== 'MEMORY_WRITE')
+      .concat(['MEMORY']);
+  }
+  
+  return flags;
+}
+
+// Helper function to transform old call graph flags to new merged flag
+function transformCallGraphFlags(flags: string[]): string[] {
+  const hasCallIn = flags.includes('CALL_IN');
+  const hasCallOut = flags.includes('CALL_OUT');
+  
+  if (hasCallIn || hasCallOut) {
+    // Remove old flags and add new merged flag
+    return flags
+      .filter(f => f !== 'CALL_IN' && f !== 'CALL_OUT')
+      .concat(['CALL_GRAPH']);
+  }
+  
+  return flags;
+}
+
+// Helper function to transform all old flags
+function transformFlags(flags: string[]): string[] {
+  let transformed = transformMemoryFlags(flags);
+  transformed = transformCallGraphFlags(transformed);
+  return transformed;
+}
+
+// Helper function to create MemoryInfo from flags
+function createMemoryInfo(flags: string[]): MemoryInfo | undefined {
+  const hasMemoryRead = flags.includes('MEMORY_READ');
+  const hasMemoryWrite = flags.includes('MEMORY_WRITE');
+  
+  if (hasMemoryRead || hasMemoryWrite) {
+    return {
+      isRead: hasMemoryRead,
+      isWrite: hasMemoryWrite
+    };
+  }
+  
+  return undefined;
+}
 
 // Interface for the JSON structure in .disviz files
 
@@ -15,7 +67,7 @@ interface InstructionData {
     flags: (typeof INSTRUCTION_TAGS)[number]['id'][];
     instruction: string;
     correspondence: {
-        [source_file: string]: number[];
+        [source_file: string]: number[]; // Line numbers are 1-based from backend
     };
 }
 
@@ -50,7 +102,7 @@ interface InlineEntryData {
   name: string;
   simplified_name: string;
   callsite_file: string;
-  callsite_line: number;
+  callsite_line: number; // 1-based line number from backend
   ranges: { start: number; end: number }[];
   children?: InlineEntryData[];
 }
@@ -60,9 +112,9 @@ interface SourceCodeInfo {
   copied_path: string | null;
   total_lines: number;
   lines: {
-    line: number;
+    line: number; // 1-based line number from backend
     flags: (typeof SOURCE_TAGS)[number]['id'][];
-    correspondences: number[];
+    correspondences: number[]; // Array of addresses
     inline_tree: InlineEntryData[];
   }[];
 }
@@ -84,7 +136,7 @@ interface VariableLocation {
 interface VariableInfo {
   name: string;
   file: string;
-  line: number;
+  line: number; // 1-based line number from backend
   locations: VariableLocation[];
   var_type: "local" | "param";
 }
@@ -121,7 +173,7 @@ interface SourceFunctionParam {
 }
 
 interface SourceFunctionInfo {
-  line: number;
+  line: number; // 1-based line number from backend
   return_type: string;
   parameters: SourceFunctionParam[];
 }
@@ -445,12 +497,12 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
       }
       
       // Ensure function definition lines are in the lines array even if they don't have correspondences
-      for (const [funcLine, func] of functionLineMap[binaryFileName].entries()) {
-        const lineIndex = funcLine - 1; // funcLine is 1-based, but lines array uses 0-based indices
-        let existingLine = lines.find(l => l.line === lineIndex);
+      for (const funcLine of functionLineMap[binaryFileName].keys()) {
+        // funcLine is 1-based from backend, match directly with l.line which is also 1-based
+        let existingLine = lines.find(l => l.line === funcLine);
         if (!existingLine) {
           existingLine = {
-            line: lineIndex,
+            line: funcLine, // Keep 1-based line number
             correspondences: {},
             flags: {},
             inline_tree: {}
@@ -488,19 +540,13 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
   // Add call graph tags to lines with function definitions
   for (const lineInfo of lines) {
     for (const binaryFileName of binaryFiles) {
-      const lookupLine = lineInfo.line + 1; // +1 because lineInfo.line is 0-based
-      const funcAtLine = functionLineMap[binaryFileName]?.get(lookupLine);
+      // lineInfo.line is 1-based from backend, use directly
+      const funcAtLine = functionLineMap[binaryFileName]?.get(lineInfo.line);
       if (funcAtLine) {
-        // Add CALL_IN tag if in-degree > 0
-        if (funcAtLine.call_graph_in_degree > 0) {
-          if (!lineInfo.flags[binaryFileName].includes('CALL_IN')) {
-            lineInfo.flags[binaryFileName].push('CALL_IN');
-          }
-        }
-        // Add CALL_OUT tag if out-degree > 0
-        if (funcAtLine.call_graph_out_degree > 0) {
-          if (!lineInfo.flags[binaryFileName].includes('CALL_OUT')) {
-            lineInfo.flags[binaryFileName].push('CALL_OUT');
+        // Add CALL_GRAPH tag if in-degree > 0 or out-degree > 0
+        if (funcAtLine.call_graph_in_degree > 0 || funcAtLine.call_graph_out_degree > 0) {
+          if (!lineInfo.flags[binaryFileName].includes('CALL_GRAPH' as any)) {
+            lineInfo.flags[binaryFileName].push('CALL_GRAPH' as any);
           }
         }
 
@@ -550,7 +596,9 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
   }
   
   const sourceLines = sourceContent.split('\n').map((lineContent, index) => {
-    const lineInfo = lines.find(l => l.line === index);
+    // index is 0-based (array index), lineInfo.line is 1-based (from backend)
+    // Convert index to 1-based to match lineInfo.line
+    const lineInfo = lines.find(l => l.line === index + 1);
     if (lineInfo) {
       // Convert inline tree data
       const inlineTreeConverted: { [binaryFilePath: string]: InlineEntry[] } = {};
@@ -558,12 +606,25 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
         inlineTreeConverted[binaryFile] = inlineData.map(convertInlineEntryData);
       }
       
+      // Transform flags and create memory_info for each binary
+      const transformedFlags: { [binaryFilePath: string]: string[] } = {};
+      const memoryInfo: { [binaryFilePath: string]: MemoryInfo } = {};
+      
+      for (const [binaryFile, flags] of Object.entries(lineInfo.flags)) {
+        transformedFlags[binaryFile] = transformFlags(flags) as any;
+        const memInfo = createMemoryInfo(flags);
+        if (memInfo) {
+          memoryInfo[binaryFile] = memInfo;
+        }
+      }
+      
       return new SourceLine(
         lineContent, 
         lineInfo.correspondences, 
-        lineInfo.flags,
+        transformedFlags as any,
         inlineTreeConverted,
-        lineInfo.call_graph_info || {}
+        lineInfo.call_graph_info || {},
+        memoryInfo
       );
     }
     else {
@@ -572,6 +633,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
         Object.fromEntries(binaryFiles.map(f => [f, []])),
         Object.fromEntries(binaryFiles.map(f => [f, []])),
         Object.fromEntries(binaryFiles.map(f => [f, []])),
+        {},
         {}
       );
     }
@@ -599,7 +661,7 @@ function convertToInstructionBlock(blockData: BlockData): InstructionBlock {
     address: inst.address,
     variables: [],
     correspondence: inst.correspondence || {},
-    flags: inst.flags || []
+    flags: transformFlags(inst.flags || []) as any
   }));
   
   return new InstructionBlock(

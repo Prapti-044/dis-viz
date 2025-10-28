@@ -10,11 +10,11 @@
     "@emotion/styled": "^11.14.1",
     "@floating-ui/react": "^0.27.16",
     "@monaco-editor/react": "^4.7.0",
-    "@mui/icons-material": "^7.3.2",
-    "@mui/material": "^7.3.2",
-    "@mui/x-tree-view": "^8.11.1",
-    "@reduxjs/toolkit": "^2.9.0",
-    "@szhsin/react-menu": "^4.4.1",
+    "@mui/icons-material": "^7.3.4",
+    "@mui/material": "^7.3.4",
+    "@mui/x-tree-view": "^8.15.0",
+    "@reduxjs/toolkit": "^2.9.2",
+    "@szhsin/react-menu": "^4.5.0",
     "@types/pako": "^2.0.4",
     "@types/tar-stream": "^3.1.4",
     "RichTreeView": "link:@mui/x-tree-view/RichTreeView",
@@ -29,12 +29,12 @@
     "dagre": "^0.8.5",
     "graphviz-react": "^1.2.5",
     "jszip": "^3.10.1",
-    "monaco-editor": "^0.52.2",
+    "monaco-editor": "^0.54.0",
     "pako": "^2.1.0",
-    "rc-dock": "^3.3.2",
-    "react": "^19.1.1",
+    "rc-dock": "4.0.0-alpha.2",
+    "react": "^19.2.0",
     "react-bootstrap": "^2.10.10",
-    "react-dom": "^19.1.1",
+    "react-dom": "^19.2.0",
     "react-grid-layout": "^1.5.2",
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
@@ -43,7 +43,7 @@
     "redux": "^5.0.1",
     "reflect-metadata": "^0.2.2",
     "tar-stream": "^3.1.7",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -74,9 +74,9 @@
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/dagre": "^0.7.53",
-    "@types/jest": "^29.5.14",
-    "@types/node": "^22.18.1",
-    "@types/react": "^19.1.12",
-    "@types/react-dom": "^19.1.9"
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2"
   }
 }

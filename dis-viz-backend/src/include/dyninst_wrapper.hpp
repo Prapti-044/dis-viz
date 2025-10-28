@@ -28,7 +28,7 @@ struct VarLocation {
 struct VariableInfo {
   std::string name;
   std::string file;
-  int line;
+  int line; // 1-based line number
   std::vector<VarLocation> locations;
   enum {
     VAR_TYPE_LOCAL,
@@ -40,7 +40,7 @@ struct InlineEntry {
   std::string simplified_name;
   std::vector<std::pair<unsigned long, unsigned long> > ranges;
   std::string callsite_file;
-  unsigned long callsite_line;
+  unsigned long callsite_line; // 1-based line number
   std::vector<InlineEntry> children;
 };
 struct LoopEntry {
@@ -60,7 +60,7 @@ struct InstructionInfo {
   unsigned long address;
   std::string instruction;
   std::unordered_map<std::string, std::vector<int> >
-      correspondence;  // { source_file: [line_number] }
+      correspondence;  // { source_file: [line_number] } - line_number is 1-based
   std::vector<VariableInfo> variables;
   std::unordered_set<INSTRUCTION_FLAGS> flags;
 };
@@ -76,7 +76,7 @@ struct Call {
 };
 
 struct SourceFunctionInfo {
-  unsigned int line;
+  unsigned int line; // 1-based line number
   std::string returnType;
   std::vector<SourceFunctionParam> parameters;
 };
@@ -146,7 +146,7 @@ struct LineInfo {
 struct SourceCodeInfo {
   std::string file;
   int total_lines;
-  std::map<int, LineInfo> lines;
+  std::map<int, LineInfo> lines; // map key is 1-based line number
 };
 
 struct BinaryMetadata {
@@ -167,7 +167,7 @@ struct BinaryDecodeResult {
     MinimapInfo loop_order;
   } minimap;
   std::vector<std::string> source_files;
-  std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } }
+  std::unordered_map<std::string, std::map<int, std::vector<unsigned long>>> correspondences; // { source_file: { line_number: [addresses] } } - line_number is 1-based
   std::unordered_map<std::string, SourceCodeInfo> sourceCodeInfo;
   BinaryMetadata metadata;
   std::vector<FunctionInfo> functionInfos;

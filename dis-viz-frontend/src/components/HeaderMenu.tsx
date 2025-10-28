@@ -12,11 +12,12 @@ import '../styles/headerMenu.css';
 interface HeaderMenuProps {
     showMinimaps: boolean;
     setShowMinimaps: React.Dispatch<React.SetStateAction<boolean>>;
+    onAddCallGraphView: () => void;
 }
 
 
 
-const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps }) => {
+const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps, onAddCallGraphView }) => {
     const dispatch = useAppDispatch();
     const enabledTags = useAppSelector(selectAllTagStates);
 
@@ -54,6 +55,12 @@ const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps }
                             <input type="checkbox" checked={showMinimaps} readOnly />
                             <span>Show Minimaps</span>
                         </div>
+                    </MenuItem>
+                    <MenuItem 
+                        className="header-menu-item"
+                        onClick={onAddCallGraphView}
+                    >
+                        Add Call Tree
                     </MenuItem>
                     <SubMenu label="Tags" className="header-menu-item">
                         {[...SOURCE_TAGS, ...INSTRUCTION_TAGS]

@@ -11,7 +11,7 @@ export class InlineEntry {
     @Expose() name: string;
     @Expose() simplified_name: string;
     @Expose() callsite_file: string;
-    @Expose() callsite_line: number;
+    @Expose() callsite_line: number; // 1-based line number from backend
     @Expose() ranges: { start: number; end: number }[];
     @Type(() => InlineEntry)
     @Expose() children: InlineEntry[];
@@ -43,6 +43,11 @@ export interface CallGraphInfo {
     outDegree: number;
 }
 
+export interface MemoryInfo {
+    isRead: boolean;
+    isWrite: boolean;
+}
+
 export class SourceLine {
     @Expose() line: string;
     @Expose() addresses: { [binaryFilePath: string]: number[] };
@@ -50,19 +55,22 @@ export class SourceLine {
     @Type(() => InlineEntry)
     @Expose() inline_tree: { [binaryFilePath: string]: InlineEntry[] };
     @Expose() call_graph_info?: { [binaryFilePath: string]: CallGraphInfo };
+    @Expose() memory_info?: { [binaryFilePath: string]: MemoryInfo };
 
     constructor(
         line: string, 
         addresses: { [binaryFilePath: string]: number[] }, 
         tags: { [binaryFilePath: string]: SourceCodeFlag[] },
         inline_tree: { [binaryFilePath: string]: InlineEntry[] } = {},
-        call_graph_info: { [binaryFilePath: string]: CallGraphInfo } = {}
+        call_graph_info: { [binaryFilePath: string]: CallGraphInfo } = {},
+        memory_info: { [binaryFilePath: string]: MemoryInfo } = {}
     ) {
         this.line = line
         this.addresses = addresses
         this.tags = tags
         this.inline_tree = inline_tree
         this.call_graph_info = call_graph_info
+        this.memory_info = memory_info
     }
 }
 
@@ -79,7 +87,7 @@ export class Instruction {
     @Expose() address: number
     @Expose() variables: Variable[]
     @Expose() correspondence: {
-        [source_file: string]: number[]
+        [source_file: string]: number[] // 1-based line numbers from backend
     }
     @Expose() flags: InstructionFlag[] = []
 
@@ -208,7 +216,7 @@ export class VariableLocation extends AddressRange{
 export class Variable {
     @Expose() name: string
     @Expose() source_file: string
-    @Expose() source_line: number
+    @Expose() source_line: number // 1-based line number from backend
     @Type(() => VariableLocation)
     @Expose() locations: VariableLocation[]
 

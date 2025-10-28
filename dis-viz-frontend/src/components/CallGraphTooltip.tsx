@@ -13,13 +13,11 @@ interface CallGraphInfo {
 
 interface CallGraphTooltipProps {
     callGraphInfo: CallGraphInfo;
-    tagType: 'CALL_IN' | 'CALL_OUT';
     dispatch: AppDispatch;
 }
 
 const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
     callGraphInfo,
-    tagType,
     dispatch
 }) => {
     const { functionName, calledFunctions, callingFunctions, returnType, parameters, inDegree, outDegree } = callGraphInfo;
@@ -63,88 +61,85 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                 <div>)</div>
             </div>
 
-            {/* Call Graph Information */}
-            {tagType === 'CALL_OUT' && (
-                <div>
-                    <div style={{
-                        fontWeight: 'bold',
-                        marginBottom: '6px',
-                        color: '#2e7d32'
-                    }}>
-                        Calls {outDegree} function{outDegree !== 1 ? 's' : ''}:
-                    </div>
-                    {calledFunctions.length === 0 ? (
-                        <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
-                            No functions called
-                        </div>
-                    ) : (
-                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            {calledFunctions.map((funcName, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        padding: '4px 8px',
-                                        marginBottom: '2px',
-                                        backgroundColor: '#f0f9f0',
-                                        borderLeft: '3px solid #4caf50',
-                                        borderRadius: '2px',
-                                        cursor: 'pointer'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#e1f5e1';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#f0f9f0';
-                                    }}
-                                >
-                                    → {funcName}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {/* Call Graph Information - Called By Section */}
+            <div style={{ marginBottom: '12px' }}>
+                <div style={{
+                    fontWeight: 'bold',
+                    marginBottom: '6px',
+                    color: '#1565c0'
+                }}>
+                    Called by {inDegree} function{inDegree !== 1 ? 's' : ''}:
                 </div>
-            )}
+                {callingFunctions.length === 0 ? (
+                    <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
+                        No callers found
+                    </div>
+                ) : (
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                        {callingFunctions.map((funcName, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    padding: '4px 8px',
+                                    marginBottom: '2px',
+                                    backgroundColor: '#f0f7ff',
+                                    borderLeft: '3px solid #2196f3',
+                                    borderRadius: '2px',
+                                    cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#e3f2fd';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f0f7ff';
+                                }}
+                            >
+                                ← {funcName}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
-            {tagType === 'CALL_IN' && (
-                <div>
-                    <div style={{
-                        fontWeight: 'bold',
-                        marginBottom: '6px',
-                        color: '#1565c0'
-                    }}>
-                        Called by {inDegree} function{inDegree !== 1 ? 's' : ''}:
-                    </div>
-                    {callingFunctions.length === 0 ? (
-                        <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
-                            No callers found
-                        </div>
-                    ) : (
-                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                            {callingFunctions.map((funcName, index) => (
-                                <div
-                                    key={index}
-                                    style={{
-                                        padding: '4px 8px',
-                                        marginBottom: '2px',
-                                        backgroundColor: '#f0f7ff',
-                                        borderLeft: '3px solid #2196f3',
-                                        borderRadius: '2px',
-                                        cursor: 'pointer'
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#e3f2fd';
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.backgroundColor = '#f0f7ff';
-                                    }}
-                                >
-                                    ← {funcName}
-                                </div>
-                            ))}
-                        </div>
-                    )}
+            {/* Call Graph Information - Calls Section */}
+            <div>
+                <div style={{
+                    fontWeight: 'bold',
+                    marginBottom: '6px',
+                    color: '#2e7d32'
+                }}>
+                    Calls {outDegree} function{outDegree !== 1 ? 's' : ''}:
                 </div>
-            )}
+                {calledFunctions.length === 0 ? (
+                    <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
+                        No functions called
+                    </div>
+                ) : (
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                        {calledFunctions.map((funcName, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    padding: '4px 8px',
+                                    marginBottom: '2px',
+                                    backgroundColor: '#f0f9f0',
+                                    borderLeft: '3px solid #4caf50',
+                                    borderRadius: '2px',
+                                    cursor: 'pointer'
+                                }}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#e1f5e1';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f0f9f0';
+                                }}
+                            >
+                                → {funcName}
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
 
             <div style={{
                 marginTop: '8px',

@@ -13,7 +13,8 @@ import { selectAllTagStates } from '../features/tags/tagsSlice'
 import { useFloating, autoUpdate, offset, flip, shift, useHover, useDismiss, useRole, useInteractions, FloatingPortal } from '@floating-ui/react'
 import InlineTreeTooltip from './InlineTreeTooltip'
 import CallGraphTooltip from './CallGraphTooltip'
-import { InlineEntry, CallGraphInfo } from '../types'
+import MemoryTooltip from './MemoryTooltip'
+import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types'
 import { AppDispatch } from '../app/store'
 
 loader.config({ monaco });
@@ -23,11 +24,12 @@ const TooltipWrapper: React.FC<{
     children: React.ReactNode;
     inlineTree?: InlineEntry[];
     callGraphInfo?: CallGraphInfo;
+    memoryInfo?: MemoryInfo;
     tagId: string;
     dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-}> = ({ children, inlineTree, callGraphInfo, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
+}> = ({ children, inlineTree, callGraphInfo, memoryInfo, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const { refs, floatingStyles, context } = useFloating({
@@ -55,8 +57,9 @@ const TooltipWrapper: React.FC<{
 
     // Check if we should show tooltip
     const shouldShowInlineTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
-    const shouldShowCallGraphTooltip = (tagId === 'CALL_IN' || tagId === 'CALL_OUT') && callGraphInfo;
-    const shouldShowTooltip = shouldShowInlineTooltip || shouldShowCallGraphTooltip;
+    const shouldShowCallGraphTooltip = tagId === 'CALL_GRAPH' && callGraphInfo;
+    const shouldShowMemoryTooltip = tagId === 'MEMORY' && memoryInfo;
+    const shouldShowTooltip = shouldShowInlineTooltip || shouldShowCallGraphTooltip || shouldShowMemoryTooltip;
 
     if (!shouldShowTooltip) {
         return <>{children}</>;
@@ -89,7 +92,12 @@ const TooltipWrapper: React.FC<{
                         {shouldShowCallGraphTooltip && callGraphInfo && (
                             <CallGraphTooltip
                                 callGraphInfo={callGraphInfo}
-                                tagType={tagId as 'CALL_IN' | 'CALL_OUT'}
+                                dispatch={dispatch}
+                            />
+                        )}
+                        {shouldShowMemoryTooltip && memoryInfo && (
+                            <MemoryTooltip
+                                memoryInfo={memoryInfo}
                                 dispatch={dispatch}
                             />
                         )}
@@ -112,10 +120,12 @@ function SourceView({ file_name }: {
     const mouseHighlight = useAppSelector(selectSourceHoverHighlight)
 
     const [sourceCode, setSourceCode] = React.useState("")
+    // correspondences[binaryPath][i] contains addresses for source line i+1 (array is 0-indexed, lines are 1-based)
     const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
-    const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary]
-    const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({})
-    const [lineCallGraphInfo, setLineCallGraphInfo] = React.useState<{ [line: number]: { [binary: string]: CallGraphInfo } }>({})
+    const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary] - line is 0-indexed array position
+    const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({}) // line is 0-indexed
+    const [lineCallGraphInfo, setLineCallGraphInfo] = React.useState<{ [line: number]: { [binary: string]: CallGraphInfo } }>({}) // line is 0-indexed
+    const [lineMemoryInfo, setLineMemoryInfo] = React.useState<{ [line: number]: { [binary: string]: MemoryInfo } }>({}) // line is 0-indexed
     const enabledTags = useAppSelector(selectAllTagStates);
 
     const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
@@ -140,7 +150,7 @@ function SourceView({ file_name }: {
         },
         minimap: {
             enabled: true,
-            autohide: false,
+            autohide: 'scroll',
             size: "proportional",
             showSlider: "always",
             renderCharacters: true,
@@ -193,6 +203,7 @@ function SourceView({ file_name }: {
             setLineTags([])
             setLineInlineTrees({})
             setLineCallGraphInfo({})
+            setLineMemoryInfo({})
             return
         }
         console.log("Use Effect Loading source file")
@@ -208,6 +219,7 @@ function SourceView({ file_name }: {
         const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
         const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {}
         const tmpLineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } } = {}
+        const tmpLineMemoryInfo: { [line: number]: { [binary: string]: MemoryInfo } } = {}
 
         validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
             tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
@@ -234,12 +246,21 @@ function SourceView({ file_name }: {
                     }
                     tmpLineCallGraphInfo[lineI][binaryFilePath] = line.call_graph_info[binaryFilePath]
                 }
+
+                // Extract memory info
+                if (line.memory_info && line.memory_info[binaryFilePath]) {
+                    if (!tmpLineMemoryInfo[lineI]) {
+                        tmpLineMemoryInfo[lineI] = {}
+                    }
+                    tmpLineMemoryInfo[lineI][binaryFilePath] = line.memory_info[binaryFilePath]
+                }
             })
         })
         setCorrespondences(tmpCorrespondences)
         setLineTags(tmpLineTags)
         setLineInlineTrees(tmpLineInlineTrees)
         setLineCallGraphInfo(tmpLineCallGraphInfo)
+        setLineMemoryInfo(tmpLineMemoryInfo)
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [binaryFilePaths, file_name])
 
@@ -305,8 +326,10 @@ function SourceView({ file_name }: {
                                         const tagId = SOURCE_TAGS[tagIndex].id;
                                         const inlineTreeForLine = lineInlineTrees[line];
                                         const callGraphInfoForLine = lineCallGraphInfo[line];
+                                        const memoryInfoForLine = lineMemoryInfo[line];
                                         let inlineTreeData: InlineEntry[] = [];
                                         let callGraphData: CallGraphInfo | undefined = undefined;
+                                        let memoryData: MemoryInfo | undefined = undefined;
 
                                         // Get inline tree data for this line from any binary that has it
                                         if (tagId === 'INLINE' && inlineTreeForLine) {
@@ -319,10 +342,20 @@ function SourceView({ file_name }: {
                                         }
 
                                         // Get call graph data for this line from any binary that has it
-                                        if ((tagId === 'CALL_IN' || tagId === 'CALL_OUT') && callGraphInfoForLine) {
+                                        if (tagId === 'CALL_GRAPH' && callGraphInfoForLine) {
                                             for (const binaryPath of validBinaryFilePaths) {
                                                 if (callGraphInfoForLine[binaryPath]) {
                                                     callGraphData = callGraphInfoForLine[binaryPath];
+                                                    break;
+                                                }
+                                            }
+                                        }
+
+                                        // Get memory data for this line from any binary that has it
+                                        if (tagId === 'MEMORY' && memoryInfoForLine) {
+                                            for (const binaryPath of validBinaryFilePaths) {
+                                                if (memoryInfoForLine[binaryPath]) {
+                                                    memoryData = memoryInfoForLine[binaryPath];
                                                     break;
                                                 }
                                             }
@@ -334,6 +367,7 @@ function SourceView({ file_name }: {
                                                 tagId={tagId}
                                                 inlineTree={inlineTreeData}
                                                 callGraphInfo={callGraphData}
+                                                memoryInfo={memoryData}
                                                 dispatch={dispatch}
                                                 validBinaryFilePaths={validBinaryFilePaths}
                                                 correspondences={correspondences}
@@ -465,7 +499,7 @@ function SourceView({ file_name }: {
             });
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees, lineCallGraphInfo]);
+    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees, lineCallGraphInfo, lineMemoryInfo]);
 
     // add decoration for selected lines
     React.useEffect(() => {

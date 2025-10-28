@@ -5,8 +5,8 @@
 #include <vector>
 
 struct LoopData {
-  unsigned int line;
-  std::set<unsigned int> bodyLines;
+  unsigned int line; // 1-based line number from Clang
+  std::set<unsigned int> bodyLines; // 1-based line numbers from Clang
 };
 
 struct SourceFunctionParam {
@@ -15,7 +15,7 @@ struct SourceFunctionParam {
 };
 
 struct SourceFunction {
-  unsigned int line;
+  unsigned int line; // 1-based line number from Clang
   std::string name;
   std::string returnType;
   std::vector<SourceFunctionParam> parameters;

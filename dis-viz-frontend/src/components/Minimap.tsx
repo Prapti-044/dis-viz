@@ -137,20 +137,19 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
                 const tag = INSTRUCTION_TAGS.find(tag => tag.id === highlightOption);
                 
                 // Map tag identifiers to block types
-                const tagToBlockType: Record<string, string> = {
-                    'VECTORIZED': 'vectorized',
-                    'MEMORY_READ': 'memory_read',
-                    'MEMORY_WRITE': 'memory_write',
-                    'SYSCALL': 'syscall',
-                    'CALL': 'call',
-                    'INLINE': 'inline',
-                    'FP': 'floating_point',
-                    'HOISTED': 'hoisted',
-                    'BRANCH': 'branch'
+                const tagToBlockType: Record<string, string[]> = {
+                    'VECTORIZED': ['vectorized'],
+                    'MEMORY': ['memory_read', 'memory_write'],
+                    'SYSCALL': ['syscall'],
+                    'CALL': ['call'],
+                    'INLINE': ['inline'],
+                    'FP': ['floating_point'],
+                    'HOISTED': ['hoisted'],
+                    'BRANCH': ['branch']
                 };
                 
-                const blockType = tagToBlockType[highlightOption];
-                if (tag && blockType && minimap.blockTypes[i].includes(blockType)) {
+                const blockTypes = tagToBlockType[highlightOption];
+                if (tag && blockTypes && blockTypes.some(blockType => minimap.blockTypes[i].includes(blockType))) {
                     ctx.strokeStyle = tag.color;
                 }
             }

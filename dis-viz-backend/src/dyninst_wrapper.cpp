@@ -216,7 +216,7 @@ string formatVariableLocation(const LocationType &location) {
 
 VariableInfo printVar(SymtabAPI::localVar *var) {
   const string name = var->getName();
-  const int lineNum = var->getLineNum() - 1; // converted to 0 based index
+  const int lineNum = var->getLineNum(); // 1-based index from Dyninst
   const string fileName = var->getFileName();
 
   auto varLocations = vector<VarLocation>();
@@ -622,7 +622,7 @@ InlineEntry createInlineEntry(SymtabAPI::InlinedFunction* inlineFunc) {
       getSimplifiedFunctionName(name_str),
       inlineRanges,
       inlineFunc->getCallsite().first,
-      inlineFunc->getCallsite().second,
+      inlineFunc->getCallsite().second, // 1-based index from Dyninst
       {} // children will be filled below
   };
 
@@ -698,7 +698,7 @@ std::tuple<
   auto addressOrderBlocks = vector<BlockInfo>();
   auto loopOrderBlocks = vector<BlockInfo>();
   auto __visitedBlocks = unordered_map<ParseAPI::Block*, bool>();
-  auto source_correspondences = unordered_map<string, map<int, vector<unsigned long>>>();
+  auto source_correspondences = unordered_map<string, map<int, vector<unsigned long>>>(); // { source_file: { line_number: [addresses] } }
   auto block_ids = map<ParseAPI::Block *, string>();
   auto instruction_flags = map<Dyninst::Address, std::unordered_set<INSTRUCTION_FLAGS>>();
   auto unique_sourcefiles = set<string>();
@@ -916,7 +916,7 @@ std::tuple<
         // auto cur_lines = symtab->getSourceLines(instr.first);
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
-          const auto lineNumber = li->getLine() - 1; // converted to 0 based index
+          const auto lineNumber = li->getLine(); // 1-based index from Dyninst
           correspondences[print_clean_string(li->getFile())].push_back(lineNumber);
           source_correspondences[print_clean_string(li->getFile())][lineNumber].push_back(instr.first);
         }
@@ -1110,10 +1110,10 @@ std::tuple<
     auto sourceCodeData = parseSourceCode(sourceFile);
     for (const auto &loop : sourceCodeData.loops) {
       if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
-          source_correspondences[sourceFile].find(loop.line) != source_correspondences[sourceFile].end()) {
+          source_correspondences[sourceFile].find(loop.line) != source_correspondences[sourceFile].end()) { // loop.line is 1-based from Clang
         
         auto loopName = string();
-        const auto &addresses = source_correspondences[sourceFile][loop.line-1];
+        const auto &addresses = source_correspondences[sourceFile][loop.line];
         
         // populate loopName
         for(const auto &address: addresses) {
@@ -1138,8 +1138,8 @@ std::tuple<
         for (const auto &bodyLine : loop.bodyLines) {
           auto bodyLineBlockIt = addressOrderBlocks.end();
           if (source_correspondences.find(sourceFile) != source_correspondences.end() &&
-              source_correspondences[sourceFile].find(bodyLine-1) != source_correspondences[sourceFile].end()) {
-            const auto &bodyLineCorrAddresses = source_correspondences[sourceFile][bodyLine-1];
+              source_correspondences[sourceFile].find(bodyLine) != source_correspondences[sourceFile].end()) { // bodyLine is 1-based from Clang
+            const auto &bodyLineCorrAddresses = source_correspondences[sourceFile][bodyLine];
             for (const auto &bodyLineCorrAddress : bodyLineCorrAddresses) {
               bodyLineBlockIt = std::find_if(addressOrderBlocks.begin(), addressOrderBlocks.end(), [&bodyLineCorrAddress](const BlockInfo &block) {
                 return block.startAddress <= bodyLineCorrAddress && bodyLineCorrAddress <= block.endAddress;
@@ -1156,7 +1156,7 @@ std::tuple<
                   inst->flags.insert(INST_HOISTED);
                   // Add HOISTED flag to the source code line
                   if (sourceCodeInfo.find(sourceFile) != sourceCodeInfo.end()) {
-                    sourceCodeInfo[sourceFile].lines[bodyLine-1].flags.insert(SOURCE_CODE_HOISTED);
+                    sourceCodeInfo[sourceFile].lines[bodyLine].flags.insert(SOURCE_CODE_HOISTED); // bodyLine is 1-based
                   }
                 }
               }
@@ -1215,7 +1215,7 @@ std::tuple<
             sourceFunc.name == simplifiedBinaryName ||
             funcInfo.name.find(sourceFunc.name) != std::string::npos) {
           
-          funcInfo.source_info.line = sourceFunc.line;
+          funcInfo.source_info.line = sourceFunc.line; // Keep 1-based for source_info (from Clang, for display)
           funcInfo.source_info.returnType = sourceFunc.returnType;
           funcInfo.source_info.parameters.clear();
           

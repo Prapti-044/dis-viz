@@ -56,9 +56,9 @@ const App = () => {
     console.log("removing call graph view", cgId)
     setCallGraphViewIds(callGraphViewIds.filter(id => id !== cgId))
     if (dockRef.current) {
-      const callGraphViewPanel = dockRef.current.find('CallGraphViewPanel') as PanelData;
-      if (callGraphViewPanel) {
-        const tabToRemove = callGraphViewPanel.tabs.find(tab => tab.id === `CallGraphView:${cgId}`);
+      const disassemblyViewPanel = dockRef.current.find('DisassemblyViewPanel') as PanelData;
+      if (disassemblyViewPanel) {
+        const tabToRemove = disassemblyViewPanel.tabs.find(tab => tab.id === `CallGraphView:${cgId}`);
         if (tabToRemove) {
           dockRef.current.dockMove(tabToRemove, null, 'remove')
         }
@@ -163,7 +163,7 @@ const App = () => {
       const newCallGraphViewId = `CallGraphView:${newId}`;
       const newCallGraphViewComponent: TabData = {
         id: newCallGraphViewId,
-        title: `Call Graph View: ${newId}`,
+        title: `Call Tree: ${newId}`,
         content: <TabContent key={`tab-CallGraphView-${newId}`}>
           <CallGraphView
             id={newId}
@@ -171,11 +171,7 @@ const App = () => {
           /></TabContent>,
         closable: true,
       };
-      const newPanel: PanelData = {
-        tabs: [newCallGraphViewComponent],
-        x: 10, y: 10, w: 600, h: 500
-      };
-      dockRef.current?.dockMove(newPanel, 'CallGraphViewPanel', 'middle');
+      dockRef.current?.dockMove(newCallGraphViewComponent, 'DisassemblyViewPanel', 'middle');
       setCallGraphViewIds([...callGraphViewIds, newId])
     }
     else {
@@ -195,19 +191,6 @@ const App = () => {
       > + </button>
     )
   }, [binaryFilePaths, onAddDisassemblyView])
-
-  React.useEffect(() => {
-    if (dockRef.current === null) return;
-    // update the call graph panel extra button with the new validBinaryFilePaths
-    const callGraphViewPanel = dockRef.current.find('CallGraphViewPanel') as PanelData
-    if (callGraphViewPanel === undefined) return
-    callGraphViewPanel.panelLock!.panelExtra = (panelData: PanelData) => (
-      <button
-        className="add-call-graph-view-button"
-        onClick={onAddCallGraphView}
-      > 📊 </button>
-    )
-  }, [binaryFilePaths, onAddCallGraphView])
 
   // Reconcile sourceViewStates and source-views
   React.useEffect(() => {
@@ -331,26 +314,6 @@ const App = () => {
             }
           }]
         },
-        {
-          mode: 'vertical',
-          size: 3,
-          children: [{
-            id: 'CallGraphViewPanel',
-            tabs: [],
-            panelLock: {
-              minWidth: 400,
-              minHeight: 300,
-              panelExtra: (panelData) => (
-                <button
-                  onClick={onAddCallGraphView}
-                  className="add-call-graph-view-button"
-                >
-                📊
-                </button>
-              )
-            }
-          }]
-        },
       ]
     },
   });
@@ -391,7 +354,7 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <HeaderMenu showMinimaps={showMinimaps} setShowMinimaps={setShowMinimaps} />
+      <HeaderMenu showMinimaps={showMinimaps} setShowMinimaps={setShowMinimaps} onAddCallGraphView={onAddCallGraphView} />
       <div className="main-content">
         <DockLayout
           ref={dockRef}
