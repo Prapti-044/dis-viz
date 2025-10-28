@@ -550,8 +550,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
   }
   
   const sourceLines = sourceContent.split('\n').map((lineContent, index) => {
-    const lineNo = index + 1;
-    const lineInfo = lines.find(l => l.line === lineNo);
+    const lineInfo = lines.find(l => l.line === index);
     if (lineInfo) {
       // Convert inline tree data
       const inlineTreeConverted: { [binaryFilePath: string]: InlineEntry[] } = {};
