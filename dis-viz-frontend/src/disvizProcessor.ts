@@ -570,6 +570,12 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
             lineInfo.call_graph_info = {};
           }
           
+          // Extract inline functions
+          const inlines = (funcAtLine.inlines || []).map(inline => ({
+            name: inline.name,
+            simplified_name: inline.simplified_name
+          }));
+          
           lineInfo.call_graph_info[binaryFileName] = {
             functionName: funcAtLine.name,
             calledFunctions,
@@ -577,7 +583,8 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
             returnType: funcAtLine.source_info.return_type || 'void',
             parameters: funcAtLine.source_info.parameters || [],
             inDegree: funcAtLine.call_graph_in_degree,
-            outDegree: funcAtLine.call_graph_out_degree
+            outDegree: funcAtLine.call_graph_out_degree,
+            inlines
           };
         }
       }

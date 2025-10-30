@@ -674,9 +674,9 @@ function SourceView({ file_name }: {
 
     return <Suspense fallback={<div>Loading source code...</div>}>
         {/* title row */}
-        <div className='no-text-selection'>
+        <div className='no-text-selection' style={{ height: '90vh', overflow: 'hidden' }}>
             <MonacoEditor
-                height="90vh"
+                height="100%"
                 width="100%"
                 language="cpp"
                 value={sourceCode}

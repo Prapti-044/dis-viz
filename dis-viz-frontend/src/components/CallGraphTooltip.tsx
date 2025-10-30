@@ -9,6 +9,7 @@ interface CallGraphInfo {
     parameters: { type: string; name: string }[];
     inDegree: number;
     outDegree: number;
+    inlines: { name: string; simplified_name: string }[];
 }
 
 interface CallGraphTooltipProps {
@@ -20,7 +21,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
     callGraphInfo,
     dispatch
 }) => {
-    const { functionName, calledFunctions, callingFunctions, returnType, parameters, inDegree, outDegree } = callGraphInfo;
+    const { functionName, calledFunctions, callingFunctions, returnType, parameters, inDegree, outDegree, inlines } = callGraphInfo;
 
     return (
         <div
@@ -140,6 +141,43 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Inline Functions Section */}
+            {inlines && inlines.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                    <div style={{
+                        fontWeight: 'bold',
+                        marginBottom: '6px',
+                        color: '#7b1fa2'
+                    }}>
+                        {inlines.length} Inline{inlines.length !== 1 ? 's' : ''}:
+                    </div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
+                        {inlines.map((inline, index) => (
+                            <div
+                                key={index}
+                                style={{
+                                    padding: '4px 8px',
+                                    marginBottom: '2px',
+                                    backgroundColor: '#f3e5f5',
+                                    borderLeft: '3px solid #9c27b0',
+                                    borderRadius: '2px',
+                                    cursor: 'default'
+                                }}
+                                title={inline.name}
+                                onMouseEnter={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#e1bee7';
+                                }}
+                                onMouseLeave={(e) => {
+                                    e.currentTarget.style.backgroundColor = '#f3e5f5';
+                                }}
+                            >
+                                ⊕ {inline.simplified_name || inline.name}
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div style={{
                 marginTop: '8px',

@@ -41,6 +41,7 @@ export interface CallGraphInfo {
     parameters: { type: string; name: string }[];
     inDegree: number;
     outDegree: number;
+    inlines: { name: string; simplified_name: string }[];
 }
 
 export interface MemoryInfo {
