@@ -14,6 +14,7 @@ __The demonstration of the tool, DisViz is shown in the video link below.__
 ## Quick Start
 
 **Note**
+
 To run the **TVCG Replicability stamp**, please switch to the branch 'tvcg_replicability_stamp' and then follow the documentation present in the branch 'tvcg_replicability_stamp'. Thank you!
 
 To run the project, you can either use the recommended docker, or locally build and run it.
