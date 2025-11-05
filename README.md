@@ -47,60 +47,43 @@ cd dis-viz-backend/build/
 
 This should run a server on localhost port 80.
 
-## Binary file (Input Data)
+## Preparing Input Binary (Rajaperf)
 
-To load the binary into the tool, we'll compile the source files with the Debug flag, ensuring that the assembly code retains source information. A large kernel file, chosen for its ability to generate substantial binaries and used in the video, is obtained from [Rajaperf](https://gitlab.com/arm-hpc/benchmarks/coral-2/RAJAPerf).
+DisViz requires a compiled binary with debug symbols (DWARF info) to reconstruct links between source code and assembly. We used [Rajaperf](https://gitlab.com/arm-hpc/benchmarks/coral-2/RAJAPerf) as a sample workload because it produces large, optimization-heavy binaries.
 
-Most binary files utilize a CMake file for building instructions. According to the provided documentation, we will compile the **Rajaperf** binary file. 
+Now we will compile the **Rajaperf** binary file with the following commands.
 
-The commands for compiling a binary file,  from the benchmark kernel sets, are given below:
-
+**Clone Repository**
 ```bash
 mkdir RAJA-PERFSUITE
 cd RAJA-PERFSUITE
 git clone --recursive https://github.com/llnl/RAJAPerf.git
 ```
 
-You can create your own build directory and run CMake with your own arguments from there.
-
+**Create build directory, run CMake, and compile**
 ```bash
 mkdir build && cd build
 cmake ..
-make -j12
+make -j$(nproc)
 ```
+**This generates the binary**
+```bash
+RAJAPerf/build/bin/raja-perf.exe
+```
+## Loading the data
 
-## Running the suite
-
-The suite is run by invoking the executable in the bin directory in the build space. For example, giving it no options:
+Go to the `RAJAPerf/build/bin/raja-perf.exe` directory and find the binary `raja-perf.exe`. Now, copy the absolute path of the `raja-perf.exe` binary file and go to the dis-viz directory.
 
 ```bash
-./bin/raja-perf.exe
+cd dis-viz-backend/build/
+./DisViz -b /absolute/path/to/raja-perf.exe
 ```
-
-Note: Most options appear in both long and short forms for ease of use.
-To see available options along with a brief description of each, pass the --help or -h option:
-
-```bash
-./bin/raja-perf.exe --help
-```
-
-or
-
-```bash
-./bin/raja-perf.exe -h
-```
-
-To see available options along with a brief description of each, pass the --help or -h option:
-```bash
-./bin/raja-perf.exe
-```
-After building the Rajaperf binary using the above commands, it can be taken as input into the visualization tool.
 
 ## Implementation Details
 
 ### Front-end
 
-React+Redux+Typescript is used to build the front-end of the visualization. Each of the components are visual elements like basic blocks, assembly lines, source code lines, file explorer etc. Bootstrap is used for styling in some places.
+React+Redux+Typescript is used to build the front-end of the visualization. Each of the components is a visual element, such as basic blocks, assembly lines, source code lines, and a file explorer. Bootstrap is used for styling in some places.
 
 ### Back-end
 
