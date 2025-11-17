@@ -22,6 +22,8 @@ cd dis-viz 			                      # cd into root of the project
 docker build -t dis-viz .  		      	# build the docker from Dockerfile
 docker run -p 8080:8080/tcp dis-viz  	# run the docker at port 8080
 ```
+Note: The Docker image includes pre-compiled binaries. As a result, custom binaries cannot be loaded or analyzed within this containerized environment.
+
 
 ### Run on Local machine
 
