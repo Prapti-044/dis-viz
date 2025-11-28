@@ -552,16 +552,32 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
         if (binaryFile) {
           const allFunctions = binaryFile.data.functionInfos || [];
           
-          // Find functions this function calls
-          const calledFunctions = funcAtLine.calls
-            .flatMap(call => call.target_func_names)
-            .filter((name, index, self) => self.indexOf(name) === index); // unique names
-
-          // Find functions that call this function
-          const callingFunctions = allFunctions
+          // Find functions this function calls with their built-in status
+          const calledFunctionsMap = new Map<string, boolean>();
+          funcAtLine.calls.forEach(call => {
+            call.target_func_names.forEach(targetName => {
+              if (!calledFunctionsMap.has(targetName)) {
+                const targetFunc = allFunctions.find(f => f.name === targetName);
+                calledFunctionsMap.set(targetName, targetFunc?.is_builtin ?? true);
+              }
+            });
+          });
+          
+          const calledFunctions = Array.from(calledFunctionsMap.keys());
+          const calledFunctionsBuiltIn = Object.fromEntries(calledFunctionsMap);
+          
+          // Find functions that call this function with their built-in status
+          const callingFunctionsMap = new Map<string, boolean>();
+          allFunctions
             .filter(f => f.calls.some(call => call.target_func_names.includes(funcAtLine.name)))
-            .map(f => f.name)
-            .filter((name, index, self) => self.indexOf(name) === index); // unique names
+            .forEach(f => {
+              if (!callingFunctionsMap.has(f.name)) {
+                callingFunctionsMap.set(f.name, f.is_builtin);
+              }
+            });
+          
+          const callingFunctions = Array.from(callingFunctionsMap.keys());
+          const callingFunctionsBuiltIn = Object.fromEntries(callingFunctionsMap);
           
           if (!lineInfo.call_graph_info) {
             lineInfo.call_graph_info = {};
@@ -576,7 +592,9 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
           lineInfo.call_graph_info[binaryFileName] = {
             functionName: funcAtLine.name,
             calledFunctions,
+            calledFunctionsBuiltIn,
             callingFunctions,
+            callingFunctionsBuiltIn,
             returnType: funcAtLine.source_info.return_type || 'void',
             parameters: funcAtLine.source_info.parameters || [],
             inDegree: funcAtLine.call_graph_in_degree,

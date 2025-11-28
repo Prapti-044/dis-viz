@@ -123,7 +123,12 @@ void getFunctions(CXCursor cursor, const std::string &filePath, std::vector<Sour
   }
   
   // Check if this is a function declaration or definition
-  if (kind == CXCursor_FunctionDecl || kind == CXCursor_CXXMethod) {
+  // Include constructors, destructors, methods, and regular functions
+  if (kind == CXCursor_FunctionDecl || 
+      kind == CXCursor_CXXMethod || 
+      kind == CXCursor_Constructor ||
+      kind == CXCursor_Destructor ||
+      kind == CXCursor_FunctionTemplate) {
     CXString funcName = clang_getCursorSpelling(cursor);
     CXType returnType = clang_getCursorResultType(cursor);
     CXString returnTypeStr = clang_getTypeSpelling(returnType);
@@ -131,7 +136,18 @@ void getFunctions(CXCursor cursor, const std::string &filePath, std::vector<Sour
     SourceFunction func;
     func.line = line;
     func.name = clang_getCString(funcName);
-    func.returnType = clang_getCString(returnTypeStr);
+    
+    // For constructors and destructors, return type might be invalid
+    std::string returnTypeString = clang_getCString(returnTypeStr);
+    if (kind == CXCursor_Constructor) {
+      func.returnType = "<constructor>";
+    } else if (kind == CXCursor_Destructor) {
+      func.returnType = "<destructor>";
+    } else if (returnTypeString.empty() || returnTypeString == "Invalid") {
+      func.returnType = "void";
+    } else {
+      func.returnType = returnTypeString;
+    }
     
     // Get function parameters
     int numArgs = clang_Cursor_getNumArguments(cursor);

@@ -42,6 +42,9 @@ const std::unordered_map<INSTRUCTION_FLAGS, SOURCE_CODE_FLAGS> INSTRUCTION_FLAGS
 
 const std::vector<string> SYSTEM_LOCATIONS = {"/usr/"};
 
+// Forward declaration
+bool isSystemLocation(const string &sourceFile);
+
 // Optimized utility functions
 void setInstructionFlags(const InstructionAPI::Instruction &instr, std::unordered_set<INSTRUCTION_FLAGS> &flags) {
   // Use lookup table for better performance
@@ -1105,10 +1108,8 @@ std::tuple<
       it++;
     }
 
-    // Determine if function is built-in by checking if any of its blocks are built-in
-    // TODO: This is not correct way to identify built-in functions.
-    auto builtInBlocks = getIsBuiltInBlock(funcBlocks);
-    funcInfo.is_builtin = std::any_of(builtInBlocks.begin(), builtInBlocks.end(),[](const bool b) { return b; });
+    // Mark as built-in for now - will be updated after source matching
+    funcInfo.is_builtin = true;
 
     // move all funcLoopOrderBlocks to loopOrderBlocks
     loopOrderBlocks.insert(loopOrderBlocks.end(), make_move_iterator(funcLoopOrderBlocks.begin()), make_move_iterator(funcLoopOrderBlocks.end()));
@@ -1273,6 +1274,15 @@ std::tuple<
         matched = true;
       }
     }
+  }
+  
+  // Update is_builtin status based on source file location
+  for (auto &funcInfo : functionInfos) {
+    if (!funcInfo.source_info.file.empty()) {
+      // Function has source info - check if it's from a system location
+      funcInfo.is_builtin = isSystemLocation(funcInfo.source_info.file);
+    }
+    // If no source_info.file, keep is_builtin=true (external/system function)
   }
 
   return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos, sourceCodeInfo};
