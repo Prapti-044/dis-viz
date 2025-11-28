@@ -786,8 +786,25 @@ std::tuple<
     for(auto &topLevelFunc: topLevelFuncs) {
       auto ic = SymtabAPI::InlineCollection(topLevelFunc->getInlines());
       for (auto &funcBase : ic) {
-        auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);          
-        if(addresses.find(inlineFunc->getOffset()) == addresses.end()) continue;
+        auto inlineFunc = static_cast<SymtabAPI::InlinedFunction *>(funcBase);
+        
+        // Check if any of the inline's address ranges overlap with our function's addresses
+        const auto &ranges = inlineFunc->getRanges();
+        bool hasOverlap = false;
+        for (auto range : ranges) {
+          auto rangeStart = range.low();
+          auto rangeEnd = range.high();
+          // Check if any address in our set falls within this range
+          for (auto addr : addresses) {
+            if (addr >= rangeStart && addr <= rangeEnd) {
+              hasOverlap = true;
+              break;
+            }
+          }
+          if (hasOverlap) break;
+        }
+        
+        if (!hasOverlap) continue;
         inlineFuncs.insert(inlineFunc);
       }
     }
@@ -1206,25 +1223,54 @@ std::tuple<
     auto sourceCodeData = parseSourceCode(sourceFile);
     
     for (const auto &sourceFunc : sourceCodeData.functions) {
+      
+      bool matched = false;
+      FunctionInfo* bestMatch = nullptr;
+      
       // Try to match source function to binary function by name
+      // Use a scoring system: exact match > simplified match > substring match
+      int bestScore = 0;
+      
       for (auto &funcInfo : functionInfos) {
-        // Match by simplified name or exact name
+        int score = 0;
         auto simplifiedBinaryName = getSimplifiedFunctionName(funcInfo.name);
         
-        if (sourceFunc.name == funcInfo.name || 
-            sourceFunc.name == simplifiedBinaryName ||
-            funcInfo.name.find(sourceFunc.name) != std::string::npos) {
-          
-          funcInfo.source_info.line = sourceFunc.line; // Keep 1-based for source_info (from Clang, for display)
-          funcInfo.source_info.returnType = sourceFunc.returnType;
-          funcInfo.source_info.parameters.clear();
-          
-          for (const auto &param : sourceFunc.parameters) {
-            funcInfo.source_info.parameters.push_back({param.type, param.name});
-          }
-          
-          break; // Found a match, move to next source function
+        // Exact match is best
+        if (sourceFunc.name == funcInfo.name) {
+          score = 3;
         }
+        // Simplified name match is second best
+        else if (sourceFunc.name == simplifiedBinaryName) {
+          score = 2;
+        }
+        // Substring match (for templates/namespaces) is last resort
+        // But only if it's a word boundary match (not in the middle of a word)
+        else {
+          // Check if source name appears as a complete token in binary name
+          // e.g., "start" should NOT match "_start", but should match "ns::start"
+          std::string searchPattern = "::" + sourceFunc.name;
+          if (funcInfo.name.find(searchPattern) != std::string::npos) {
+            score = 1;
+          }
+        }
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = &funcInfo;
+        }
+      }
+      
+      if (bestMatch && bestScore > 0) {
+        bestMatch->source_info.file = sourceFile;
+        bestMatch->source_info.line = sourceFunc.line;
+        bestMatch->source_info.returnType = sourceFunc.returnType;
+        bestMatch->source_info.parameters.clear();
+        
+        for (const auto &param : sourceFunc.parameters) {
+          bestMatch->source_info.parameters.push_back({param.type, param.name});
+        }
+        
+        matched = true;
       }
     }
   }

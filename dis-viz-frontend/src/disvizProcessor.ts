@@ -173,6 +173,7 @@ interface SourceFunctionParam {
 }
 
 interface SourceFunctionInfo {
+  file: string; // Source file where function is defined
   line: number; // 1-based line number from backend
   return_type: string;
   parameters: SourceFunctionParam[];
@@ -487,15 +488,14 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
       // Build function line map for call graph information
       functionLineMap[binaryFileName] = new Map();
       const allFunctions = binaryFile.data.functionInfos || [];
-      
+
       for (const func of allFunctions) {
-        // Check if this function is defined in the current source file
-        if (func.source_info && func.source_info.line > 0) {
-          // The source_info.line is 1-based, which matches our line numbers
+        // Add function to map only if it's defined in the current source file with valid line number
+        if (func.source_info && func.source_info.file === sourceFile && func.source_info.line > 0) {
           functionLineMap[binaryFileName].set(func.source_info.line, func);
         }
       }
-      
+
       // Ensure function definition lines are in the lines array even if they don't have correspondences
       for (const funcLine of functionLineMap[binaryFileName].keys()) {
         // funcLine is 1-based from backend, match directly with l.line which is also 1-based
@@ -543,11 +543,8 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
       // lineInfo.line is 1-based from backend, use directly
       const funcAtLine = functionLineMap[binaryFileName]?.get(lineInfo.line);
       if (funcAtLine) {
-        // Add CALL_GRAPH tag if in-degree > 0 or out-degree > 0
-        if (funcAtLine.call_graph_in_degree > 0 || funcAtLine.call_graph_out_degree > 0) {
-          if (!lineInfo.flags[binaryFileName].includes('CALL_GRAPH' as any)) {
-            lineInfo.flags[binaryFileName].push('CALL_GRAPH' as any);
-          }
+        if (!lineInfo.flags[binaryFileName].includes('CALL_GRAPH' as any)) {
+          lineInfo.flags[binaryFileName].push('CALL_GRAPH' as any);
         }
 
         // Build call graph info
@@ -559,7 +556,7 @@ export function getSourceLines(binaryFiles: string[], sourceFile: string): Sourc
           const calledFunctions = funcAtLine.calls
             .flatMap(call => call.target_func_names)
             .filter((name, index, self) => self.indexOf(name) === index); // unique names
-          
+
           // Find functions that call this function
           const callingFunctions = allFunctions
             .filter(f => f.calls.some(call => call.target_func_names.includes(funcAtLine.name)))

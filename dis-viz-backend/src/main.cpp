@@ -355,6 +355,7 @@ json convertFunctionInfoNlohmann(const FunctionInfo& func) {
     
     // Convert source info
     json source_info{
+        {"file", func.source_info.file},
         {"line", func.source_info.line},
         {"return_type", func.source_info.returnType}
     };

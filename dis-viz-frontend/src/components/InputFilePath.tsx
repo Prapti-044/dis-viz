@@ -376,6 +376,7 @@ function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
     const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
     
     const exampleFiles = [
+        { name: 'inline_f1-O3.disviz', description: 'Inline function example with O3 optimization' },
         { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
         { name: 'bubble-O1.disviz', description: 'Bubble sort with O1 optimization' },
         { name: 'bubble-O2.disviz', description: 'Bubble sort with O2 optimization' },

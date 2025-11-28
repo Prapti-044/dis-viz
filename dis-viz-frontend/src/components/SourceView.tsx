@@ -206,8 +206,6 @@ function SourceView({ file_name }: {
             setLineMemoryInfo({})
             return
         }
-        console.log("Use Effect Loading source file")
-
         const sourceFile = disvizProcessor.getSourceLines(validBinaryFilePaths, file_name)
 
         // Extract source code
@@ -645,8 +643,6 @@ function SourceView({ file_name }: {
 
                 // Check if the word might be a function name
                 const functionName = word.word;
-
-                console.log("Function name:", functionName)
 
                 // Get function source code if available
                 const functionInfo = "disvizProcessor.getFunctionSourceCode(validBinaryFilePaths, functionName);"

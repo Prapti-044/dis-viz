@@ -73,9 +73,11 @@ struct Call {
   unsigned long address;
   unsigned long target;
   std::vector<std::string> targetFuncNames;
+  bool is_builtin; // True if target is a system/built-in function
 };
 
 struct SourceFunctionInfo {
+  std::string file; // Source file where function is defined
   unsigned int line; // 1-based line number
   std::string returnType;
   std::vector<SourceFunctionParam> parameters;

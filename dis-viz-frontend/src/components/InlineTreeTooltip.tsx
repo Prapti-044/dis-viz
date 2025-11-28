@@ -106,10 +106,6 @@ const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTree, dispa
         );
     }
 
-    if (inlineTree[0].callsite_file === "bubble_sort.cpp" && inlineTree[0].callsite_line === 25) {
-        console.log(inlineTree);
-    }
-
     return (
         <div className="inline-tree-tooltip">
             <div className="inline-tree-header">
