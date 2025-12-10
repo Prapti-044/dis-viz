@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 
 RUN apt-get update \
-    && DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common build-essential wget cmake git libboost-all-dev libtbb-dev elfutils libdw-dev libiberty-dev npm \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y software-properties-common build-essential wget cmake git libboost-all-dev libtbb-dev elfutils libdw-dev libiberty-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install GCC 13.1.0 (the default one is 9.3.0)
@@ -47,8 +47,11 @@ RUN CC=gcc-11 CXX=g++-11 cmake -D CMAKE_CXX_FLAGS="${CMAKE_CXX_FLAGS} -g -O3" ..
 RUN make -j8
 RUN mv bin/raja-perf.exe /samples/bin/Rajaperf-O3-gcc11
 
-COPY sample_inputs/bubble_sort.cpp /samples/bubble_sort.cpp
-RUN g++-13 -g -O3 /samples/bubble_sort.cpp -o /samples/bin/BubbleSort-O3-gcc13
+# Copy all sample inputs
+COPY sample_inputs /samples/sample_inputs
+
+# Compile sample bubble_sort
+RUN g++-13 -g -O3 /samples/sample_inputs/bubble_sort.cpp -o /samples/bin/BubbleSort-O3-gcc13
 
 # Install Crow
 WORKDIR /root
@@ -56,20 +59,20 @@ RUN wget https://github.com/CrowCpp/Crow/releases/download/v1.0%2B5/crow-v1.0+5.
     dpkg -i crow-v1.0+5.deb && \
     rm crow-v1.0+5.deb
     
+# Build DisViz CLI
 WORKDIR /App
-COPY dis-viz-backend/src src
-COPY dis-viz-backend/CMakeLists.txt .
+COPY dis-viz-cli/src src
+COPY dis-viz-cli/CMakeLists.txt .
 RUN mkdir build
 WORKDIR /App/build
 RUN cmake -DCMAKE_BUILD_TYPE=Release ..
 RUN make -j8
 
-WORKDIR /App
-COPY dis-viz-frontend frontend
-WORKDIR /App/frontend
-RUN npm install
-RUN BUILD_PATH="/App/build/templates" npm run build
+# Add DisViz to PATH
+RUN ln -s /App/build/DisViz /usr/local/bin/DisViz
 
-WORKDIR /App/build
-EXPOSE 8080
-ENTRYPOINT ["./DisViz", "-b", "/samples/bin"]
+# Set working directory to /workspace for user projects
+WORKDIR /workspace
+
+# Start with bash shell
+CMD ["/bin/bash"]

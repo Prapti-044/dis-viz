@@ -16,11 +16,10 @@ compile_commands.json
 CTestTestfile.cmake
 _deps
 
-dis-viz-backend/build
-dis-viz-backend/.vscode
-dis-viz-backend/.cache
+dis-viz-cli/build
+dis-viz-cli/.vscode
+dis-viz-cli/.cache
 sample_inputs/bin
 
-dis-viz-frontend/build
-dis-viz-frontend/node_modules
-dis-viz-frontend/package-lock.json
+# Exclude webapp from Docker build
+dis-viz-webapp

@@ -1,5 +1,5 @@
 {
-  "name": "dis-viz-frontend",
+  "name": "dis-viz-webapp",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
