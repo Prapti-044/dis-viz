@@ -121,6 +121,11 @@ echo -e "${YELLOW}>>> inline_f1.cpp${NC}"
 compile_file "g++" "-g -O3" "inline_f1.cpp" "bin/inline_f1-O3" "O3"
 echo ""
 
+# C++ samples - comprehensive_code.cpp
+echo -e "${YELLOW}>>> comprehensive_code.cpp${NC}"
+compile_file "g++" "-g -O3" "comprehensive_code.cpp" "bin/comprehensive_code-O3" "O3"
+echo ""
+
 # CUDA samples (optional)
 if [[ "$COMPILE_CUDA" == true ]]; then
     echo -e "${YELLOW}>>> vec_add.cu (CUDA)${NC}"
