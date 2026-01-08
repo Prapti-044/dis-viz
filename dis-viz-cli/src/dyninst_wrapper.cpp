@@ -150,9 +150,14 @@ string getSimplifiedFunctionName(const string& signature) {
   }
   string left = (parenIndex >= 0 ? s.substr(0, parenIndex) : s);
 
+  // Handle empty left string early
+  if (left.empty()) {
+    return s;  // Return original if we can't extract a name
+  }
+
   // 2) Walk backwards from just before '(' to capture the *entire* function token,
   //    including namespaces and any trailing template args, while respecting <...>.
-  int i = left.length() - 1;
+  int i = static_cast<int>(left.length()) - 1;
   while (i >= 0 && std::isspace(left[i])) i--; // skip trailing spaces
   int depth = 0;
   int start = i;
@@ -163,7 +168,8 @@ string getSimplifiedFunctionName(const string& signature) {
     if (depth == 0 && std::isspace(c)) { start = i + 1; break; }
     start = i;
   }
-  string token = left.substr(start);
+  // Ensure start is non-negative before substr
+  string token = (start >= 0) ? left.substr(static_cast<size_t>(start)) : left;
 
   // Trim leading/trailing spaces
   token.erase(0, token.find_first_not_of(" \t\r\n"));
@@ -222,6 +228,12 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
   const int lineNum = var->getLineNum(); // 1-based index from Dyninst
   const string fileName = var->getFileName();
 
+  // Get type name
+  string typeName = "";
+  if (var->getType()) {
+    typeName = var->getType()->getName();
+  }
+
   auto varLocations = vector<VarLocation>();
   auto locations = var->getLocationLists();
   for (auto &location : locations) {
@@ -265,7 +277,7 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
     }
     varLocations.push_back({lowPC_str, hiPC_str, finalVarString});
   }
-  return {print_clean_string(name), fileName, lineNum, varLocations};
+  return {print_clean_string(name), typeName, fileName, lineNum, varLocations}; // var_type set later
 }
 
 long totalLoops = 0;
@@ -1223,55 +1235,181 @@ std::tuple<
   for (const auto &sourceFile : unique_sourcefiles) {
     auto sourceCodeData = parseSourceCode(sourceFile);
     
+    // Helper to normalize types for fuzzy comparison
+    auto normalizeType = [](std::string s) {
+      // Remove spaces, *, &, const, volatile to get base type for fuzzy matching
+      // Simple normalization: remove spaces
+      s.erase(std::remove(s.begin(), s.end(), ' '), s.end());
+      return s;
+    };
+
+    // Sort functions to prioritize specific matches (specializations/normal) over generic ones (primary templates)
+    std::sort(sourceCodeData.functions.begin(), sourceCodeData.functions.end(), 
+      [](const SourceFunction& a, const SourceFunction& b) {
+        // Priority: Specialization (highest) > Normal > Primary Template (lowest)
+        int scoreA = a.isTemplateSpecialization ? 2 : (a.isPrimaryTemplate ? 0 : 1);
+        int scoreB = b.isTemplateSpecialization ? 2 : (b.isPrimaryTemplate ? 0 : 1);
+        
+        if (scoreA != scoreB) return scoreA > scoreB;
+        
+        // Secondary sort by line number to keep deterministic order
+        return a.line < b.line;
+    });
+
     for (const auto &sourceFunc : sourceCodeData.functions) {
       
-      bool matched = false;
-      FunctionInfo* bestMatch = nullptr;
+      // Candidates for this source function
+      struct Candidate {
+        FunctionInfo* info;
+        int score;
+      };
+      std::vector<Candidate> candidates;
       
-      // Try to match source function to binary function by name
-      // Use a scoring system: exact match > simplified match > substring match
-      int bestScore = 0;
+      const int MIN_SCORE_THRESHOLD = 2;
       
       for (auto &funcInfo : functionInfos) {
+        // Skip if this function already has source info assigned
+        if (!funcInfo.source_info.file.empty()) {
+          continue;
+        }
+        
         int score = 0;
         auto simplifiedBinaryName = getSimplifiedFunctionName(funcInfo.name);
         
-        // Exact match is best
-        if (sourceFunc.name == funcInfo.name) {
-          score = 3;
-        }
-        // Simplified name match is second best
-        else if (sourceFunc.name == simplifiedBinaryName) {
-          score = 2;
-        }
-        // Substring match (for templates/namespaces) is last resort
-        // But only if it's a word boundary match (not in the middle of a word)
-        else {
-          // Check if source name appears as a complete token in binary name
-          // e.g., "start" should NOT match "_start", but should match "ns::start"
-          std::string searchPattern = "::" + sourceFunc.name;
-          if (funcInfo.name.find(searchPattern) != std::string::npos) {
-            score = 1;
+        // --- 1. Class Name Matching ---
+        bool classMatches = false;
+        if (!sourceFunc.className.empty()) {
+          // Check for "::ClassName::"
+          std::string classPattern = "::" + sourceFunc.className + "::";
+          if (funcInfo.name.find(classPattern) != std::string::npos) {
+             classMatches = true;
+          } else {
+             // Check for "ClassName::" at start
+             std::string altClassPattern = sourceFunc.className + "::";
+             if (funcInfo.name.find(altClassPattern) == 0) {
+                classMatches = true;
+             }
           }
+          
+          if (!classMatches) continue; // Class mismatch -> skip
+        } else {
+           // Source has no class. Binary shouldn't have class prefix (heuristic)
+           // If binary is "Class::func", and source is "func", we should skip unless it's a static/friend?
+           // But let's be lenient for now, maybe just lower score.
+        }
+
+        // --- 2. Function Name Matching ---
+        // Binary name should end with "::funcName" or "::funcName<...>" or just "funcName"
+        std::string funcPattern = sourceFunc.className.empty() ? sourceFunc.name : "::" + sourceFunc.name;
+        
+        size_t funcPos = funcInfo.name.rfind(funcPattern);
+        bool nameMatches = false;
+        
+        if (sourceFunc.className.empty()) {
+           // Exact match
+           if (funcInfo.name == sourceFunc.name) {
+             score += 3;
+             nameMatches = true;
+           } 
+           else if (simplifiedBinaryName == sourceFunc.name) {
+             score += 2;
+             nameMatches = true;
+           }
+        } else {
+           // Member function match
+           if (funcPos != std::string::npos) {
+              size_t afterFunc = funcPos + funcPattern.length();
+              if (afterFunc == funcInfo.name.length() || 
+                  funcInfo.name[afterFunc] == '<' || 
+                  funcInfo.name[afterFunc] == '(') {
+                 score += 4; // High score for Class + Func
+                 nameMatches = true;
+              }
+           }
         }
         
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = &funcInfo;
+        if (!nameMatches) continue;
+        
+        // --- 3. Parameter Matching (for Overloads) ---
+        if (!funcInfo.params.empty() && !sourceFunc.parameters.empty()) {
+          // Compare number of parameters
+          if (funcInfo.params.size() == sourceFunc.parameters.size()) {
+             score += 1; // Count matches
+             
+             // Compare types
+             bool typesMatch = true;
+             for(size_t i=0; i<funcInfo.params.size(); ++i) {
+                std::string binType = normalizeType(funcInfo.params[i].type);
+                std::string srcType = normalizeType(sourceFunc.parameters[i].type);
+                
+                // Fuzzy match: containment or exact
+                if (binType.empty() || srcType.empty()) continue; 
+                
+                if (binType != srcType && 
+                    binType.find(srcType) == std::string::npos && 
+                    srcType.find(binType) == std::string::npos) {
+                   typesMatch = false;
+                   break;
+                }
+             }
+             if (typesMatch) score += 2; // Strong boost for type match
+          }
+        } else if (funcInfo.params.empty() && sourceFunc.parameters.empty()) {
+           score += 1; // Both void/empty
+        }
+
+        // --- 4. Template Matching ---
+        bool binaryIsTemplate = funcInfo.name.find('<') != std::string::npos;
+        if (sourceFunc.isTemplateSpecialization) {
+           // Specialization should match binary with template args
+           if (binaryIsTemplate) score += 2;
+           else score -= 1; 
+        } else if (sourceFunc.isPrimaryTemplate) {
+           // Primary template matches instantiations
+           if (binaryIsTemplate) score += 2;
+        } else {
+           // Normal function
+           if (binaryIsTemplate) {
+              // Only match if no better non-template match? 
+              // Or maybe it's a template function usage.
+           } else {
+              score += 1; // Prefer non-template binary for non-template source
+           }
+        }
+        
+        if (score >= MIN_SCORE_THRESHOLD) {
+           candidates.push_back({&funcInfo, score});
         }
       }
       
-      if (bestMatch && bestScore > 0) {
-        bestMatch->source_info.file = sourceFile;
-        bestMatch->source_info.line = sourceFunc.line;
-        bestMatch->source_info.returnType = sourceFunc.returnType;
-        bestMatch->source_info.parameters.clear();
-        
-        for (const auto &param : sourceFunc.parameters) {
-          bestMatch->source_info.parameters.push_back({param.type, param.name});
-        }
-        
-        matched = true;
+      // Assign logic
+      if (candidates.empty()) continue;
+      
+      // Sort by score descending
+      std::sort(candidates.begin(), candidates.end(), [](const Candidate& a, const Candidate& b) {
+         return a.score > b.score;
+      });
+      
+      int bestScore = candidates[0].score;
+      
+      // If primary template, assign to ALL valid candidates (likely instantiations)
+      // If overload, assign only to BEST matches (top score)
+      
+      bool assignToAll = sourceFunc.isPrimaryTemplate;
+      
+      for (const auto& cand : candidates) {
+         if (assignToAll || cand.score == bestScore) {
+             // Don't overwrite if assigned (check again to be safe)
+             if (!cand.info->source_info.file.empty()) continue;
+             
+             cand.info->source_info.file = sourceFile;
+             cand.info->source_info.line = sourceFunc.line;
+             cand.info->source_info.returnType = sourceFunc.returnType;
+             cand.info->source_info.parameters.clear();
+             for (const auto &param : sourceFunc.parameters) {
+               cand.info->source_info.parameters.push_back({param.type, param.name});
+             }
+         }
       }
     }
   }

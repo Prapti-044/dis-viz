@@ -107,6 +107,70 @@ void getLoops(CXCursor cursor, const std::string &filePath, std::vector<LoopData
       &visitorData);
 }
 
+// Helper function to build the fully qualified name by traversing semantic parents
+std::string buildQualifiedName(CXCursor cursor) {
+  std::vector<std::string> parts;
+  CXCursor current = cursor;
+  
+  while (!clang_Cursor_isNull(current)) {
+    CXCursorKind kind = clang_getCursorKind(current);
+    
+    // Stop at translation unit
+    if (kind == CXCursor_TranslationUnit) {
+      break;
+    }
+    
+    // Only include named scopes
+    if (kind == CXCursor_Namespace ||
+        kind == CXCursor_ClassDecl ||
+        kind == CXCursor_StructDecl ||
+        kind == CXCursor_ClassTemplate ||
+        kind == CXCursor_FunctionDecl ||
+        kind == CXCursor_CXXMethod ||
+        kind == CXCursor_Constructor ||
+        kind == CXCursor_Destructor ||
+        kind == CXCursor_FunctionTemplate) {
+      CXString name = clang_getCursorSpelling(current);
+      std::string nameStr = clang_getCString(name);
+      clang_disposeString(name);
+      
+      if (!nameStr.empty()) {
+        parts.push_back(nameStr);
+      }
+    }
+    
+    current = clang_getCursorSemanticParent(current);
+  }
+  
+  // Reverse to get proper order (outermost first)
+  std::string result;
+  for (auto it = parts.rbegin(); it != parts.rend(); ++it) {
+    if (!result.empty()) {
+      result += "::";
+    }
+    result += *it;
+  }
+  
+  return result;
+}
+
+// Helper function to get the immediate class name for a member function
+std::string getClassName(CXCursor cursor) {
+  CXCursor parent = clang_getCursorSemanticParent(cursor);
+  CXCursorKind parentKind = clang_getCursorKind(parent);
+  
+  if (parentKind == CXCursor_ClassDecl ||
+      parentKind == CXCursor_StructDecl ||
+      parentKind == CXCursor_ClassTemplate) {
+    CXString name = clang_getCursorSpelling(parent);
+    std::string nameStr = clang_getCString(name);
+    clang_disposeString(name);
+    return nameStr;
+  }
+  
+  return "";
+}
+
 void getFunctions(CXCursor cursor, const std::string &filePath, std::vector<SourceFunction> &functions) {
   auto location = clang_getCursorLocation(cursor);
   auto kind = clang_getCursorKind(cursor);
@@ -136,6 +200,16 @@ void getFunctions(CXCursor cursor, const std::string &filePath, std::vector<Sour
     SourceFunction func;
     func.line = line;
     func.name = clang_getCString(funcName);
+    func.className = getClassName(cursor);
+    func.qualifiedName = buildQualifiedName(cursor);
+    
+    // Check if this is a template specialization
+    // Explicit specializations are FunctionDecl (not FunctionTemplate) that specialize a template
+    CXCursor specialized = clang_getSpecializedCursorTemplate(cursor);
+    func.isTemplateSpecialization = !clang_Cursor_isNull(specialized);
+    
+    // Also mark as "primary template" if this is a FunctionTemplate
+    func.isPrimaryTemplate = (kind == CXCursor_FunctionTemplate);
     
     // For constructors and destructors, return type might be invalid
     std::string returnTypeString = clang_getCString(returnTypeStr);

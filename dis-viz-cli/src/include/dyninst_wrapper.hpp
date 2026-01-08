@@ -27,6 +27,7 @@ struct VarLocation {
 };
 struct VariableInfo {
   std::string name;
+  std::string type; // Type name (e.g. "int", "double")
   std::string file;
   int line; // 1-based line number
   std::vector<VarLocation> locations;

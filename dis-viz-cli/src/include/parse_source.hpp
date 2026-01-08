@@ -16,9 +16,13 @@ struct SourceFunctionParam {
 
 struct SourceFunction {
   unsigned int line; // 1-based line number from Clang
-  std::string name;
+  std::string name;           // Simple function name (e.g., "runSeqVariant")
+  std::string className;      // Class name if member function (e.g., "LTIMES"), empty for free functions
+  std::string qualifiedName;  // Fully qualified name including namespaces (e.g., "rajaperf::apps::LTIMES::runSeqVariant")
   std::string returnType;
   std::vector<SourceFunctionParam> parameters;
+  bool isTemplateSpecialization = false;  // True if this is an explicit template specialization
+  bool isPrimaryTemplate = false;         // True if this is a function template (not an instantiation)
 };
 
 struct SourceCodeData {

@@ -69,7 +69,7 @@ export const SOURCE_TAGS = [
   {
     id: 'CALL_GRAPH' as const,
     fullName: 'Call Graph',
-    shortName: 'graph',
+    shortName: 'Calls',
     color: '#d9d2e9',
     borderColor: '#FFFFFF',
     textColor: 'black',

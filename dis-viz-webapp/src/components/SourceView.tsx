@@ -93,6 +93,7 @@ const TooltipWrapper: React.FC<{
                             <CallGraphTooltip
                                 callGraphInfo={callGraphInfo}
                                 dispatch={dispatch}
+                                validBinaryFilePaths={validBinaryFilePaths}
                             />
                         )}
                         {shouldShowMemoryTooltip && memoryInfo && (

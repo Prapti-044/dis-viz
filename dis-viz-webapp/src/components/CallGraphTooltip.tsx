@@ -1,5 +1,7 @@
 import React from 'react';
 import { AppDispatch } from '../app/store';
+import { setSelection } from '../features/selections/selectionsSlice';
+import * as disvizProcessor from '../disvizProcessor';
 
 interface CallGraphInfo {
     functionName: string;
@@ -17,11 +19,13 @@ interface CallGraphInfo {
 interface CallGraphTooltipProps {
     callGraphInfo: CallGraphInfo;
     dispatch: AppDispatch;
+    validBinaryFilePaths: string[];
 }
 
 const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
     callGraphInfo,
-    dispatch
+    dispatch,
+    validBinaryFilePaths
 }) => {
     const { 
         functionName, 
@@ -35,6 +39,65 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
         outDegree, 
         inlines 
     } = callGraphInfo;
+
+    // Handler for clicking on a function name to navigate to its definition
+    const handleFunctionClick = (funcName: string) => {
+        // Try to find the function info from any of the loaded binaries
+        for (const binaryPath of validBinaryFilePaths) {
+            try {
+                const funcInfo = disvizProcessor.getFunctionInfo(binaryPath, funcName);
+                if (funcInfo && funcInfo.source_info && funcInfo.source_info.file && funcInfo.source_info.line > 0) {
+                    const sourceFile = funcInfo.source_info.file;
+                    const startLine = funcInfo.source_info.line; // 1-based line number
+                    
+                    // Get source lines to find the first line with assembly correspondence
+                    const sourceData = disvizProcessor.getSourceLines(validBinaryFilePaths, sourceFile);
+                    
+                    // Find the first line starting from the function definition that has correspondence
+                    let targetLine = -1;
+                    let binarySelections: { binary_file: string; addresses: number[] }[] = [];
+                    
+                    // Search from the function definition line onwards
+                    for (let lineIdx = startLine - 1; lineIdx < sourceData.lines.length; lineIdx++) {
+                        const line = sourceData.lines[lineIdx];
+                        const hasCorrespondence = validBinaryFilePaths.some(bp => {
+                            const addresses = line.addresses[bp];
+                            return addresses && addresses.length > 0;
+                        });
+                        
+                        if (hasCorrespondence) {
+                            targetLine = lineIdx; // 0-based index for selection
+                            // Collect binary selections
+                            binarySelections = validBinaryFilePaths
+                                .map(bp => {
+                                    const addresses = line.addresses[bp];
+                                    if (addresses && addresses.length > 0) {
+                                        return { binary_file: bp, addresses };
+                                    }
+                                    return null;
+                                })
+                                .filter((sel): sel is { binary_file: string; addresses: number[] } => sel !== null);
+                            break;
+                        }
+                    }
+                    
+                    if (targetLine >= 0) {
+                        dispatch(setSelection({
+                            source_selection: [{
+                                source_file: sourceFile,
+                                source_lines: [targetLine]
+                            }],
+                            binary_selection: binarySelections
+                        }));
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Function not found in this binary, try the next one
+                continue;
+            }
+        }
+    };
 
     return (
         <div
@@ -115,7 +178,8 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.backgroundColor = bgColor;
                                     }}
-                                    title={isBuiltIn ? 'Built-in function' : 'User-defined function'}
+                                    onClick={() => handleFunctionClick(funcName)}
+                                    title={isBuiltIn ? 'Built-in function - Click to navigate' : 'User-defined function - Click to navigate'}
                                 >
                                     ← {funcName}
                                 </div>
@@ -165,7 +229,8 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.backgroundColor = bgColor;
                                     }}
-                                    title={isBuiltIn ? 'Built-in function' : 'User-defined function'}
+                                    onClick={() => handleFunctionClick(funcName)}
+                                    title={isBuiltIn ? 'Built-in function - Click to navigate' : 'User-defined function - Click to navigate'}
                                 >
                                     → {funcName}
                                 </div>
