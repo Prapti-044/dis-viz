@@ -41,7 +41,11 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
     } = callGraphInfo;
 
     // Handler for clicking on a function name to navigate to its definition
-    const handleFunctionClick = (funcName: string) => {
+    const handleFunctionClick = (e: React.MouseEvent, funcName: string) => {
+        // Stop propagation to prevent SourceLine's onClick from firing
+        e.stopPropagation();
+        e.preventDefault();
+        
         // Try to find the function info from any of the loaded binaries
         for (const binaryPath of validBinaryFilePaths) {
             try {
@@ -178,7 +182,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.backgroundColor = bgColor;
                                     }}
-                                    onClick={() => handleFunctionClick(funcName)}
+                                    onClick={(e) => handleFunctionClick(e, funcName)}
                                     title={isBuiltIn ? 'Built-in function - Click to navigate' : 'User-defined function - Click to navigate'}
                                 >
                                     ← {funcName}
@@ -229,7 +233,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                                     onMouseLeave={(e) => {
                                         e.currentTarget.style.backgroundColor = bgColor;
                                     }}
-                                    onClick={() => handleFunctionClick(funcName)}
+                                    onClick={(e) => handleFunctionClick(e, funcName)}
                                     title={isBuiltIn ? 'Built-in function - Click to navigate' : 'User-defined function - Click to navigate'}
                                 >
                                     → {funcName}

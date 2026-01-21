@@ -1,698 +1,413 @@
-import React, { Suspense } from 'react'
-import ReactDOM from 'react-dom/client'
-import '../styles/sourceview.css'
-import { setSelection, clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice'
-import * as disvizProcessor from '../disvizProcessor'
-import { useAppSelector, useAppDispatch } from '../app/hooks'
-import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice'
-import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
-import { HIGHLIGHT_COLOR, SOURCE_TAGS } from '../utils'
-import MonacoEditor, { loader } from '@monaco-editor/react'
-import * as monaco from 'monaco-editor'
-import { selectAllTagStates } from '../features/tags/tagsSlice'
-import { useFloating, autoUpdate, offset, flip, shift, useHover, useDismiss, useRole, useInteractions, FloatingPortal } from '@floating-ui/react'
-import InlineTreeTooltip from './InlineTreeTooltip'
-import CallGraphTooltip from './CallGraphTooltip'
-import MemoryTooltip from './MemoryTooltip'
-import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types'
-import { AppDispatch } from '../app/store'
+import React, { Suspense, useCallback, useMemo, useRef, useEffect, useState } from 'react';
+import { List, useListRef } from 'react-window';
+import '../styles/sourceview.css';
+import { setSelection, clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice';
+import * as disvizProcessor from '../disvizProcessor';
+import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice';
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
+import { SOURCE_TAGS } from '../utils';
+import { selectAllTagStates } from '../features/tags/tagsSlice';
+import SourceLine, { highlightAllLines } from './SourceLine';
+import SourceMinimap from './SourceMinimap';
+import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types';
+import { AppDispatch } from '../app/store';
+import { CSSProperties, ReactElement } from 'react';
 
-loader.config({ monaco });
+const LINE_HEIGHT = 20; // Fixed line height for virtualization
 
-// Component to wrap tags with tooltip functionality
-const TooltipWrapper: React.FC<{
-    children: React.ReactNode;
-    inlineTree?: InlineEntry[];
-    callGraphInfo?: CallGraphInfo;
-    memoryInfo?: MemoryInfo;
-    tagId: string;
-    dispatch: AppDispatch;
+interface SourceViewProps {
+    file_name: string;
+}
+
+// Define the props that will be passed to the row component
+interface RowData {
+    sourceLines: string[];
+    highlightedLines: string[];
+    correspondenceLines: Set<number>;
+    selectedLines: number[];
+    hoveredLines: number[];
+    lineTags: number[][][];
+    lineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } };
+    lineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } };
+    lineMemoryInfo: { [line: number]: { [binary: string]: MemoryInfo } };
+    enabledTags: { [key: string]: boolean };
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-}> = ({ children, inlineTree, callGraphInfo, memoryInfo, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
-    const [isOpen, setIsOpen] = React.useState(false);
+    dispatch: AppDispatch;
+    onLineClick: (lineIndex: number) => void;
+    onLineMouseEnter: (lineIndex: number) => void;
+    onLineMouseLeave: () => void;
+}
 
-    const { refs, floatingStyles, context } = useFloating({
-        open: isOpen,
-        onOpenChange: setIsOpen,
-        middleware: [
-            offset(8),
-            flip(),
-            shift()
-        ],
-        whileElementsMounted: autoUpdate,
-    });
+// Row component props for react-window v2
+interface RowRendererProps extends RowData {
+    ariaAttributes: {
+        "aria-posinset": number;
+        "aria-setsize": number;
+        role: "listitem";
+    };
+    index: number;
+    style: CSSProperties;
+}
 
-    const hover = useHover(context, {
-        delay: { open: 300, close: 150 }
-    });
-    const dismiss = useDismiss(context);
-    const role = useRole(context, { role: 'tooltip' });
+// Row component for react-window
+const RowRenderer = (props: RowRendererProps): ReactElement | null => {
+    const {
+        index,
+        style,
+        sourceLines,
+        highlightedLines,
+        correspondenceLines,
+        selectedLines,
+        hoveredLines,
+        lineTags,
+        lineInlineTrees,
+        lineCallGraphInfo,
+        lineMemoryInfo,
+        enabledTags,
+        validBinaryFilePaths,
+        correspondences,
+        dispatch,
+        onLineClick,
+        onLineMouseEnter,
+        onLineMouseLeave,
+    } = props;
 
-    const { getReferenceProps, getFloatingProps } = useInteractions([
-        hover,
-        dismiss,
-        role,
-    ]);
-
-    // Check if we should show tooltip
-    const shouldShowInlineTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
-    const shouldShowCallGraphTooltip = tagId === 'CALL_GRAPH' && callGraphInfo;
-    const shouldShowMemoryTooltip = tagId === 'MEMORY' && memoryInfo;
-    const shouldShowTooltip = shouldShowInlineTooltip || shouldShowCallGraphTooltip || shouldShowMemoryTooltip;
-
-    if (!shouldShowTooltip) {
-        return <>{children}</>;
-    }
+    const lineIndex = index;
+    const lineContent = sourceLines[lineIndex] || '';
+    const highlightedHtml = highlightedLines[lineIndex] || '';
+    const hasCorrespondence = correspondenceLines.has(lineIndex);
+    const isSelected = selectedLines.includes(lineIndex);
+    const isHovered = hoveredLines.includes(lineIndex);
+    const tags = lineTags[lineIndex] || [];
+    const inlineTree = lineInlineTrees[lineIndex];
+    const callGraphInfoForLine = lineCallGraphInfo[lineIndex];
+    const memoryInfoForLine = lineMemoryInfo[lineIndex];
 
     return (
-        <>
-            <div ref={refs.setReference} {...getReferenceProps()}>
-                {children}
-            </div>
-            {isOpen && (
-                <FloatingPortal root={document.body}>
-                    <div
-                        ref={refs.setFloating}
-                        style={{
-                            ...floatingStyles,
-                            zIndex: 100,
-                            position: 'fixed'
-                        }}
-                        {...getFloatingProps()}
-                    >
-                        {shouldShowInlineTooltip && inlineTree && (
-                            <InlineTreeTooltip
-                                inlineTree={inlineTree}
-                                dispatch={dispatch}
-                                validBinaryFilePaths={validBinaryFilePaths}
-                                correspondences={correspondences}
-                            />
-                        )}
-                        {shouldShowCallGraphTooltip && callGraphInfo && (
-                            <CallGraphTooltip
-                                callGraphInfo={callGraphInfo}
-                                dispatch={dispatch}
-                                validBinaryFilePaths={validBinaryFilePaths}
-                            />
-                        )}
-                        {shouldShowMemoryTooltip && memoryInfo && (
-                            <MemoryTooltip
-                                memoryInfo={memoryInfo}
-                                dispatch={dispatch}
-                            />
-                        )}
-                    </div>
-                </FloatingPortal>
-            )}
-        </>
+        <SourceLine
+            lineIndex={lineIndex}
+            lineContent={lineContent}
+            highlightedHtml={highlightedHtml}
+            hasCorrespondence={hasCorrespondence}
+            isSelected={isSelected}
+            isHovered={isHovered}
+            tags={tags}
+            inlineTree={inlineTree}
+            callGraphInfo={callGraphInfoForLine}
+            memoryInfo={memoryInfoForLine}
+            enabledTags={enabledTags}
+            validBinaryFilePaths={validBinaryFilePaths}
+            correspondences={correspondences}
+            dispatch={dispatch}
+            onClick={onLineClick}
+            onMouseEnter={onLineMouseEnter}
+            onMouseLeave={onLineMouseLeave}
+            style={style}
+        />
     );
 };
 
-function SourceView({ file_name }: {
-    file_name: string,
-}) {
-
-    const dispatch = useAppDispatch()
-    const thisSelection = useAppSelector(selectSourceSelection).find(selection => selection.source_file === file_name)
-    const selectedLines = React.useMemo(() => thisSelection?.source_lines ?? [], [thisSelection])
-    const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
-    const validBinaryFilePaths = binaryFilePaths.filter(f => f !== '')
-    const mouseHighlight = useAppSelector(selectSourceHoverHighlight)
-
-    const [sourceCode, setSourceCode] = React.useState("")
-    // correspondences[binaryPath][i] contains addresses for source line i+1 (array is 0-indexed, lines are 1-based)
-    const [correspondences, setCorrespondences] = React.useState<{ [binaryFilePath: string]: number[][] }>({})
-    const [lineTags, setLineTags] = React.useState<number[][][]>([]) // [line][tag][binary] - line is 0-indexed array position
-    const [lineInlineTrees, setLineInlineTrees] = React.useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({}) // line is 0-indexed
-    const [lineCallGraphInfo, setLineCallGraphInfo] = React.useState<{ [line: number]: { [binary: string]: CallGraphInfo } }>({}) // line is 0-indexed
-    const [lineMemoryInfo, setLineMemoryInfo] = React.useState<{ [line: number]: { [binary: string]: MemoryInfo } }>({}) // line is 0-indexed
+function SourceView({ file_name }: SourceViewProps) {
+    const dispatch = useAppDispatch();
+    const thisSelection = useAppSelector(selectSourceSelection).find(selection => selection.source_file === file_name);
+    const selectedLines = useMemo(() => thisSelection?.source_lines ?? [], [thisSelection]);
+    const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
+    // Memoize to prevent new array reference on every render (was causing infinite loop)
+    const validBinaryFilePaths = useMemo(() => binaryFilePaths.filter(f => f !== ''), [binaryFilePaths]);
+    const mouseHighlight = useAppSelector(selectSourceHoverHighlight);
     const enabledTags = useAppSelector(selectAllTagStates);
 
-    const editorRef = React.useRef<monaco.editor.IStandaloneCodeEditor | null>(null)
+    // Source code state
+    const [sourceLines, setSourceLines] = useState<string[]>([]);
+    const [highlightedLines, setHighlightedLines] = useState<string[]>([]);
+    const [correspondences, setCorrespondences] = useState<{ [binaryFilePath: string]: number[][] }>({});
+    const [lineTags, setLineTags] = useState<number[][][]>([]); // [line][tag][binary]
+    const [lineInlineTrees, setLineInlineTrees] = useState<{ [line: number]: { [binary: string]: InlineEntry[] } }>({});
+    const [lineCallGraphInfo, setLineCallGraphInfo] = useState<{ [line: number]: { [binary: string]: CallGraphInfo } }>({});
+    const [lineMemoryInfo, setLineMemoryInfo] = useState<{ [line: number]: { [binary: string]: MemoryInfo } }>({});
 
-    const [editorRefUpdated, setEditorRefUpdated] = React.useState(false)
-    const [selectionDecorationCollection, setSelectionDecorationCollection] = React.useState<monaco.editor.IEditorDecorationsCollection | null>(null)
-    const [correspondenceDecorationCollection, setCorrespondenceDecorationCollection] = React.useState<monaco.editor.IEditorDecorationsCollection | null>(null)
-    const [tagsDecorationCollection, setTagsDecorationCollection] = React.useState<monaco.editor.IEditorDecorationsCollection | null>(null)
+    // Refs for virtualization
+    const listRef = useListRef(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [containerHeight, setContainerHeight] = useState(600);
+    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 0 });
 
-    const monacoOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
-        lineNumbers: "on",
-        lineNumbersMinChars: 1,
-        glyphMargin: true, // gap before line numbers
-        lineDecorationsWidth: 1 + "ch",
-        roundedSelection: false,
-        readOnly: true, // Disables editing
-        readOnlyMessage: undefined, // Disables the read-only message
-        linkedEditing: false, // Disables linked editing
-        renderValidationDecorations: 'on',
-        scrollbar: {
-            vertical: "auto",
-        },
-        minimap: {
-            enabled: true,
-            autohide: 'scroll',
-            size: "proportional",
-            showSlider: "always",
-            renderCharacters: true,
-            maxColumn: 100,
-            scale: 2,
-            showRegionSectionHeaders: true,
-            showMarkSectionHeaders: true,
-        },
-        overviewRulerLanes: 2,
-        overviewRulerBorder: true, // Disables the overview ruler border
-        cursorBlinking: "solid", // eventually cursor will be removed
-        mouseStyle: 'default',
-        cursorSmoothCaretAnimation: 'off',
-        cursorWidth: 0, // Sets cursor width to 0 to make it invisible
-        fontLigatures: true,
-        scrollBeyondLastLine: false,
-        smoothScrolling: true,
-        automaticLayout: true,
-        wordWrap: 'off',
-        colorDecorators: false,
-        suggestOnTriggerCharacters: false,
-        acceptSuggestionOnCommitCharacter: false,
-        acceptSuggestionOnEnter: "off",
-        snippetSuggestions: 'none',
-        tabCompletion: 'off',
-        selectionHighlight: false, // Disables selection highlighting
-        occurrencesHighlight: 'off', // Disables occurrence highlighting
-        codeLens: true, // Enable CodeLens
-        lightbulb: { enabled: monaco.editor.ShowLightbulbIconMode.Off }, // Disables lightbulb
-        folding: false,
-        renderLineHighlight: 'none', // Disables line highlighting
-        lineHeight: 20,
-        letterSpacing: 0,
-        showUnused: true,
-        bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
-        dropIntoEditor: { enabled: false },
+    // Compute correspondence lines set for minimap
+    const correspondenceLines = useMemo(() => {
+        const lines = new Set<number>();
+        validBinaryFilePaths.forEach((binaryFilePath) => {
+            correspondences[binaryFilePath]?.forEach((addresses, lineIndex) => {
+                if (addresses.length > 0) {
+                    lines.add(lineIndex);
+                }
+            });
+        });
+        return lines;
+    }, [correspondences, validBinaryFilePaths]);
 
-        selectOnLineNumbers: true,
-        disableLayerHinting: true, // Disables layer hinting
-        hideCursorInOverviewRuler: true, // Hides cursor in overview ruler
-        contextmenu: false, // Disables the context menu
-        hover: { enabled: true }, // Disables hover effects
-    }
+    // Compute hovered lines for this file
+    const hoveredLines = useMemo(() => {
+        return mouseHighlight.find(highlight => highlight.source_file === file_name)?.source_lines || [];
+    }, [mouseHighlight, file_name]);
 
-    // load source file
-    React.useEffect(() => {
+    // Load source file
+    useEffect(() => {
         if (validBinaryFilePaths.length === 0) {
-            setSourceCode("")
-            setCorrespondences({})
-            setLineTags([])
-            setLineInlineTrees({})
-            setLineCallGraphInfo({})
-            setLineMemoryInfo({})
-            return
+            setSourceLines([]);
+            setHighlightedLines([]);
+            setCorrespondences({});
+            setLineTags([]);
+            setLineInlineTrees({});
+            setLineCallGraphInfo({});
+            setLineMemoryInfo({});
+            return;
         }
-        const sourceFile = disvizProcessor.getSourceLines(validBinaryFilePaths, file_name)
 
-        // Extract source code
-        const lines = sourceFile.lines.map(line => line.line)
-        setSourceCode(lines.join('\n'))
+        const sourceFile = disvizProcessor.getSourceLines(validBinaryFilePaths, file_name);
+        const lines = sourceFile.lines.map(line => line.line);
+        setSourceLines(lines);
 
-        // Extract correspondences
-        const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {}
-        const tmpLineTags = Array.from({ length: sourceFile.lines.length }, () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])) // [line][tag][binary]
-        const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {}
-        const tmpLineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } } = {}
-        const tmpLineMemoryInfo: { [line: number]: { [binary: string]: MemoryInfo } } = {}
+        // Pre-highlight all lines for better performance
+        const highlighted = highlightAllLines(lines);
+        setHighlightedLines(highlighted);
+
+        // Extract correspondences and tags
+        const tmpCorrespondences: { [binaryFilePath: string]: number[][] } = {};
+        const tmpLineTags = Array.from(
+            { length: sourceFile.lines.length },
+            () => Array.from({ length: SOURCE_TAGS.length }, () => [] as number[])
+        );
+        const tmpLineInlineTrees: { [line: number]: { [binary: string]: InlineEntry[] } } = {};
+        const tmpLineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } } = {};
+        const tmpLineMemoryInfo: { [line: number]: { [binary: string]: MemoryInfo } } = {};
 
         validBinaryFilePaths.forEach((binaryFilePath, binaryI) => {
-            tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || [])
+            tmpCorrespondences[binaryFilePath] = sourceFile.lines.map(line => line.addresses[binaryFilePath] || []);
 
             sourceFile.lines.forEach((line, lineI) => {
                 if (line.tags[binaryFilePath]) {
                     line.tags[binaryFilePath].forEach(tag => {
-                        tmpLineTags[lineI][SOURCE_TAGS.findIndex(t => t.id === tag)].push(binaryI)
-                    })
+                        const tagIndex = SOURCE_TAGS.findIndex(t => t.id === tag);
+                        if (tagIndex >= 0) {
+                            tmpLineTags[lineI][tagIndex].push(binaryI);
+                        }
+                    });
                 }
 
                 // Extract inline trees
                 if (line.inline_tree && line.inline_tree[binaryFilePath] && line.inline_tree[binaryFilePath].length > 0) {
                     if (!tmpLineInlineTrees[lineI]) {
-                        tmpLineInlineTrees[lineI] = {}
+                        tmpLineInlineTrees[lineI] = {};
                     }
-                    tmpLineInlineTrees[lineI][binaryFilePath] = line.inline_tree[binaryFilePath]
+                    tmpLineInlineTrees[lineI][binaryFilePath] = line.inline_tree[binaryFilePath];
                 }
 
                 // Extract call graph info
                 if (line.call_graph_info && line.call_graph_info[binaryFilePath]) {
                     if (!tmpLineCallGraphInfo[lineI]) {
-                        tmpLineCallGraphInfo[lineI] = {}
+                        tmpLineCallGraphInfo[lineI] = {};
                     }
-                    tmpLineCallGraphInfo[lineI][binaryFilePath] = line.call_graph_info[binaryFilePath]
+                    tmpLineCallGraphInfo[lineI][binaryFilePath] = line.call_graph_info[binaryFilePath];
                 }
 
                 // Extract memory info
                 if (line.memory_info && line.memory_info[binaryFilePath]) {
                     if (!tmpLineMemoryInfo[lineI]) {
-                        tmpLineMemoryInfo[lineI] = {}
+                        tmpLineMemoryInfo[lineI] = {};
                     }
-                    tmpLineMemoryInfo[lineI][binaryFilePath] = line.memory_info[binaryFilePath]
-                }
-            })
-        })
-        setCorrespondences(tmpCorrespondences)
-        setLineTags(tmpLineTags)
-        setLineInlineTrees(tmpLineInlineTrees)
-        setLineCallGraphInfo(tmpLineCallGraphInfo)
-        setLineMemoryInfo(tmpLineMemoryInfo)
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [binaryFilePaths, file_name])
-
-    // add decorations for lines with correspondences and tags
-    React.useEffect(() => {
-        if (editorRef.current === null || correspondenceDecorationCollection === null || tagsDecorationCollection === null) return
-        if (Object.keys(correspondences).length === 0) return
-
-        const editor = editorRef.current;
-
-        // Keep track of current widgets
-        const currentWidgets = new Set<string>();
-
-        // Function to create and position widgets
-        function createAndPositionWidgets() {
-            // Remove existing widgets
-            const widgetIds = lineTags.map((_, line) => `tags.line.${line}`);
-            widgetIds.forEach(id => {
-                if (currentWidgets.has(id)) {
-                    try {
-                        const dummyElement = document.createElement('div');
-                        editor.removeContentWidget({
-                            getId: () => id,
-                            getDomNode: () => dummyElement,
-                            getPosition: () => null
-                        });
-                        currentWidgets.delete(id);
-                    } catch (e) {
-                        // Widget might not exist yet
-                    }
+                    tmpLineMemoryInfo[lineI][binaryFilePath] = line.memory_info[binaryFilePath];
                 }
             });
-
-            // Add content widgets for tags
-            lineTags.forEach((tags, line) => {
-                // Only create widget if there are enabled tags
-                if (tags.every(binaries => binaries.length === 0 || !enabledTags[SOURCE_TAGS[tags.indexOf(binaries)].id])) {
-                    return;
-                }
-
-                const widgetId = `tags.line.${line}`;
-                if (currentWidgets.has(widgetId)) {
-                    return; // Skip if widget already exists
-                }
-
-                const contentWidget: monaco.editor.IContentWidget = {
-                    allowEditorOverflow: true,
-                    getId: function () {
-                        return widgetId;
-                    },
-                    getDomNode: function () {
-                        const container = document.createElement('div');
-                        container.style.width = '100%';  // Make container full width
-                        const root = ReactDOM.createRoot(container);
-                        root.render(
-                            <div className="right-tags-wrapper">
-                                <div className="right-tags">
-                                    {tags.map((binaries, tagIndex) => {
-                                        if (binaries.length === 0 || !enabledTags[SOURCE_TAGS[tagIndex].id]) {
-                                            return null;
-                                        }
-
-                                        const tagId = SOURCE_TAGS[tagIndex].id;
-                                        const inlineTreeForLine = lineInlineTrees[line];
-                                        const callGraphInfoForLine = lineCallGraphInfo[line];
-                                        const memoryInfoForLine = lineMemoryInfo[line];
-                                        let inlineTreeData: InlineEntry[] = [];
-                                        let callGraphData: CallGraphInfo | undefined = undefined;
-                                        let memoryData: MemoryInfo | undefined = undefined;
-
-                                        // Get inline tree data for this line from any binary that has it
-                                        if (tagId === 'INLINE' && inlineTreeForLine) {
-                                            for (const binaryPath of validBinaryFilePaths) {
-                                                if (inlineTreeForLine[binaryPath]) {
-                                                    inlineTreeData = inlineTreeForLine[binaryPath];
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        // Get call graph data for this line from any binary that has it
-                                        if (tagId === 'CALL_GRAPH' && callGraphInfoForLine) {
-                                            for (const binaryPath of validBinaryFilePaths) {
-                                                if (callGraphInfoForLine[binaryPath]) {
-                                                    callGraphData = callGraphInfoForLine[binaryPath];
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        // Get memory data for this line from any binary that has it
-                                        if (tagId === 'MEMORY' && memoryInfoForLine) {
-                                            for (const binaryPath of validBinaryFilePaths) {
-                                                if (memoryInfoForLine[binaryPath]) {
-                                                    memoryData = memoryInfoForLine[binaryPath];
-                                                    break;
-                                                }
-                                            }
-                                        }
-
-                                        return (
-                                            <TooltipWrapper
-                                                key={tagIndex + line.toString()}
-                                                tagId={tagId}
-                                                inlineTree={inlineTreeData}
-                                                callGraphInfo={callGraphData}
-                                                memoryInfo={memoryData}
-                                                dispatch={dispatch}
-                                                validBinaryFilePaths={validBinaryFilePaths}
-                                                correspondences={correspondences}
-                                            >
-                                                <div className="right-tags-container"
-                                                    style={{
-                                                        border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
-                                                        color: SOURCE_TAGS[tagIndex].textColor,
-                                                        backgroundColor: SOURCE_TAGS[tagIndex].color,
-                                                        fontFamily: 'Consolas',
-                                                    }}>
-                                                    <div className="right-tag">
-                                                        <span className="right-tag-name">{SOURCE_TAGS[tagIndex].shortName}</span>
-                                                        {validBinaryFilePaths.length > 1 && (
-                                                            <div className="right-tag-binaries">
-                                                                {validBinaryFilePaths.map((binaryPath, binaryIndex) => (
-                                                                    <div
-                                                                        className={`right-tag-binary ${tags[tagIndex].includes(binaryIndex) ? 'active' : 'inactive'}`}
-                                                                        key={`${line}-${tagIndex}-${binaryIndex}`}
-                                                                        title={binaryPath.split('/').pop()}
-                                                                    />
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </TooltipWrapper>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        );
-                        return container;
-                    },
-                    getPosition: function () {
-                        return {
-                            position: {
-                                lineNumber: line + 1,
-                                column: 0
-                            },
-                            preference: [monaco.editor.ContentWidgetPositionPreference.EXACT]
-                        };
-                    }
-                };
-                editor.addContentWidget(contentWidget);
-                currentWidgets.add(widgetId);
-            });
-        }
-
-        // Create initial widgets
-        createAndPositionWidgets();
-
-        // Add resize listener with debounce
-        let resizeTimeout: NodeJS.Timeout;
-        const disposable = editor.onDidLayoutChange(() => {
-            if (resizeTimeout) {
-                clearTimeout(resizeTimeout);
-            }
-            resizeTimeout = setTimeout(() => {
-                createAndPositionWidgets();
-            }, 100); // Debounce resize events
         });
 
-        // pick the lines that have a correspondence
-        const linesWithCorrespondences = new Set<number>()
+        setCorrespondences(tmpCorrespondences);
+        setLineTags(tmpLineTags);
+        setLineInlineTrees(tmpLineInlineTrees);
+        setLineCallGraphInfo(tmpLineCallGraphInfo);
+        setLineMemoryInfo(tmpLineMemoryInfo);
+    }, [validBinaryFilePaths, file_name]);
+
+    // Handle container resize
+    useEffect(() => {
+        if (!containerRef.current) return;
+
+        const updateHeight = () => {
+            if (containerRef.current) {
+                setContainerHeight(containerRef.current.clientHeight);
+            }
+        };
+
+        updateHeight();
+
+        const resizeObserver = new ResizeObserver(updateHeight);
+        resizeObserver.observe(containerRef.current);
+
+        return () => resizeObserver.disconnect();
+    }, []);
+
+    // Scroll to selected lines when selection changes
+    useEffect(() => {
+        if (selectedLines.length > 0 && listRef.current) {
+            const firstSelectedLine = selectedLines[0];
+            listRef.current.scrollToRow({ index: firstSelectedLine, align: 'center' });
+        }
+    }, [selectedLines, listRef]);
+
+    // Handle line click
+    const handleLineClick = useCallback((lineIndex: number) => {
+        const addresses: BinarySelection[] = [];
         validBinaryFilePaths.forEach((binaryFilePath) => {
-            correspondences[binaryFilePath].forEach((addresses, line) => {
-                if (addresses.length > 0) {
-                    linesWithCorrespondences.add(line + 1) // make it 1-based
-                }
-            })
-        })
-        const decorations: monaco.editor.IModelDeltaDecoration[] = [...linesWithCorrespondences].map((line) => ({
-            range: new monaco.Range(line, 1, line, 1),
-            options: {
-                isWholeLine: true,
-                lineNumberClassName: 'hasCorrespondence',
-                // overviewRuler: {
-                //     color: HIGHLIGHT_COLOR,
-                //     position: monaco.editor.OverviewRulerLane.Full,
-                // },
-                // minimap: {
-                //     color: '#90EE9088',
-                //     position: monaco.editor.MinimapPosition.Inline,
-                // },
-                zIndex: 1,
-            },
-        }))
-
-        // add line number glyph decorations for line tags
-        lineTags.forEach((tags, line) => {
-            const tagClasses = ['line-tags']
-
-            tags.forEach((binaries, i) => {
-                const tagLetter = SOURCE_TAGS[i].shortName
-                tagClasses.push(`${tagLetter}${binaries.join('')}`);
-            })
-
-            const lineNum = line + 1
-            decorations.push({
-                range: new monaco.Range(lineNum, 1, lineNum, 1),
-                options: {
-                    isWholeLine: true,
-                    glyphMarginClassName: tagClasses.join(' '),
-                    zIndex: 2,
-                },
-            })
-        })
-
-        correspondenceDecorationCollection.set(decorations)
-
-        return () => {
-            disposable.dispose();
-            if (resizeTimeout) {
-                clearTimeout(resizeTimeout);
-            }
-            // Clean up all widgets on unmount
-            currentWidgets.forEach(id => {
-                try {
-                    const dummyElement = document.createElement('div');
-                    editor.removeContentWidget({
-                        getId: () => id,
-                        getDomNode: () => dummyElement,
-                        getPosition: () => null
-                    });
-                } catch (e) {
-                    // Widget might already be removed
-                }
-            });
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editorRefUpdated, correspondences, correspondenceDecorationCollection, lineTags, tagsDecorationCollection, enabledTags, lineInlineTrees, lineCallGraphInfo, lineMemoryInfo]);
-
-    // add decoration for selected lines
-    React.useEffect(() => {
-        if (editorRef.current === null || selectionDecorationCollection === null) return
-
-        const decorations: monaco.editor.IModelDeltaDecoration[] = selectedLines.map(l => l + 1).map((lineNumber) => ({
-            range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-            options: {
-                isWholeLine: true,
-                className: 'selected-line',
-                overviewRuler: {
-                    color: HIGHLIGHT_COLOR,
-                    position: monaco.editor.OverviewRulerLane.Full,
-                },
-                minimap: {
-                    color: HIGHLIGHT_COLOR,
-                    position: monaco.editor.MinimapPosition.Inline,
-                },
-                zIndex: 2,
-                linesDecorationsClassName: 'selection-line-button',
-                beforeContentClassName: 'selection-button-container',
-            },
-        }))
-
-        // mouse highlight
-        const linesToHighlight = mouseHighlight.find(highlight => highlight.source_file === file_name)?.source_lines.map(line => line + 1) || [] // make it 1-based
-
-        if (linesToHighlight.length > 0) {
-            // Create decorations for the specified lines
-            decorations.push(...linesToHighlight.map((lineNumber) => ({
-                range: new monaco.Range(lineNumber, 1, lineNumber, 1),
-                options: {
-                    isWholeLine: true,
-                    className: `mouseHoverHighlight`,
-                    overviewRuler: {
-                        color: '#00000088',
-                        position: monaco.editor.OverviewRulerLane.Full,
-                    },
-                    minimap: {
-                        color: '#00000088',
-                        position: monaco.editor.MinimapPosition.Inline,
-                    },
-                    zIndex: 3,
-                },
-            })))
-        }
-        selectionDecorationCollection.set(decorations)
-    }, [selectedLines, file_name, editorRefUpdated, selectionDecorationCollection, mouseHighlight])
-
-    // add decorations for hovered lines
-    React.useEffect(() => {
-        if (editorRef.current === null || correspondenceDecorationCollection === null || Object.keys(correspondences).length === 0) return
-
-        editorRef.current.onMouseMove((e) => {
-            if (e.target.type !== monaco.editor.MouseTargetType.CONTENT_TEXT) {
-                // Clear hover highlights when mouse is not over text
-                dispatch(clearHoverHighlight())
-                return
-            }
-
-            const lineNumber = e.target.position.lineNumber - 1
-            const addresses: BinarySelection[] = []
-            validBinaryFilePaths.forEach((binaryFilePath) => {
-                if (correspondences[binaryFilePath][lineNumber].length > 0) {
-                    addresses.push({
-                        binary_file: binaryFilePath,
-                        addresses: correspondences[binaryFilePath][lineNumber]
-                    })
-                }
-            })
-
-            // Only update if there are addresses to highlight
-            if (addresses.length === 0) {
-                dispatch(clearHoverHighlight())
-                return
-            }
-
-            // Update source hover highlight
-            dispatch(setHoverHighlight({
-                source_hover_highlight: [{
-                    source_file: file_name,
-                    source_lines: [lineNumber]
-                }],
-                binary_hover_highlight: addresses
-            }))
-        })
-
-        editorRef.current.onDidChangeCursorPosition((e) => {
-            const selection = editorRef.current!.getPosition()?.lineNumber
-            if (!selection || Object.keys(correspondences).length === 0) return
-            const lineNumber = selection - 1
-
-            const addresses: BinarySelection[] = []
-            validBinaryFilePaths.forEach((binaryFilePath) => {
-                if (correspondences[binaryFilePath][lineNumber].length > 0) {
-                    addresses.push({
-                        binary_file: binaryFilePath,
-                        addresses: correspondences[binaryFilePath][lineNumber]
-                    })
-                }
-            })
-            dispatch(setSelection({
-                source_selection: [{
-                    source_file: file_name,
-                    source_lines: [lineNumber]
-                }],
-                binary_selection: addresses
-            }))
-        })
-
-        // Handle the click on the selection line button
-        function handleSelectionButtonClick(lineNumber: number, file: string, element: HTMLElement | null) {
-            const binaryFilePath = validBinaryFilePaths[0]
-            const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, correspondences[binaryFilePath][lineNumber], validBinaryFilePaths, 'memory_order')
-            dispatch(setSelection(selections))
-
-            // Add clicked class to the button element
-            if (element) {
-                if (element.classList.contains('selection-button-container')) {
-                    element.classList.add('clicked');
-                } else if (element.parentElement?.classList.contains('selection-button-container')) {
-                    element.parentElement.classList.add('clicked');
-                }
-            }
-        }
-
-        // Add click handler for selection buttons
-        const disposable = editorRef.current.onMouseDown((e) => {
-            if (e.target.element?.classList.contains('selection-button-container') ||
-                e.target.element?.parentElement?.classList.contains('selection-button-container')) {
-                const lineNumber = e.target.position?.lineNumber;
-                if (lineNumber) {
-                    handleSelectionButtonClick(lineNumber - 1, file_name, e.target.element);
-                }
+            if (correspondences[binaryFilePath]?.[lineIndex]?.length > 0) {
+                addresses.push({
+                    binary_file: binaryFilePath,
+                    addresses: correspondences[binaryFilePath][lineIndex]
+                });
             }
         });
 
-        // Add Monaco hover provider for function definitions
-        const hoverProvider = monaco.languages.registerHoverProvider('cpp', {
-            provideHover: (model, position) => {
-                const word = model.getWordAtPosition(position);
-                if (!word) return null;
+        dispatch(setSelection({
+            source_selection: [{
+                source_file: file_name,
+                source_lines: [lineIndex]
+            }],
+            binary_selection: addresses
+        }));
+    }, [dispatch, file_name, correspondences, validBinaryFilePaths]);
 
-                // Check if the word might be a function name
-                const functionName = word.word;
-
-                // Get function source code if available
-                const functionInfo = "disvizProcessor.getFunctionSourceCode(validBinaryFilePaths, functionName);"
-
-                if (functionInfo) {
-                    return {
-                        contents: [
-                            {
-                                value: `**${functionName}**`
-                            }
-                        ]
-                    };
-                }
-
-                return null;
+    // Handle line hover
+    const handleLineMouseEnter = useCallback((lineIndex: number) => {
+        const addresses: BinarySelection[] = [];
+        validBinaryFilePaths.forEach((binaryFilePath) => {
+            if (correspondences[binaryFilePath]?.[lineIndex]?.length > 0) {
+                addresses.push({
+                    binary_file: binaryFilePath,
+                    addresses: correspondences[binaryFilePath][lineIndex]
+                });
             }
         });
 
-        return () => {
-            disposable.dispose();
-            hoverProvider.dispose();
-        };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [correspondences, validBinaryFilePaths, file_name, editorRefUpdated, dispatch, correspondenceDecorationCollection, tagsDecorationCollection])
+        if (addresses.length === 0) {
+            dispatch(clearHoverHighlight());
+            return;
+        }
 
-    return <Suspense fallback={<div>Loading source code...</div>}>
-        {/* title row */}
-        <div className='no-text-selection' style={{ height: '90vh', overflow: 'hidden' }}>
-            <MonacoEditor
-                height="100%"
-                width="100%"
-                language="cpp"
-                value={sourceCode}
-                options={monacoOptions}
-                onMount={(editor, _) => {
-                    editorRef.current = editor
-                    setEditorRefUpdated(true)
-                    setSelectionDecorationCollection(editor.createDecorationsCollection())
-                    setCorrespondenceDecorationCollection(editor.createDecorationsCollection())
-                    setTagsDecorationCollection(editor.createDecorationsCollection())
-                }}
-                path={file_name}
-                saveViewState={false}
-                // theme="vs-dark"
-                theme="light"
-                loading={`Loading ${file_name}...`}
-            />
-        </div>
-    </Suspense>
+        dispatch(setHoverHighlight({
+            source_hover_highlight: [{
+                source_file: file_name,
+                source_lines: [lineIndex]
+            }],
+            binary_hover_highlight: addresses
+        }));
+    }, [dispatch, file_name, correspondences, validBinaryFilePaths]);
+
+    // Handle mouse leave
+    const handleLineMouseLeave = useCallback(() => {
+        dispatch(clearHoverHighlight());
+    }, [dispatch]);
+
+    // Handle minimap click
+    const handleMinimapLineClick = useCallback((lineIndex: number) => {
+        handleLineClick(lineIndex);
+        if (listRef.current) {
+            listRef.current.scrollToRow({ index: lineIndex, align: 'center' });
+        }
+    }, [handleLineClick, listRef]);
+
+    // Handle minimap scroll
+    const handleMinimapScrollToLine = useCallback((lineIndex: number) => {
+        if (listRef.current) {
+            listRef.current.scrollToRow({ index: lineIndex, align: 'start' });
+        }
+    }, [listRef]);
+
+    // Track visible range for minimap
+    const handleRowsRendered = useCallback((
+        visibleRows: { startIndex: number; stopIndex: number },
+        _allRows: { startIndex: number; stopIndex: number }
+    ) => {
+        setVisibleRange({ start: visibleRows.startIndex, end: visibleRows.stopIndex });
+    }, []);
+
+    // Memoize row data to prevent unnecessary re-renders
+    const rowData = useMemo<RowData>(() => ({
+        sourceLines,
+        highlightedLines,
+        correspondenceLines,
+        selectedLines,
+        hoveredLines,
+        lineTags,
+        lineInlineTrees,
+        lineCallGraphInfo,
+        lineMemoryInfo,
+        enabledTags,
+        validBinaryFilePaths,
+        correspondences,
+        dispatch,
+        onLineClick: handleLineClick,
+        onLineMouseEnter: handleLineMouseEnter,
+        onLineMouseLeave: handleLineMouseLeave,
+    }), [
+        sourceLines,
+        highlightedLines,
+        correspondenceLines,
+        selectedLines,
+        hoveredLines,
+        lineTags,
+        lineInlineTrees,
+        lineCallGraphInfo,
+        lineMemoryInfo,
+        enabledTags,
+        validBinaryFilePaths,
+        correspondences,
+        dispatch,
+        handleLineClick,
+        handleLineMouseEnter,
+        handleLineMouseLeave,
+    ]);
+
+    return (
+        <Suspense fallback={<div>Loading source code...</div>}>
+            <div
+                ref={containerRef}
+                className="source-view-container no-text-selection"
+                style={{ height: '90vh', overflow: 'hidden', position: 'relative' }}
+            >
+                {sourceLines.length > 0 ? (
+                    <>
+                        <List<RowData>
+                            listRef={listRef}
+                            defaultHeight={containerHeight}
+                            rowCount={sourceLines.length}
+                            rowHeight={LINE_HEIGHT}
+                            rowComponent={RowRenderer}
+                            rowProps={rowData}
+                            onRowsRendered={handleRowsRendered}
+                            style={{ paddingRight: '120px' }}
+                            className="source-view-list"
+                        />
+                        <SourceMinimap
+                            totalLines={sourceLines.length}
+                            visibleStartLine={visibleRange.start}
+                            visibleEndLine={visibleRange.end}
+                            selectedLines={selectedLines}
+                            hoveredLines={hoveredLines}
+                            correspondenceLines={correspondenceLines}
+                            onLineClick={handleMinimapLineClick}
+                            onScrollToLine={handleMinimapScrollToLine}
+                            width={120}
+                            containerHeight={containerHeight}
+                        />
+                    </>
+                ) : (
+                    <div className="source-view-empty">
+                        Loading {file_name}...
+                    </div>
+                )}
+            </div>
+        </Suspense>
+    );
 }
 
-export default SourceView
+export default SourceView;

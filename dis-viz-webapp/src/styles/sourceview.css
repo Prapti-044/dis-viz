@@ -1,102 +1,202 @@
-.monaco-editor .cursor {
-    display: none !important;
+/* Import JetBrains Mono - popular open source code font */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* Source code font stack - JetBrains Mono with popular fallbacks */
+:root {
+    --source-code-font: 'JetBrains Mono', 'Fira Code', 'SF Mono', 'Cascadia Code', 'Source Code Pro', 'Consolas', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
 }
 
-.monaco-editor .line-numbers {
-    color: lightgray !important;
-}
-
-.monaco-editor .line-numbers.hasCorrespondence {
-    color: darkblue !important;
-    font-weight: 900;
-}
-
-.no-text-selection {
-    user-select: none;
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-}
-
-.monaco-editor .selected-line {
-    background-color: #c7dfc5 !important;
-    border: 1px solid gray;
-    cursor: pointer;
-}
-
-.mouseHoverHighlight {
-    background-color: #ddd;
-    border: 1px solid gray;
-}
-
-.monaco-editor .glyph-margin {
-    position: flex;
-    gap: 5px;
-    padding: 0 5px;
-}
-
-.monaco-editor .decorationsOverviewRuler {
-    display: block;
-}
-
-.monaco-editor .right-tags-wrapper {
-    width: 100%;
+/* Source View Container */
+.source-view-container {
     position: relative;
+    background-color: #ffffff;
+    font-family: var(--source-code-font);
+    font-size: 13px;
+    font-feature-settings: 'liga' 1, 'calt' 1; /* Enable ligatures */
 }
 
-.monaco-editor .right-tags {
+.source-view-list {
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f5f5f5;
+}
+
+.source-view-list::-webkit-scrollbar {
+    width: 8px;
+}
+
+.source-view-list::-webkit-scrollbar-track {
+    background: #f5f5f5;
+}
+
+.source-view-list::-webkit-scrollbar-thumb {
+    background-color: #ccc;
+    border-radius: 4px;
+}
+
+.source-view-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-size: 14px;
+}
+
+/* Source Line Styles */
+.source-line {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    height: 20px;
+    line-height: 20px;
+    cursor: pointer;
+    border-bottom: 1px solid transparent;
+    box-sizing: border-box;
+}
+
+.source-line:hover {
+    background-color: #f5f5f5;
+}
+
+/* Line Number Gutter */
+.source-line-number {
+    flex-shrink: 0;
+    width: 50px;
+    padding-right: 12px;
+    text-align: right;
+    color: #999;
+    background-color: #fafafa;
+    border-right: 1px solid #e8e8e8;
+    user-select: none;
+    font-size: 12px;
+    font-family: var(--source-code-font);
+}
+
+.source-line-number.hasCorrespondence {
+    color: darkblue !important;
+    font-weight: 700;
+}
+
+/* Code Content */
+.source-line-content {
+    flex: 1;
+    overflow: hidden;
+    padding-left: 8px;
+    min-width: 0;
+}
+
+.source-code-pre {
+    margin: 0;
+    padding: 0;
+    white-space: pre;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-family: inherit;
+    font-size: inherit;
+    line-height: inherit;
+    background: transparent;
+}
+
+.source-code-pre code {
+    font-family: var(--source-code-font);
+    font-size: inherit;
+    line-height: inherit;
+    background: transparent;
+}
+
+/* Selection and Hover States */
+.source-line.selected-line {
+    background-color: #c7dfc5 !important;
+    border: 1px solid #a0c0a0;
+}
+
+.source-line.mouseHoverHighlight {
+    background-color: #e8e8e8;
+    border: 1px solid #ccc;
+}
+
+.source-line.selected-line.mouseHoverHighlight {
+    background-color: #c7dfc5 !important;
+}
+
+/* Tags Container */
+.source-line-tags {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    padding-right: 130px; /* Space for minimap */
+}
+
+/* Right Tags - Keep existing styles */
+.right-tags {
     color: black;
-    font-family: monospace;
+    font-family: var(--source-code-font);
     font-size: 10px;
     white-space: nowrap;
-    position: absolute;
-    right: min(calc(20% + 60px), 290px);
     display: flex;
     flex-direction: row-reverse;
     align-items: center;
     gap: 4px;
-
-
-    .right-tags-container {
-        display: flex;
-        padding: 1px 4px;
-        
-        .right-tag {
-            display: flex;
-            align-items: center;
-            flex-direction: row;
-            height: 14px;
-            font-size: 12px;
-            
-            .right-tag-binaries {
-                margin-left: 4px;
-                display: flex;
-                flex-flow: column wrap;
-                max-height: 16px;
-                align-content: flex-start;
-                gap: 1px;
-                width: auto;
-            }
-            
-            .right-tag-binary {
-                width: 6px;
-                height: 6px;
-                flex: 0 0 6px;
-                box-sizing: border-box;
-            }
-            
-            .right-tag-binary.active {
-                background-color: #868686;
-            }
-            
-            .right-tag-binary.inactive {
-                background-color: #dddddd;
-                opacity: 0.8;
-            }
-        }
-    }
 }
 
+.right-tags-container {
+    display: flex;
+    padding: 1px 4px;
+    border-radius: 2px;
+}
+
+.right-tag {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    height: 14px;
+    font-size: 12px;
+}
+
+.right-tag-name {
+    font-weight: 500;
+}
+
+.right-tag-binaries {
+    margin-left: 4px;
+    display: flex;
+    flex-flow: column wrap;
+    max-height: 16px;
+    align-content: flex-start;
+    gap: 1px;
+    width: auto;
+}
+
+.right-tag-binary {
+    width: 6px;
+    height: 6px;
+    flex: 0 0 6px;
+    box-sizing: border-box;
+}
+
+.right-tag-binary.active {
+    background-color: #868686;
+}
+
+.right-tag-binary.inactive {
+    background-color: #dddddd;
+    opacity: 0.8;
+}
+
+/* Minimap Styles */
+.source-minimap {
+    box-shadow: -2px 0 5px rgba(0, 0, 0, 0.05);
+}
+
+.source-minimap-brush {
+    pointer-events: auto;
+}
+
+.source-minimap-brush:hover {
+    background-color: rgba(75, 137, 231, 0.3) !important;
+}
+
+/* Selection Button - Keep for compatibility */
 .selection-line-button {
     position: relative;
 }
@@ -154,4 +254,102 @@
     100% {
         box-shadow: 0 0 5px 1px rgba(76, 175, 80, 0.6);
     }
+}
+
+/* No text selection utility */
+.no-text-selection {
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+}
+
+/* Prism.js theme overrides for better integration */
+.source-line-content code[class*="language-"],
+.source-line-content pre[class*="language-"] {
+    background: transparent;
+    text-shadow: none;
+    font-family: var(--source-code-font);
+    font-size: inherit;
+    line-height: inherit;
+}
+
+/* Token colors - matching VS Code light theme */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+    color: #008000;
+}
+
+.token.punctuation {
+    color: #000000;
+}
+
+.token.property,
+.token.tag,
+.token.boolean,
+.token.number,
+.token.constant,
+.token.symbol,
+.token.deleted {
+    color: #098658;
+}
+
+.token.selector,
+.token.attr-name,
+.token.string,
+.token.char,
+.token.builtin,
+.token.inserted {
+    color: #a31515;
+}
+
+.token.operator,
+.token.entity,
+.token.url,
+.language-css .token.string,
+.style .token.string {
+    color: #000000;
+}
+
+.token.atrule,
+.token.attr-value,
+.token.keyword {
+    color: #0000ff;
+}
+
+.token.function,
+.token.class-name {
+    color: #795e26;
+}
+
+.token.regex,
+.token.important,
+.token.variable {
+    color: #811f3f;
+}
+
+.token.important,
+.token.bold {
+    font-weight: bold;
+}
+
+.token.italic {
+    font-style: italic;
+}
+
+.token.entity {
+    cursor: help;
+}
+
+/* Preprocessor directives */
+.token.directive,
+.token.directive-hash {
+    color: #808080;
+}
+
+/* Type keywords */
+.token.keyword.type {
+    color: #267f99;
 }
