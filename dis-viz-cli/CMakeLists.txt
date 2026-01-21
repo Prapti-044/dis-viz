@@ -93,6 +93,12 @@ endif()
 file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+# Add parse_functions executable
+add_executable(parse_functions
+    ${CMAKE_SOURCE_DIR}/../parse_functions.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/parse_source.cpp
+)
+
 # Modern Boost configuration
 set(Boost_USE_STATIC_LIBS ON)
 set(Boost_USE_MULTITHREADED ON)
@@ -126,6 +132,10 @@ endif()
 target_include_directories(${PROJECT_NAME} PRIVATE ${CLANG_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${CLANG_LIBRARY})
 
+# Configure parse_functions
+target_include_directories(parse_functions PRIVATE ${CLANG_INCLUDE_DIR})
+target_link_libraries(parse_functions PRIVATE ${CLANG_LIBRARY})
+
 # Link libarchive
 if(LIBARCHIVE_FOUND)
     target_link_libraries(${PROJECT_NAME} PRIVATE ${LIBARCHIVE_LIBRARIES})
@@ -143,6 +153,10 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
 
 add_dependencies(${PROJECT_NAME}
     indicators nlohmann_json
+)
+
+add_dependencies(parse_functions
+    nlohmann_json
 )
 
 if(NOT LIBARCHIVE_FOUND)
