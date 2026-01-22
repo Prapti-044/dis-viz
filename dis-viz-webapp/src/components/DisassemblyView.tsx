@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useEffect, useState, Suspense, CSSProperties, ReactElement, createContext, useContext } from 'react';
 import { List, useListRef } from 'react-window';
-import { selectBinarySelection, setSelection, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
+import { selectBinarySelection, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { BLOCK_ORDERS, InstructionBlock, Instruction } from '../types';
 import * as disvizProcessor from '../disvizProcessor';
@@ -14,6 +14,7 @@ import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
 import { AppDispatch } from '../app/store';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 import '../styles/disassemblyview.css';
 
@@ -697,6 +698,7 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
 
 function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = true }: DisassemblyViewProps) {
     const dispatch = useAppDispatch();
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const selections = useAppSelector(selectBinarySelection);
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
     const validBinaryFilePaths = useMemo(() => binaryFilePaths.filter(p => p !== ''), [binaryFilePaths]);
@@ -959,14 +961,35 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
             source_file,
             source_lines: lines,
         }));
-        dispatch(setSelection({
+
+        // Get function and block info
+        let functionName: string | undefined;
+        let blockName: string | undefined;
+        try {
+            const block = disvizProcessor.getDisassemblyBlockByAddress(binaryFilePath, blockOrder, instruction.address);
+            functionName = block.function_name;
+            blockName = block.name;
+        } catch (e) {
+            // Block info not available
+        }
+
+        setSelectionWithHistory({
             source_selection,
             binary_selection: [{
                 binary_file: binaryFilePath,
                 addresses: [instruction.address],
             }],
-        }));
-    }, [binaryFilePath, dispatch]);
+            origin: {
+                type: 'disassembly',
+                disassemblyId: id,
+                address: instruction.address,
+            },
+            details: {
+                functionName,
+                blockName,
+            },
+        });
+    }, [binaryFilePath, blockOrder, id, setSelectionWithHistory]);
 
     // Handle line hover
     const handleLineHover = useCallback((instruction: Instruction) => {
@@ -997,8 +1020,19 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
             validBinaryFilePaths,
             blockOrder
         );
-        dispatch(setSelection(selections));
-    }, [binaryFilePath, validBinaryFilePaths, blockOrder, dispatch]);
+        setSelectionWithHistory({
+            ...selections,
+            origin: {
+                type: 'disassembly',
+                disassemblyId: id,
+                address: block.start_address,
+            },
+            details: {
+                functionName: block.function_name,
+                blockName: block.name,
+            },
+        });
+    }, [binaryFilePath, validBinaryFilePaths, blockOrder, id, setSelectionWithHistory]);
 
     // Handle jump to block
     const handleJumpClick = useCallback((targetBlockName: string) => {
@@ -1009,17 +1043,26 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                 source_file,
                 source_lines: lines,
             }));
-            dispatch(setSelection({
+            setSelectionWithHistory({
                 source_selection,
                 binary_selection: [{
                     binary_file: binaryFilePath,
                     addresses: [targetBlock.start_address],
                 }],
-            }));
+                origin: {
+                    type: 'disassembly',
+                    disassemblyId: id,
+                    address: targetBlock.start_address,
+                },
+                details: {
+                    functionName: targetBlock.function_name,
+                    blockName: targetBlock.name,
+                },
+            });
         } catch (e) {
             console.error('Failed to jump to block:', e);
         }
-    }, [binaryFilePath, blockOrder, dispatch]);
+    }, [binaryFilePath, blockOrder, id, setSelectionWithHistory]);
 
     // Track visible range for minimap
     const handleRowsRendered = useCallback((
@@ -1097,20 +1140,29 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
             source_file,
             source_lines: lines,
         }));
-        dispatch(setSelection({
+        setSelectionWithHistory({
             source_selection,
             binary_selection: [{
                 binary_file: binaryFilePath,
                 addresses: block.instructions.map(i => i.address),
             }],
-        }));
+            origin: {
+                type: 'disassembly',
+                disassemblyId: id,
+                address: block.start_address,
+            },
+            details: {
+                functionName: block.function_name,
+                blockName: block.name,
+            },
+        });
 
         // Scroll to block
         const rowIndex = blockToRowIndex.get(blockIndex);
         if (rowIndex !== undefined && listRef.current) {
             listRef.current.scrollToRow({ index: rowIndex, align: 'center' });
         }
-    }, [allBlocks, binaryFilePath, blockToRowIndex, dispatch, listRef]);
+    }, [allBlocks, binaryFilePath, blockToRowIndex, id, setSelectionWithHistory, listRef]);
 
     // Handle minimap scroll
     const handleMinimapScrollToBlock = useCallback((blockIndex: number) => {

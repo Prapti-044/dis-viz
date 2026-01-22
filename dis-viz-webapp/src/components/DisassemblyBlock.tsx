@@ -1,17 +1,16 @@
 import React from "react";
 import Card from "react-bootstrap/Card";
 import ListGroup from "react-bootstrap/ListGroup";
-import { setSelection } from "../features/selections/selectionsSlice";
 import { BLOCK_ORDERS, BlockPage, InstructionBlock } from "../types";
 import { selectBinaryFilePaths } from "../features/binary-data/binaryDataSlice";
 import { shortenName, HIGHLIGHT_COLOR } from "../utils";
 import DisassemblyLine from "./DisassemblyLine";
 import HidableDisassembly from "./HidableDisassembly";
-import { useAppDispatch } from '../app/hooks';
 import * as disvizProcessor from "../disvizProcessor";
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
 import { useAppSelector } from '../app/hooks';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 
 
@@ -30,7 +29,7 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     drawPseudo: 'full'|'none'|'short',
     blockOrder: BLOCK_ORDERS,
 }) {
-    const dispatch = useAppDispatch();
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const thisBlockRef = React.useRef<{ ref? : HTMLDivElement }>({})
     const pageIdx = pages.findIndex(page => page.start_address <= block.start_address && block.start_address <= page.end_address)
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths)
@@ -38,7 +37,18 @@ function DisassemblyBlock({ binaryFilePath, block, i, allBlocks, id, pages, disa
     
     function setThisSelection(addresses: number[]) {
         const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, blockOrder)
-        dispatch(setSelection(selections))
+        setSelectionWithHistory({
+            ...selections,
+            origin: {
+                type: 'disassembly',
+                disassemblyId: id,
+                address: block.start_address,
+            },
+            details: {
+                functionName: block.function_name,
+                blockName: block.name,
+            },
+        })
     }
 
 

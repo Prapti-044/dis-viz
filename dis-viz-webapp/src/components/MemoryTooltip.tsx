@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import { AppDispatch } from '../app/store';
 
 interface MemoryInfo {
     isRead: boolean;
@@ -8,7 +7,6 @@ interface MemoryInfo {
 
 interface MemoryTooltipProps {
     memoryInfos: { [binary: string]: MemoryInfo };
-    dispatch: AppDispatch;
 }
 
 const getMemoryDisplayInfo = (memoryInfo: MemoryInfo) => {
@@ -37,7 +35,6 @@ const getMemoryDisplayInfo = (memoryInfo: MemoryInfo) => {
 
 const MemoryTooltip: React.FC<MemoryTooltipProps> = ({
     memoryInfos,
-    dispatch
 }) => {
     const binaryPaths = Object.keys(memoryInfos);
     const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');

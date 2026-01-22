@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { AppDispatch } from '../app/store';
-import { setSelection } from '../features/selections/selectionsSlice';
 import * as disvizProcessor from '../disvizProcessor';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 interface CallGraphInfo {
     functionName: string;
@@ -18,15 +17,14 @@ interface CallGraphInfo {
 
 interface CallGraphTooltipProps {
     callGraphInfos: { [binary: string]: CallGraphInfo };
-    dispatch: AppDispatch;
     validBinaryFilePaths: string[];
 }
 
 const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
     callGraphInfos,
-    dispatch,
     validBinaryFilePaths
 }) => {
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const binaryPaths = Object.keys(callGraphInfos);
     const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');
     
@@ -106,13 +104,37 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                     }
                     
                     if (targetLine >= 0) {
-                        dispatch(setSelection({
+                        // Get block info for details
+                        let blockName: string | undefined;
+                        if (binarySelections.length > 0 && binarySelections[0].addresses.length > 0) {
+                            try {
+                                const block = disvizProcessor.getDisassemblyBlockByAddress(
+                                    binarySelections[0].binary_file,
+                                    'memory_order',
+                                    binarySelections[0].addresses[0]
+                                );
+                                blockName = block.name;
+                            } catch (err) {
+                                // Block info not available
+                            }
+                        }
+
+                        setSelectionWithHistory({
                             source_selection: [{
                                 source_file: sourceFile,
                                 source_lines: [targetLine]
                             }],
-                            binary_selection: binarySelections
-                        }));
+                            binary_selection: binarySelections,
+                            origin: {
+                                type: 'source',
+                                sourceFile: sourceFile,
+                                lineNumber: targetLine + 1, // 1-based
+                            },
+                            details: {
+                                functionName: funcName,
+                                blockName,
+                            },
+                        });
                         return;
                     }
                 }

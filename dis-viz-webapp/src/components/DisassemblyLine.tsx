@@ -3,13 +3,14 @@ import '../styles/disassemblyview.css'
 
 import openInNewTabImage from "../assets/newtab.png";
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { setSelection, selectBinaryHoverHighlight, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
+import { selectBinaryHoverHighlight, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
 
 import { Instruction, InstructionBlock, BLOCK_ORDERS } from '../types'
 import { disLineToId, MAX_FN_SIZE, shortenName, findIntelDocs } from '../utils'
 import { selectAllTagStates } from '../features/tags/tagsSlice'
 import * as disvizProcessor from "../disvizProcessor";
 import { INSTRUCTION_TAGS } from '../utils'
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory'
 
 
 function isJumpInstruction(instr: string) {
@@ -31,6 +32,7 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
 }) {
 
     const dispatch = useAppDispatch();
+    const { setSelectionWithHistory } = useSelectionWithHistory();
 
     const [showDoc, setShowDoc] = React.useState(false)
     
@@ -53,13 +55,22 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
             source_file,
             source_lines: lines
         }))
-        dispatch(setSelection({
+        setSelectionWithHistory({
             source_selection,
             binary_selection: [{
                 binary_file: binaryFilePath,
                 addresses: [instruction.address]
             }],
-        }))
+            origin: {
+                type: 'disassembly',
+                disassemblyId: disId,
+                address: instruction.address,
+            },
+            details: {
+                functionName: block.function_name,
+                blockName: block.name,
+            },
+        })
     }
 
     function parseInstruction(instruction: Instruction, block: InstructionBlock) {
@@ -140,13 +151,22 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
                                 source_file,
                                 source_lines: lines
                             }))
-                            dispatch(setSelection({
+                            setSelectionWithHistory({
                                 source_selection,
                                 binary_selection: [{
                                     binary_file: binaryFilePath,
                                     addresses: [targetBlock.start_address]
                                 }],
-                            }))
+                                origin: {
+                                    type: 'disassembly',
+                                    disassemblyId: disId,
+                                    address: targetBlock.start_address,
+                                },
+                                details: {
+                                    functionName: targetBlock.function_name,
+                                    blockName: targetBlock.name,
+                                },
+                            })
                         }} className="opennewbutton"> </button>
                     </mark>
             }

@@ -1,11 +1,12 @@
 import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
-import { selectBinarySelection, setSelection } from '../features/selections/selectionsSlice'
+import { selectBinarySelection } from '../features/selections/selectionsSlice'
 import { HIGHLIGHT_COLOR, hexToHSL, INSTRUCTION_TAGS } from '../utils'
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector } from '../app/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import * as disvizProcessor from '../disvizProcessor';
 import { BLOCK_ORDERS } from '../types';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 const BLOCK_LINE_HEIGHT_FACTOR = 1.2
 const BLOCK_LINE_WIDTH = 90
@@ -37,7 +38,7 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
     order: BLOCK_ORDERS,
     visibleBlockWindow: { startAddress: number, nBlocks: number }
 }) {
-    const dispatch = useAppDispatch();
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const canvasRef = React.useRef<HTMLCanvasElement>(null)
     const _selection = useAppSelector(selectBinarySelection).filter(selection => selection.binary_file === binaryFilePath)[0]
     const selection = _selection ? _selection.addresses : []
@@ -219,11 +220,6 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
     }, [draw, highlightOption])
     
     
-    function setThisSelection(addresses: number[]) {
-        const selections = disvizProcessor.getSelectionFromBinary_indirect(binaryFilePath, addresses, validBinaryFilePaths, order)
-        dispatch(setSelection(selections))
-    }
-
     function onCanvasClick(e: React.MouseEvent<HTMLCanvasElement>) {
         const y = e.clientY - canvasRef.current!.getBoundingClientRect().top
         
@@ -251,8 +247,25 @@ export default function Minimap({ minimap, disViewId, binaryFilePath, visibleBlo
                 sourceLines[sourceFile].push(...instr.correspondence[sourceFile])
             }
         }
-            
-        setThisSelection(block.instructions.map(inst => inst.address))
+        
+        const selections = disvizProcessor.getSelectionFromBinary_indirect(
+            binaryFilePath,
+            block.instructions.map(inst => inst.address),
+            validBinaryFilePaths,
+            order
+        )
+        setSelectionWithHistory({
+            ...selections,
+            origin: {
+                type: 'disassembly',
+                disassemblyId: disViewId,
+                address: block.start_address,
+            },
+            details: {
+                functionName: block.function_name,
+                blockName: block.name,
+            },
+        })
     }
 
     return <>

@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
 import { InlineEntry } from '../types';
 import '../styles/inlineTreeTooltip.css';
-import { setSelection } from '../features/selections/selectionsSlice';
-import { AppDispatch } from '../app/store';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
+import * as disvizProcessor from '../disvizProcessor';
 
 interface InlineTreeTooltipProps {
     inlineTrees: { [binary: string]: InlineEntry[] };
-    dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
 }
@@ -14,12 +13,12 @@ interface InlineTreeTooltipProps {
 interface InlineTreeNodeProps {
     entry: InlineEntry;
     depth: number;
-    dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
 }
 
-const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, dispatch, validBinaryFilePaths, correspondences }) => {
+const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, validBinaryFilePaths, correspondences }) => {
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const indentStyle = {
         paddingLeft: `${depth * 16}px`
     };
@@ -45,14 +44,38 @@ const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, dispatch,
             })
             .filter(selection => selection !== null);
 
+        // Get block info for details
+        let blockName: string | undefined;
+        if (binarySelections.length > 0 && binarySelections[0].addresses.length > 0) {
+            try {
+                const block = disvizProcessor.getDisassemblyBlockByAddress(
+                    binarySelections[0].binary_file,
+                    'memory_order',
+                    binarySelections[0].addresses[0]
+                );
+                blockName = block.name;
+            } catch (err) {
+                // Block info not available
+            }
+        }
+
         // Dispatch selection to navigate to the callsite
-        dispatch(setSelection({
+        setSelectionWithHistory({
             source_selection: [{
                 source_file: entry.callsite_file,
                 source_lines: [callsiteLine]
             }],
-            binary_selection: binarySelections
-        }));
+            binary_selection: binarySelections,
+            origin: {
+                type: 'source',
+                sourceFile: entry.callsite_file,
+                lineNumber: entry.callsite_line, // Already 1-based
+            },
+            details: {
+                functionName: entry.simplified_name || entry.name,
+                blockName,
+            },
+        });
     };
 
     return (
@@ -85,7 +108,6 @@ const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, dispatch,
                             key={`${child.name}-${child.callsite_line}-${index}`} 
                             entry={child} 
                             depth={depth + 1}
-                            dispatch={dispatch}
                             validBinaryFilePaths={validBinaryFilePaths}
                             correspondences={correspondences}
                         />
@@ -96,7 +118,7 @@ const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, dispatch,
     );
 };
 
-const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTrees, dispatch, validBinaryFilePaths, correspondences }) => {
+const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTrees, validBinaryFilePaths, correspondences }) => {
     const binaryPaths = Object.keys(inlineTrees);
     const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');
     
@@ -146,7 +168,6 @@ const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTrees, disp
                         key={`${entry.name}-${entry.callsite_line}-${index}`} 
                         entry={entry} 
                         depth={0}
-                        dispatch={dispatch}
                         validBinaryFilePaths={validBinaryFilePaths}
                         correspondences={correspondences}
                     />

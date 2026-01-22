@@ -17,6 +17,7 @@ import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
 import HeaderMenu from './HeaderMenu';
 import CallGraphView from './CallGraphView';
+import HistoryBar from './HistoryBar';
 
 import '../styles/app.css';
 
@@ -355,6 +356,7 @@ const App = () => {
         pauseOnHover
       />
       <HeaderMenu showMinimaps={showMinimaps} setShowMinimaps={setShowMinimaps} onAddCallGraphView={onAddCallGraphView} />
+      <HistoryBar />
       <div className="main-content">
         <DockLayout
           ref={dockRef}

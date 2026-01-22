@@ -8,7 +8,6 @@ import InlineTreeTooltip from './InlineTreeTooltip';
 import CallGraphTooltip from './CallGraphTooltip';
 import MemoryTooltip from './MemoryTooltip';
 import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types';
-import { AppDispatch } from '../app/store';
 import { SOURCE_TAGS } from '../utils';
 
 // Component to wrap tags with tooltip functionality
@@ -18,10 +17,9 @@ const TooltipWrapper: React.FC<{
     callGraphInfos?: { [binary: string]: CallGraphInfo };
     memoryInfos?: { [binary: string]: MemoryInfo };
     tagId: string;
-    dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-}> = ({ children, inlineTrees, callGraphInfos, memoryInfos, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
+}> = ({ children, inlineTrees, callGraphInfos, memoryInfos, tagId, validBinaryFilePaths, correspondences }) => {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const { refs, floatingStyles, context } = useFloating({
@@ -76,7 +74,6 @@ const TooltipWrapper: React.FC<{
                         {shouldShowInlineTooltip && inlineTrees && (
                             <InlineTreeTooltip
                                 inlineTrees={inlineTrees}
-                                dispatch={dispatch}
                                 validBinaryFilePaths={validBinaryFilePaths}
                                 correspondences={correspondences}
                             />
@@ -84,14 +81,12 @@ const TooltipWrapper: React.FC<{
                         {shouldShowCallGraphTooltip && callGraphInfos && (
                             <CallGraphTooltip
                                 callGraphInfos={callGraphInfos}
-                                dispatch={dispatch}
                                 validBinaryFilePaths={validBinaryFilePaths}
                             />
                         )}
                         {shouldShowMemoryTooltip && memoryInfos && (
                             <MemoryTooltip
                                 memoryInfos={memoryInfos}
-                                dispatch={dispatch}
                             />
                         )}
                     </div>
@@ -115,7 +110,6 @@ export interface SourceLineProps {
     enabledTags: { [key: string]: boolean };
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-    dispatch: AppDispatch;
     onClick: (lineIndex: number) => void;
     onMouseEnter: (lineIndex: number) => void;
     onMouseLeave: () => void;
@@ -136,7 +130,6 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
     enabledTags,
     validBinaryFilePaths,
     correspondences,
-    dispatch,
     onClick,
     onMouseEnter,
     onMouseLeave,
@@ -233,7 +226,6 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
                                     inlineTrees={inlineTreesData}
                                     callGraphInfos={callGraphsData}
                                     memoryInfos={memorysData}
-                                    dispatch={dispatch}
                                     validBinaryFilePaths={validBinaryFilePaths}
                                     correspondences={correspondences}
                                 >

@@ -1,7 +1,7 @@
 import React, { Suspense, useCallback, useMemo, useRef, useEffect, useState } from 'react';
 import { List, useListRef } from 'react-window';
 import '../styles/sourceview.css';
-import { setSelection, clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice';
+import { clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice';
 import * as disvizProcessor from '../disvizProcessor';
 import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice';
@@ -10,8 +10,8 @@ import { SOURCE_TAGS } from '../utils';
 import { selectAllTagStates } from '../features/tags/tagsSlice';
 import SourceLine, { highlightAllLines } from './SourceLine';
 import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types';
-import { AppDispatch } from '../app/store';
 import { CSSProperties, ReactElement } from 'react';
+import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 const LINE_HEIGHT = 20; // Fixed line height for virtualization
 
@@ -33,7 +33,6 @@ interface RowData {
     enabledTags: { [key: string]: boolean };
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-    dispatch: AppDispatch;
     onLineClick: (lineIndex: number) => void;
     onLineMouseEnter: (lineIndex: number) => void;
     onLineMouseLeave: () => void;
@@ -67,7 +66,6 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
         enabledTags,
         validBinaryFilePaths,
         correspondences,
-        dispatch,
         onLineClick,
         onLineMouseEnter,
         onLineMouseLeave,
@@ -99,7 +97,6 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
             enabledTags={enabledTags}
             validBinaryFilePaths={validBinaryFilePaths}
             correspondences={correspondences}
-            dispatch={dispatch}
             onClick={onLineClick}
             onMouseEnter={onLineMouseEnter}
             onMouseLeave={onLineMouseLeave}
@@ -110,6 +107,7 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
 
 function SourceView({ file_name }: SourceViewProps) {
     const dispatch = useAppDispatch();
+    const { setSelectionWithHistory } = useSelectionWithHistory();
     const thisSelection = useAppSelector(selectSourceSelection).find(selection => selection.source_file === file_name);
     const selectedLines = useMemo(() => thisSelection?.source_lines ?? [], [thisSelection]);
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
@@ -265,14 +263,40 @@ function SourceView({ file_name }: SourceViewProps) {
             }
         });
 
-        dispatch(setSelection({
+        // Try to get function name and block info from the first address
+        let functionName: string | undefined;
+        let blockName: string | undefined;
+        if (addresses.length > 0 && addresses[0].addresses.length > 0) {
+            try {
+                const block = disvizProcessor.getDisassemblyBlockByAddress(
+                    addresses[0].binary_file,
+                    'memory_order',
+                    addresses[0].addresses[0]
+                );
+                functionName = block.function_name;
+                blockName = block.name;
+            } catch (e) {
+                // Block info not available
+            }
+        }
+
+        setSelectionWithHistory({
             source_selection: [{
                 source_file: file_name,
                 source_lines: [lineIndex]
             }],
-            binary_selection: addresses
-        }));
-    }, [dispatch, file_name, correspondences, validBinaryFilePaths]);
+            binary_selection: addresses,
+            origin: {
+                type: 'source',
+                sourceFile: file_name,
+                lineNumber: lineIndex + 1, // 1-based for display
+            },
+            details: {
+                functionName,
+                blockName,
+            },
+        });
+    }, [setSelectionWithHistory, file_name, correspondences, validBinaryFilePaths]);
 
     // Handle line hover
     const handleLineMouseEnter = useCallback((lineIndex: number) => {
@@ -319,7 +343,6 @@ function SourceView({ file_name }: SourceViewProps) {
         enabledTags,
         validBinaryFilePaths,
         correspondences,
-        dispatch,
         onLineClick: handleLineClick,
         onLineMouseEnter: handleLineMouseEnter,
         onLineMouseLeave: handleLineMouseLeave,
@@ -336,7 +359,6 @@ function SourceView({ file_name }: SourceViewProps) {
         enabledTags,
         validBinaryFilePaths,
         correspondences,
-        dispatch,
         handleLineClick,
         handleLineMouseEnter,
         handleLineMouseLeave,
