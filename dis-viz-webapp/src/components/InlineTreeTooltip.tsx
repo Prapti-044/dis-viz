@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { InlineEntry } from '../types';
 import '../styles/inlineTreeTooltip.css';
 import { setSelection } from '../features/selections/selectionsSlice';
 import { AppDispatch } from '../app/store';
 
 interface InlineTreeTooltipProps {
-    inlineTree: InlineEntry[];
+    inlineTrees: { [binary: string]: InlineEntry[] };
     dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
@@ -96,8 +96,11 @@ const InlineTreeNode: React.FC<InlineTreeNodeProps> = ({ entry, depth, dispatch,
     );
 };
 
-const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTree, dispatch, validBinaryFilePaths, correspondences }) => {
-    if (inlineTree.length === 0) {
+const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTrees, dispatch, validBinaryFilePaths, correspondences }) => {
+    const binaryPaths = Object.keys(inlineTrees);
+    const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');
+    
+    if (binaryPaths.length === 0) {
         return (
             <div className="inline-tree-tooltip">
                 <div className="inline-tree-header">Inline Functions</div>
@@ -106,14 +109,39 @@ const InlineTreeTooltip: React.FC<InlineTreeTooltipProps> = ({ inlineTree, dispa
         );
     }
 
+    const currentInlineTree = inlineTrees[selectedBinary] || [];
+    const showBinarySelector = binaryPaths.length > 1;
+
     return (
         <div className="inline-tree-tooltip">
             <div className="inline-tree-header">
                 <span className="inline-tree-title">Inline Functions</span>
-                <span className="inline-tree-count">({inlineTree.length})</span>
+                <span className="inline-tree-count">({currentInlineTree.length})</span>
             </div>
+            
+            {/* Binary selector tabs */}
+            {showBinarySelector && (
+                <div className="binary-selector">
+                    {binaryPaths.map((binaryPath, index) => {
+                        const binaryName = binaryPath.split('/').pop() || binaryPath;
+                        const isSelected = binaryPath === selectedBinary;
+                        return (
+                            <button
+                                key={binaryPath}
+                                className={`binary-tab ${isSelected ? 'active' : ''}`}
+                                onClick={() => setSelectedBinary(binaryPath)}
+                                title={binaryPath}
+                            >
+                                {binaryName}
+                                <span className="binary-count">({inlineTrees[binaryPath]?.length || 0})</span>
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+            
             <div className="inline-tree-content">
-                {inlineTree.map((entry, index) => (
+                {currentInlineTree.map((entry, index) => (
                     <InlineTreeNode 
                         key={`${entry.name}-${entry.callsite_line}-${index}`} 
                         entry={entry} 

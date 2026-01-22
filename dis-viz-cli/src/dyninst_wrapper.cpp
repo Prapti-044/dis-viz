@@ -328,10 +328,6 @@ LoopEntry createLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::L
   return entry;
 }
 
-// Legacy wrapper for compatibility
-LoopEntry printLoopEntry(map<ParseAPI::Block *, string> &block_ids, ParseAPI::LoopTreeNode &lt) {
-  return createLoopEntry(block_ids, lt);
-}
 
 bool matchOperands(const vector<signed int> &readSet,
                    const vector<signed int> &writeSet,
@@ -779,7 +775,7 @@ std::tuple<
     auto funcLoops = vector<LoopEntry>();
     auto lt = unique_ptr<ParseAPI::LoopTreeNode>(f->getLoopTree());
     if (lt) {
-      funcLoops = printLoopEntry(block_ids, *lt).loops;
+      funcLoops = createLoopEntry(block_ids, *lt).loops;
     }
     
     // Hidables

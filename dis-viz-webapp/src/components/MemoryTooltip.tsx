@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppDispatch } from '../app/store';
 
 interface MemoryInfo {
@@ -7,17 +7,13 @@ interface MemoryInfo {
 }
 
 interface MemoryTooltipProps {
-    memoryInfo: MemoryInfo;
+    memoryInfos: { [binary: string]: MemoryInfo };
     dispatch: AppDispatch;
 }
 
-const MemoryTooltip: React.FC<MemoryTooltipProps> = ({
-    memoryInfo,
-    dispatch
-}) => {
+const getMemoryDisplayInfo = (memoryInfo: MemoryInfo) => {
     const { isRead, isWrite } = memoryInfo;
-
-    // Determine the memory operation type(s)
+    
     let operationType = '';
     let backgroundColor = '';
     let borderColor = '';
@@ -35,6 +31,36 @@ const MemoryTooltip: React.FC<MemoryTooltipProps> = ({
         backgroundColor = '#ffebee';
         borderColor = '#f44336';
     }
+    
+    return { operationType, backgroundColor, borderColor, isRead, isWrite };
+};
+
+const MemoryTooltip: React.FC<MemoryTooltipProps> = ({
+    memoryInfos,
+    dispatch
+}) => {
+    const binaryPaths = Object.keys(memoryInfos);
+    const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');
+    
+    if (binaryPaths.length === 0) {
+        return (
+            <div style={{
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                fontFamily: 'Consolas, monospace',
+                fontSize: '12px',
+            }}>
+                No memory access information available
+            </div>
+        );
+    }
+
+    const showBinarySelector = binaryPaths.length > 1;
+    const memoryInfo = memoryInfos[selectedBinary];
+    const { operationType, backgroundColor, borderColor, isRead, isWrite } = getMemoryDisplayInfo(memoryInfo);
 
     return (
         <div
@@ -60,6 +86,43 @@ const MemoryTooltip: React.FC<MemoryTooltipProps> = ({
             }}>
                 Memory Access
             </div>
+
+            {/* Binary selector tabs */}
+            {showBinarySelector && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginBottom: '12px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid #eee'
+                }}>
+                    {binaryPaths.map((binaryPath) => {
+                        const binaryName = binaryPath.split('/').pop() || binaryPath;
+                        const isSelected = binaryPath === selectedBinary;
+                        const info = getMemoryDisplayInfo(memoryInfos[binaryPath]);
+                        return (
+                            <button
+                                key={binaryPath}
+                                onClick={() => setSelectedBinary(binaryPath)}
+                                title={`${binaryPath} - ${info.operationType}`}
+                                style={{
+                                    padding: '4px 8px',
+                                    fontSize: '11px',
+                                    border: isSelected ? '2px solid #1976d2' : '1px solid #ccc',
+                                    borderRadius: '4px',
+                                    backgroundColor: isSelected ? '#e3f2fd' : '#f5f5f5',
+                                    color: isSelected ? '#1976d2' : '#666',
+                                    cursor: 'pointer',
+                                    fontWeight: isSelected ? 'bold' : 'normal'
+                                }}
+                            >
+                                {binaryName}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
 
             {/* Operation Type */}
             <div

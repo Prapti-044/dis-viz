@@ -14,14 +14,14 @@ import { SOURCE_TAGS } from '../utils';
 // Component to wrap tags with tooltip functionality
 const TooltipWrapper: React.FC<{
     children: React.ReactNode;
-    inlineTree?: InlineEntry[];
-    callGraphInfo?: CallGraphInfo;
-    memoryInfo?: MemoryInfo;
+    inlineTrees?: { [binary: string]: InlineEntry[] };
+    callGraphInfos?: { [binary: string]: CallGraphInfo };
+    memoryInfos?: { [binary: string]: MemoryInfo };
     tagId: string;
     dispatch: AppDispatch;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
-}> = ({ children, inlineTree, callGraphInfo, memoryInfo, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
+}> = ({ children, inlineTrees, callGraphInfos, memoryInfos, tagId, dispatch, validBinaryFilePaths, correspondences }) => {
     const [isOpen, setIsOpen] = React.useState(false);
 
     const { refs, floatingStyles, context } = useFloating({
@@ -48,9 +48,9 @@ const TooltipWrapper: React.FC<{
     ]);
 
     // Check if we should show tooltip
-    const shouldShowInlineTooltip = tagId === 'INLINE' && inlineTree && inlineTree.length > 0;
-    const shouldShowCallGraphTooltip = tagId === 'CALL_GRAPH' && callGraphInfo;
-    const shouldShowMemoryTooltip = tagId === 'MEMORY' && memoryInfo;
+    const shouldShowInlineTooltip = tagId === 'INLINE' && inlineTrees && Object.keys(inlineTrees).length > 0;
+    const shouldShowCallGraphTooltip = tagId === 'CALL_GRAPH' && callGraphInfos && Object.keys(callGraphInfos).length > 0;
+    const shouldShowMemoryTooltip = tagId === 'MEMORY' && memoryInfos && Object.keys(memoryInfos).length > 0;
     const shouldShowTooltip = shouldShowInlineTooltip || shouldShowCallGraphTooltip || shouldShowMemoryTooltip;
 
     if (!shouldShowTooltip) {
@@ -73,24 +73,24 @@ const TooltipWrapper: React.FC<{
                         }}
                         {...getFloatingProps()}
                     >
-                        {shouldShowInlineTooltip && inlineTree && (
+                        {shouldShowInlineTooltip && inlineTrees && (
                             <InlineTreeTooltip
-                                inlineTree={inlineTree}
+                                inlineTrees={inlineTrees}
                                 dispatch={dispatch}
                                 validBinaryFilePaths={validBinaryFilePaths}
                                 correspondences={correspondences}
                             />
                         )}
-                        {shouldShowCallGraphTooltip && callGraphInfo && (
+                        {shouldShowCallGraphTooltip && callGraphInfos && (
                             <CallGraphTooltip
-                                callGraphInfo={callGraphInfo}
+                                callGraphInfos={callGraphInfos}
                                 dispatch={dispatch}
                                 validBinaryFilePaths={validBinaryFilePaths}
                             />
                         )}
-                        {shouldShowMemoryTooltip && memoryInfo && (
+                        {shouldShowMemoryTooltip && memoryInfos && (
                             <MemoryTooltip
-                                memoryInfo={memoryInfo}
+                                memoryInfos={memoryInfos}
                                 dispatch={dispatch}
                             />
                         )}
@@ -153,17 +153,16 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
     const lineNumberClasses = ['source-line-number'];
     if (hasCorrespondence) lineNumberClasses.push('hasCorrespondence');
 
-    // Get tag data for tooltips
+    // Get tag data for tooltips - collect from ALL binaries
     const getTagData = (tagId: string) => {
-        let inlineTreeData: InlineEntry[] = [];
-        let callGraphData: CallGraphInfo | undefined = undefined;
-        let memoryData: MemoryInfo | undefined = undefined;
+        let inlineTreesData: { [binary: string]: InlineEntry[] } = {};
+        let callGraphsData: { [binary: string]: CallGraphInfo } = {};
+        let memorysData: { [binary: string]: MemoryInfo } = {};
 
         if (tagId === 'INLINE' && inlineTree) {
             for (const binaryPath of validBinaryFilePaths) {
-                if (inlineTree[binaryPath]) {
-                    inlineTreeData = inlineTree[binaryPath];
-                    break;
+                if (inlineTree[binaryPath] && inlineTree[binaryPath].length > 0) {
+                    inlineTreesData[binaryPath] = inlineTree[binaryPath];
                 }
             }
         }
@@ -171,8 +170,7 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
         if (tagId === 'CALL_GRAPH' && callGraphInfo) {
             for (const binaryPath of validBinaryFilePaths) {
                 if (callGraphInfo[binaryPath]) {
-                    callGraphData = callGraphInfo[binaryPath];
-                    break;
+                    callGraphsData[binaryPath] = callGraphInfo[binaryPath];
                 }
             }
         }
@@ -180,13 +178,12 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
         if (tagId === 'MEMORY' && memoryInfo) {
             for (const binaryPath of validBinaryFilePaths) {
                 if (memoryInfo[binaryPath]) {
-                    memoryData = memoryInfo[binaryPath];
-                    break;
+                    memorysData[binaryPath] = memoryInfo[binaryPath];
                 }
             }
         }
 
-        return { inlineTreeData, callGraphData, memoryData };
+        return { inlineTreesData, callGraphsData, memorysData };
     };
 
     // Check if there are any enabled tags for this line
@@ -227,15 +224,15 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
                             }
 
                             const tagId = SOURCE_TAGS[tagIndex].id;
-                            const { inlineTreeData, callGraphData, memoryData } = getTagData(tagId);
+                            const { inlineTreesData, callGraphsData, memorysData } = getTagData(tagId);
 
                             return (
                                 <TooltipWrapper
                                     key={`${tagIndex}-${lineIndex}`}
                                     tagId={tagId}
-                                    inlineTree={inlineTreeData}
-                                    callGraphInfo={callGraphData}
-                                    memoryInfo={memoryData}
+                                    inlineTrees={inlineTreesData}
+                                    callGraphInfos={callGraphsData}
+                                    memoryInfos={memorysData}
                                     dispatch={dispatch}
                                     validBinaryFilePaths={validBinaryFilePaths}
                                     correspondences={correspondences}

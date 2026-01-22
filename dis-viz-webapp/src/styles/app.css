@@ -46,17 +46,3 @@
 .add-call-graph-view-button:hover {
     background-color: rgba(34, 56, 97, 0.1);
 }
-
-/* These styles are kept for compatibility but are no longer used for the header */
-.file-menus {
-    display: none;
-}
-
-.file-menu-tags {
-    display: none;
-}
-
-.file-menu-tag {
-    display: none;
-}
-

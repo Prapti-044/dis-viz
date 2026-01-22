@@ -9,7 +9,6 @@ import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { SOURCE_TAGS } from '../utils';
 import { selectAllTagStates } from '../features/tags/tagsSlice';
 import SourceLine, { highlightAllLines } from './SourceLine';
-import SourceMinimap from './SourceMinimap';
 import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types';
 import { AppDispatch } from '../app/store';
 import { CSSProperties, ReactElement } from 'react';
@@ -132,9 +131,8 @@ function SourceView({ file_name }: SourceViewProps) {
     const listRef = useListRef(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerHeight, setContainerHeight] = useState(600);
-    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 0 });
 
-    // Compute correspondence lines set for minimap
+    // Compute correspondence lines set
     const correspondenceLines = useMemo(() => {
         const lines = new Set<number>();
         validBinaryFilePaths.forEach((binaryFilePath) => {
@@ -307,29 +305,6 @@ function SourceView({ file_name }: SourceViewProps) {
         dispatch(clearHoverHighlight());
     }, [dispatch]);
 
-    // Handle minimap click
-    const handleMinimapLineClick = useCallback((lineIndex: number) => {
-        handleLineClick(lineIndex);
-        if (listRef.current) {
-            listRef.current.scrollToRow({ index: lineIndex, align: 'center' });
-        }
-    }, [handleLineClick, listRef]);
-
-    // Handle minimap scroll
-    const handleMinimapScrollToLine = useCallback((lineIndex: number) => {
-        if (listRef.current) {
-            listRef.current.scrollToRow({ index: lineIndex, align: 'start' });
-        }
-    }, [listRef]);
-
-    // Track visible range for minimap
-    const handleRowsRendered = useCallback((
-        visibleRows: { startIndex: number; stopIndex: number },
-        _allRows: { startIndex: number; stopIndex: number }
-    ) => {
-        setVisibleRange({ start: visibleRows.startIndex, end: visibleRows.stopIndex });
-    }, []);
-
     // Memoize row data to prevent unnecessary re-renders
     const rowData = useMemo<RowData>(() => ({
         sourceLines,
@@ -375,31 +350,15 @@ function SourceView({ file_name }: SourceViewProps) {
                 style={{ height: '90vh', overflow: 'hidden', position: 'relative' }}
             >
                 {sourceLines.length > 0 ? (
-                    <>
-                        <List<RowData>
-                            listRef={listRef}
-                            defaultHeight={containerHeight}
-                            rowCount={sourceLines.length}
-                            rowHeight={LINE_HEIGHT}
-                            rowComponent={RowRenderer}
-                            rowProps={rowData}
-                            onRowsRendered={handleRowsRendered}
-                            style={{ paddingRight: '120px' }}
-                            className="source-view-list"
-                        />
-                        <SourceMinimap
-                            totalLines={sourceLines.length}
-                            visibleStartLine={visibleRange.start}
-                            visibleEndLine={visibleRange.end}
-                            selectedLines={selectedLines}
-                            hoveredLines={hoveredLines}
-                            correspondenceLines={correspondenceLines}
-                            onLineClick={handleMinimapLineClick}
-                            onScrollToLine={handleMinimapScrollToLine}
-                            width={120}
-                            containerHeight={containerHeight}
-                        />
-                    </>
+                    <List<RowData>
+                        listRef={listRef}
+                        defaultHeight={containerHeight}
+                        rowCount={sourceLines.length}
+                        rowHeight={LINE_HEIGHT}
+                        rowComponent={RowRenderer}
+                        rowProps={rowData}
+                        className="source-view-list"
+                    />
                 ) : (
                     <div className="source-view-empty">
                         Loading {file_name}...

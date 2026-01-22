@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AppDispatch } from '../app/store';
 import { setSelection } from '../features/selections/selectionsSlice';
 import * as disvizProcessor from '../disvizProcessor';
@@ -17,16 +17,38 @@ interface CallGraphInfo {
 }
 
 interface CallGraphTooltipProps {
-    callGraphInfo: CallGraphInfo;
+    callGraphInfos: { [binary: string]: CallGraphInfo };
     dispatch: AppDispatch;
     validBinaryFilePaths: string[];
 }
 
 const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
-    callGraphInfo,
+    callGraphInfos,
     dispatch,
     validBinaryFilePaths
 }) => {
+    const binaryPaths = Object.keys(callGraphInfos);
+    const [selectedBinary, setSelectedBinary] = useState<string>(binaryPaths[0] || '');
+    
+    if (binaryPaths.length === 0) {
+        return (
+            <div style={{
+                backgroundColor: 'white',
+                border: '1px solid #ccc',
+                borderRadius: '4px',
+                padding: '12px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                fontFamily: 'Consolas, monospace',
+                fontSize: '12px',
+            }}>
+                No call graph information available
+            </div>
+        );
+    }
+
+    const callGraphInfo = callGraphInfos[selectedBinary];
+    const showBinarySelector = binaryPaths.length > 1;
+    
     const { 
         functionName, 
         calledFunctions, 
@@ -35,8 +57,6 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
         callingFunctionsBuiltIn = {}, 
         returnType, 
         parameters, 
-        inDegree, 
-        outDegree, 
         inlines 
     } = callGraphInfo;
 
@@ -117,6 +137,42 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                 zIndex: 1000
             }}
         >
+            {/* Binary selector tabs */}
+            {showBinarySelector && (
+                <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '4px',
+                    marginBottom: '12px',
+                    paddingBottom: '8px',
+                    borderBottom: '1px solid #eee'
+                }}>
+                    {binaryPaths.map((binaryPath) => {
+                        const binaryName = binaryPath.split('/').pop() || binaryPath;
+                        const isSelected = binaryPath === selectedBinary;
+                        return (
+                            <button
+                                key={binaryPath}
+                                onClick={() => setSelectedBinary(binaryPath)}
+                                title={binaryPath}
+                                style={{
+                                    padding: '4px 8px',
+                                    fontSize: '11px',
+                                    border: isSelected ? '2px solid #1976d2' : '1px solid #ccc',
+                                    borderRadius: '4px',
+                                    backgroundColor: isSelected ? '#e3f2fd' : '#f5f5f5',
+                                    color: isSelected ? '#1976d2' : '#666',
+                                    cursor: 'pointer',
+                                    fontWeight: isSelected ? 'bold' : 'normal'
+                                }}
+                            >
+                                {binaryName}
+                            </button>
+                        );
+                    })}
+                </div>
+            )}
+            
             {/* Function Signature */}
             <div style={{
                 marginBottom: '12px',
@@ -149,7 +205,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                     marginBottom: '6px',
                     color: '#1565c0'
                 }}>
-                    Called by {inDegree} function{inDegree !== 1 ? 's' : ''}:
+                    Called by {callingFunctions.length} function{callingFunctions.length !== 1 ? 's' : ''}:
                 </div>
                 {callingFunctions.length === 0 ? (
                     <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
@@ -200,7 +256,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                     marginBottom: '6px',
                     color: '#2e7d32'
                 }}>
-                    Calls {outDegree} function{outDegree !== 1 ? 's' : ''}:
+                    Calls {calledFunctions.length} function{calledFunctions.length !== 1 ? 's' : ''}:
                 </div>
                 {calledFunctions.length === 0 ? (
                     <div style={{ color: '#666', fontStyle: 'italic', paddingLeft: '8px' }}>
@@ -280,45 +336,6 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                     </div>
                 </div>
             )}
-
-            <div style={{
-                marginTop: '8px',
-                paddingTop: '8px',
-                borderTop: '1px solid #eee',
-                fontSize: '10px',
-                color: '#666'
-            }}>
-                <div style={{ marginBottom: '4px' }}>In-degree: {inDegree} | Out-degree: {outDegree}</div>
-                <div style={{ 
-                    display: 'flex', 
-                    gap: '12px', 
-                    fontSize: '9px',
-                    marginTop: '4px'
-                }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ 
-                            display: 'inline-block', 
-                            width: '12px', 
-                            height: '12px', 
-                            backgroundColor: '#f0f7ff',
-                            border: '1px solid #2196f3',
-                            borderRadius: '2px'
-                        }} />
-                        <span>User-defined</span>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ 
-                            display: 'inline-block', 
-                            width: '12px', 
-                            height: '12px', 
-                            backgroundColor: '#f5f5f5',
-                            border: '1px solid #9e9e9e',
-                            borderRadius: '2px'
-                        }} />
-                        <span>System/Built-in</span>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 };
