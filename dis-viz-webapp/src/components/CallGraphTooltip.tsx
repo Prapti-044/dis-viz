@@ -330,7 +330,7 @@ const CallGraphTooltip: React.FC<CallGraphTooltipProps> = ({
                         marginBottom: '6px',
                         color: '#7b1fa2'
                     }}>
-                        {inlines.length} Inline{inlines.length !== 1 ? 's' : ''}:
+                        Inlined by {inlines.length} function{inlines.length !== 1 ? 's' : ''}:
                     </div>
                     <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
                         {inlines.map((inline, index) => (
