@@ -108,6 +108,8 @@ export interface SourceLineProps {
     callGraphInfo?: { [binary: string]: CallGraphInfo };
     memoryInfo?: { [binary: string]: MemoryInfo };
     enabledTags: { [key: string]: boolean };
+    showOnlyDifferingTags: boolean;
+    dimSameTags: boolean;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
     onClick: (lineIndex: number) => void;
@@ -128,6 +130,8 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
     callGraphInfo,
     memoryInfo,
     enabledTags,
+    showOnlyDifferingTags,
+    dimSameTags,
     validBinaryFilePaths,
     correspondences,
     onClick,
@@ -180,9 +184,23 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
     };
 
     // Check if there are any enabled tags for this line
-    const hasEnabledTags = tags.some((binaries, tagIndex) => 
-        binaries.length > 0 && enabledTags[SOURCE_TAGS[tagIndex]?.id]
-    );
+    const shouldShowTag = (binaries: number[], tagIndex: number) => {
+        if (binaries.length === 0 || !enabledTags[SOURCE_TAGS[tagIndex]?.id]) {
+            return false;
+        }
+
+        if (showOnlyDifferingTags && validBinaryFilePaths.length > 1) {
+            const tagId = SOURCE_TAGS[tagIndex]?.id;
+            if (tagId === 'CALL_GRAPH') {
+                return true;
+            }
+            return binaries.length < validBinaryFilePaths.length;
+        }
+
+        return true;
+    };
+
+    const hasEnabledTags = tags.some((binaries, tagIndex) => shouldShowTag(binaries, tagIndex));
 
     return (
         <div
@@ -212,11 +230,16 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
                 <div className="source-line-tags">
                     <div className="right-tags">
                         {tags.map((binaries, tagIndex) => {
-                            if (binaries.length === 0 || !enabledTags[SOURCE_TAGS[tagIndex]?.id]) {
+                            if (!shouldShowTag(binaries, tagIndex)) {
                                 return null;
                             }
 
                             const tagId = SOURCE_TAGS[tagIndex].id;
+                            const isDifferentTag = tagId === 'CALL_GRAPH' || (
+                                validBinaryFilePaths.length > 1 &&
+                                binaries.length > 0 &&
+                                binaries.length < validBinaryFilePaths.length
+                            );
                             const { inlineTreesData, callGraphsData, memorysData } = getTagData(tagId);
 
                             return (
@@ -230,7 +253,10 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
                                     correspondences={correspondences}
                                 >
                                     <div
-                                        className="right-tags-container"
+                                        className={[
+                                            'right-tags-container',
+                                            dimSameTags ? (isDifferentTag ? '' : 'right-tag-dimmed') : ''
+                                        ].filter(Boolean).join(' ')}
                                         style={{
                                             border: `2px solid ${SOURCE_TAGS[tagIndex].borderColor}`,
                                             color: SOURCE_TAGS[tagIndex].textColor,
@@ -271,6 +297,8 @@ const SourceLine: React.FC<SourceLineProps> = React.memo(({
         prevProps.isHovered === nextProps.isHovered &&
         prevProps.tags === nextProps.tags &&
         prevProps.enabledTags === nextProps.enabledTags &&
+        prevProps.showOnlyDifferingTags === nextProps.showOnlyDifferingTags &&
+        prevProps.validBinaryFilePaths.length === nextProps.validBinaryFilePaths.length &&
         prevProps.style?.top === nextProps.style?.top
     );
 });

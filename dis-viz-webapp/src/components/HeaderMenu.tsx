@@ -4,7 +4,14 @@ import '@szhsin/react-menu/dist/index.css';
 import '@szhsin/react-menu/dist/transitions/zoom.css';
 
 import { useAppSelector, useAppDispatch } from '../app/hooks';
-import { toggleTag, selectAllTagStates } from '../features/tags/tagsSlice';
+import {
+    toggleTag,
+    selectAllTagStates,
+    selectShowOnlyDifferingTags,
+    toggleShowOnlyDifferingTags,
+    selectDimSameTags,
+    toggleDimSameTags
+} from '../features/tags/tagsSlice';
 import { SOURCE_TAGS, INSTRUCTION_TAGS } from '../utils';
 
 import '../styles/headerMenu.css';
@@ -20,6 +27,8 @@ interface HeaderMenuProps {
 const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps, onAddCallGraphView }) => {
     const dispatch = useAppDispatch();
     const enabledTags = useAppSelector(selectAllTagStates);
+    const showOnlyDifferingTags = useAppSelector(selectShowOnlyDifferingTags);
+    const dimSameTags = useAppSelector(selectDimSameTags);
 
     return (
         <div className="header-menu">
@@ -54,6 +63,34 @@ const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps, 
                         <div className="checkbox-menu-item">
                             <input type="checkbox" checked={showMinimaps} readOnly />
                             <span>Show Minimaps</span>
+                        </div>
+                    </MenuItem>
+                    <MenuItem
+                        className="header-menu-item"
+                        onClick={(e) => {
+                            dispatch(toggleShowOnlyDifferingTags());
+                            // Stop propagation and keep menu open
+                            e.stopPropagation = true;
+                            e.keepOpen = true;
+                        }}
+                    >
+                        <div className="checkbox-menu-item">
+                            <input type="checkbox" checked={showOnlyDifferingTags} readOnly />
+                            <span>Show Only Differing Tags</span>
+                        </div>
+                    </MenuItem>
+                    <MenuItem
+                        className="header-menu-item"
+                        onClick={(e) => {
+                            dispatch(toggleDimSameTags());
+                            // Stop propagation and keep menu open
+                            e.stopPropagation = true;
+                            e.keepOpen = true;
+                        }}
+                    >
+                        <div className="checkbox-menu-item">
+                            <input type="checkbox" checked={dimSameTags} readOnly />
+                            <span>Dim the Same Tags</span>
                         </div>
                     </MenuItem>
                     <MenuItem 

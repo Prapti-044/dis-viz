@@ -7,7 +7,7 @@ import { useAppSelector, useAppDispatch } from '../app/hooks';
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { SOURCE_TAGS } from '../utils';
-import { selectAllTagStates } from '../features/tags/tagsSlice';
+import { selectAllTagStates, selectShowOnlyDifferingTags, selectDimSameTags } from '../features/tags/tagsSlice';
 import SourceLine, { highlightAllLines } from './SourceLine';
 import { InlineEntry, CallGraphInfo, MemoryInfo } from '../types';
 import { CSSProperties, ReactElement } from 'react';
@@ -31,6 +31,8 @@ interface RowData {
     lineCallGraphInfo: { [line: number]: { [binary: string]: CallGraphInfo } };
     lineMemoryInfo: { [line: number]: { [binary: string]: MemoryInfo } };
     enabledTags: { [key: string]: boolean };
+    showOnlyDifferingTags: boolean;
+    dimSameTags: boolean;
     validBinaryFilePaths: string[];
     correspondences: { [binaryFilePath: string]: number[][] };
     onLineClick: (lineIndex: number) => void;
@@ -64,6 +66,8 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
         lineCallGraphInfo,
         lineMemoryInfo,
         enabledTags,
+        showOnlyDifferingTags,
+        dimSameTags,
         validBinaryFilePaths,
         correspondences,
         onLineClick,
@@ -95,6 +99,8 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
             callGraphInfo={callGraphInfoForLine}
             memoryInfo={memoryInfoForLine}
             enabledTags={enabledTags}
+            showOnlyDifferingTags={showOnlyDifferingTags}
+            dimSameTags={dimSameTags}
             validBinaryFilePaths={validBinaryFilePaths}
             correspondences={correspondences}
             onClick={onLineClick}
@@ -115,6 +121,8 @@ function SourceView({ file_name }: SourceViewProps) {
     const validBinaryFilePaths = useMemo(() => binaryFilePaths.filter(f => f !== ''), [binaryFilePaths]);
     const mouseHighlight = useAppSelector(selectSourceHoverHighlight);
     const enabledTags = useAppSelector(selectAllTagStates);
+    const showOnlyDifferingTags = useAppSelector(selectShowOnlyDifferingTags);
+    const dimSameTags = useAppSelector(selectDimSameTags);
 
     // Source code state
     const [sourceLines, setSourceLines] = useState<string[]>([]);
@@ -341,6 +349,8 @@ function SourceView({ file_name }: SourceViewProps) {
         lineCallGraphInfo,
         lineMemoryInfo,
         enabledTags,
+        showOnlyDifferingTags,
+        dimSameTags,
         validBinaryFilePaths,
         correspondences,
         onLineClick: handleLineClick,
@@ -357,6 +367,8 @@ function SourceView({ file_name }: SourceViewProps) {
         lineCallGraphInfo,
         lineMemoryInfo,
         enabledTags,
+        showOnlyDifferingTags,
+        dimSameTags,
         validBinaryFilePaths,
         correspondences,
         handleLineClick,
