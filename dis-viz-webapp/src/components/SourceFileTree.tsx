@@ -1,18 +1,32 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
 import { useAppSelector } from '../store/hooks';
 import { selectSourceSelection } from '../features/selections/selectionsSlice';
+import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { TreeItem, TreeItemProps, treeItemClasses } from '@mui/x-tree-view/TreeItem';
 import { TreeViewBaseItem } from '@mui/x-tree-view/models';
-import { Box, IconButton, Tooltip, Stack } from '@mui/material';
+import { 
+    Box, 
+    IconButton, 
+    Tooltip, 
+    Stack, 
+    FormControl, 
+    Select, 
+    MenuItem, 
+    InputLabel,
+    Typography,
+    Chip,
+    SelectChangeEvent,
+    Divider
+} from '@mui/material';
 import { styled, alpha } from '@mui/material/styles';
 import FolderIcon from '@mui/icons-material/Folder';
 import FolderOpenIcon from '@mui/icons-material/FolderOpen';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import StarIcon from '@mui/icons-material/Star';
 import UnfoldMoreIcon from '@mui/icons-material/UnfoldMore';
 import UnfoldLessIcon from '@mui/icons-material/UnfoldLess';
-import { HIGHLIGHT_COLOR } from '../utils';
+import { HIGHLIGHT_COLOR, SOURCE_TAGS } from '../utils';
+import * as disvizProcessor from '../disvizProcessor';
 
 // Import custom file type icons
 import hppIcon from '../assets/icons/hpp.png';
@@ -20,354 +34,383 @@ import headerIcon from '../assets/icons/header.png';
 import cppIcon from '../assets/icons/C++.png';
 import cIcon from '../assets/icons/C.png';
 
-type FileType = {
-    name: string,
-    fullPath: string,
-    type: "file" | "directory",
-    subdir: FileType[] | null,
-    status: "closed" | "opened"
+// Types
+interface FileType {
+    name: string;
+    fullPath: string;
+    type: "file" | "directory";
+    subdir: FileType[] | null;
+    status: "closed" | "opened";
 }
 
-// Convert FileType to TreeViewBaseItem format
-const convertToTreeItem = (file: FileType): TreeViewBaseItem => {
-    return {
-        id: file.fullPath,
-        label: file.name,
-        children: file.subdir ? file.subdir.map(child => convertToTreeItem(child)) : undefined,
-    };
-};
+interface TagCountInfo {
+    [binaryPath: string]: { count: number; lines: number[] };
+}
 
-// Function to get file icon based on extension
+// Utility functions
 const getFileIcon = (fileName: string) => {
-    const extension = fileName.split('.').pop()?.toLowerCase();
-    
-    switch (extension) {
-        case 'hpp':
-            return <img src={hppIcon.src} alt="HPP file" style={{ width: 16, height: 16 }} />;
-        case 'h':
-            return <img src={headerIcon.src} alt="Header file" style={{ width: 16, height: 16 }} />;
-        case 'cpp':
-        case 'cxx':
-        case 'cc':
-            return <img src={cppIcon.src} alt="C++ file" style={{ width: 16, height: 16 }} />;
-        case 'c':
-            return <img src={cIcon.src} alt="C file" style={{ width: 16, height: 16 }} />;
-        default:
-            return <InsertDriveFileIcon />; // Default icon for files without specific extensions
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    const iconStyle = { width: 16, height: 16 };
+    switch (ext) {
+        case 'hpp': return <img src={hppIcon.src} alt="HPP" style={iconStyle} />;
+        case 'h': return <img src={headerIcon.src} alt="Header" style={iconStyle} />;
+        case 'cpp': case 'cxx': case 'cc': return <img src={cppIcon.src} alt="C++" style={iconStyle} />;
+        case 'c': return <img src={cIcon.src} alt="C" style={iconStyle} />;
+        default: return <InsertDriveFileIcon />;
     }
 };
 
-// Styled TreeItem with vertical lines and proper hover behavior
+const getTagInfo = (tagId: string) => {
+    const tag = SOURCE_TAGS.find(t => t.id === tagId);
+    return { color: tag?.color || '#e0e0e0', shortName: tag?.shortName || tagId.slice(0, 3) };
+};
+
+const arraysEqual = (a: number[], b: number[]): boolean => {
+    if (a.length !== b.length) return false;
+    const setA = new Set(a);
+    return b.every(item => setA.has(item));
+};
+
+// Tag count badge component
+const TagCountBadge = React.memo(({ counts, binaryPaths, tagId }: { 
+    counts: TagCountInfo; 
+    binaryPaths: string[];
+    tagId: string;
+}) => {
+    const { color, shortName } = getTagInfo(tagId);
+    const isMultiBinary = binaryPaths.length > 1;
+    
+    const binaryData = binaryPaths.map(path => ({
+        path,
+        count: counts[path]?.count || 0,
+        lines: counts[path]?.lines || [],
+    }));
+    
+    const totalCount = binaryData.reduce((sum, b) => sum + b.count, 0);
+    if (totalCount === 0) return null;
+    
+    // Detect difference type for multi-binary
+    let diffType: 'count' | 'lines' | null = null;
+    if (isMultiBinary) {
+        const countsDiffer = new Set(binaryData.map(b => b.count)).size > 1;
+        if (countsDiffer) {
+            diffType = 'count';
+        } else if (binaryData[0].count > 0 && binaryData.slice(1).some(b => !arraysEqual(binaryData[0].lines, b.lines))) {
+            diffType = 'lines';
+        }
+    }
+    
+    const getBorderStyle = () => {
+        if (!diffType) return '1px solid transparent';
+        return diffType === 'count' ? '2px solid #ff9800' : '2px solid #9c27b0';
+    };
+    
+    const chipStyle = {
+        height: 18,
+        minWidth: 24,
+        fontSize: '10px',
+        fontWeight: 'bold',
+        backgroundColor: color,
+        color: 'black',
+        '& .MuiChip-label': { padding: '0 4px' },
+    };
+
+    if (!isMultiBinary) {
+        return (
+            <Tooltip title={`${totalCount} ${shortName} tags`} arrow>
+                <Chip size="small" label={totalCount} sx={{ ...chipStyle, '& .MuiChip-label': { padding: '0 6px' } }} />
+            </Tooltip>
+        );
+    }
+
+    return (
+        <Tooltip title={diffType === 'count' ? 'Different counts' : diffType === 'lines' ? 'Same count, different lines' : ''} arrow>
+            <Box sx={{ 
+                display: 'flex', 
+                border: getBorderStyle(),
+                borderRadius: 1,
+                padding: '1px 2px',
+            }}>
+                {binaryData.map((binary, idx) => (
+                    <Tooltip key={binary.path} title={`${binary.path}: ${binary.count}`} arrow>
+                        <Chip
+                            size="small"
+                            label={binary.count}
+                            sx={{
+                                ...chipStyle,
+                                opacity: binary.count === 0 ? 0.3 : 1,
+                                borderLeft: idx > 0 ? '1px solid rgba(0,0,0,0.2)' : 'none',
+                                borderRadius: idx === 0 ? '4px 0 0 4px' : idx === binaryData.length - 1 ? '0 4px 4px 0' : '0',
+                            }}
+                        />
+                    </Tooltip>
+                ))}
+            </Box>
+        </Tooltip>
+    );
+});
+TagCountBadge.displayName = 'TagCountBadge';
+
+// Styled TreeItem
 const StyledTreeItem = styled(TreeItem, {
     shouldForwardProp: (prop) => !['isSelected', 'fileType', 'isOpened'].includes(prop as string),
-})<TreeItemProps & { 
-    isSelected?: boolean; 
-    fileType?: "file" | "directory"; 
-    isOpened?: boolean;
-}>(({ theme, isSelected, fileType, isOpened }) => ({
-    [`& .${treeItemClasses.content}`]: {
-        backgroundColor: isSelected ? HIGHLIGHT_COLOR : 'transparent',
-        borderRadius: '4px',
-        padding: theme.spacing(0.3, 1),
-        margin: theme.spacing(0.1, 0),
-        display: 'flex',
-        alignItems: 'center',
-        border: isOpened ? '1px solid #2196f3' : '1px solid transparent',
-        '&:hover': {
-            backgroundColor: isSelected ? HIGHLIGHT_COLOR : 'rgba(0, 0, 0, 0.04)',
+})<TreeItemProps & { isSelected?: boolean; fileType?: "file" | "directory"; isOpened?: boolean }>(
+    ({ theme, isSelected, fileType, isOpened }) => ({
+        [`& .${treeItemClasses.content}`]: {
+            backgroundColor: isSelected ? HIGHLIGHT_COLOR : 'transparent',
+            borderRadius: '4px',
+            padding: theme.spacing(0.3, 1),
+            margin: theme.spacing(0.1, 0),
+            border: isOpened ? '1px solid #2196f3' : '1px solid transparent',
+            '&:hover': { backgroundColor: isSelected ? HIGHLIGHT_COLOR : 'rgba(0, 0, 0, 0.04)' },
         },
-        '&.Mui-selected': {
-            backgroundColor: isSelected ? HIGHLIGHT_COLOR : 'rgba(25, 118, 210, 0.12)',
+        [`& .${treeItemClasses.iconContainer}`]: { marginRight: fileType === 'directory' ? '8px' : '0px' },
+        [`& .${treeItemClasses.label}`]: {
+            fontSize: '13px',
+            fontWeight: fileType === 'directory' ? 'normal' : 'bold',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
         },
-    },
-    [`& .${treeItemClasses.iconContainer}`]: {
-        marginRight: fileType === 'directory' ? '12px' : '0px',
-    },
-    [`& .${treeItemClasses.label}`]: {
-        fontSize: '14px',
-        fontWeight: fileType === 'directory' ? 'normal' : 'bold',
-    },
-    [`& .${treeItemClasses.groupTransition}`]: {
-        marginLeft: 15,
-        paddingLeft: 18,
-        borderLeft: `1px dashed ${alpha(theme.palette.text.primary, 0.4)}`,
-    },
-}));
+        [`& .${treeItemClasses.groupTransition}`]: {
+            marginLeft: 15,
+            paddingLeft: 18,
+            borderLeft: `1px dashed ${alpha(theme.palette.text.primary, 0.4)}`,
+        },
+    })
+);
 
-// Memoized Custom TreeItem component with icons and highlighting
+// Custom TreeItem
 const CustomTreeItem = React.memo(React.forwardRef<HTMLLIElement, TreeItemProps & { 
     fileType?: "file" | "directory"; 
     isSelected?: boolean; 
     isOpened?: boolean;
     isExpanded?: boolean;
-    hasChildren?: boolean;
     fileName?: string;
+    tagCounts?: TagCountInfo;
+    selectedTag?: string;
+    binaryPaths?: string[];
 }>((props, ref) => {
-    const { fileType, isSelected, isOpened, isExpanded, hasChildren, fileName, ...other } = props;
+    const { fileType, isSelected, isOpened, isExpanded, fileName, tagCounts, selectedTag, binaryPaths, label, ...other } = props;
 
     const icon = useMemo(() => {
-        if (fileType === 'directory') {
-            return isExpanded ? <FolderOpenIcon /> : <FolderIcon />;
-        }
+        if (fileType === 'directory') return isExpanded ? <FolderOpenIcon /> : <FolderIcon />;
         return fileName ? getFileIcon(fileName) : <InsertDriveFileIcon />;
     }, [fileType, isExpanded, fileName]);
 
-    const endIcon = useMemo(() => {
-        if (isSelected && fileType === 'file') {
-            return <StarIcon color="primary" />;
-        }
-        return null;
-    }, [isSelected, fileType]);
+    const labelContent = (
+        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', gap: 1 }}>
+            <Typography component="span" sx={{ 
+                fontSize: '13px', 
+                fontWeight: fileType === 'directory' ? 'normal' : 'bold',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                flexGrow: 1,
+                minWidth: 0,
+            }}>
+                {label}
+            </Typography>
+            {fileType === 'file' && selectedTag && tagCounts && binaryPaths && (
+                <TagCountBadge counts={tagCounts} binaryPaths={binaryPaths} tagId={selectedTag} />
+            )}
+        </Box>
+    );
 
     return (
         <StyledTreeItem
             ref={ref}
             {...other}
+            label={labelContent}
             isSelected={isSelected}
             fileType={fileType}
             isOpened={isOpened}
-            slots={{
-                icon: () => icon,
-                endIcon: () => endIcon,
-            }}
+            slots={{ icon: () => icon }}
         />
     );
 }));
-
 CustomTreeItem.displayName = 'CustomTreeItem';
 
-function SourceFileTree({ sourceViewData, setSourceViewData }:{
-    sourceViewData: { file_name: string, status: "opened" | "closed" }[],
-    setSourceViewData: (_: { file_name: string, status: "opened" | "closed" }[]) => void,
-}) {
-    const selectedFiles = useAppSelector(selectSourceSelection).map(file => file.source_file)
-    
-    const handleItemClick = useCallback((event: React.SyntheticEvent, itemId: string) => {
-        // Find the file in sourceViewData and check if it's a file (not directory)
-        const fileData = sourceViewData.find(data => data.file_name === itemId);
-        if (fileData && !itemId.endsWith('/')) {
-            const sourceViewDataCopy = [...sourceViewData];
-            const index = sourceViewDataCopy.findIndex(sourceData => sourceData.file_name === itemId);
-            if (index !== -1) {
-                // Toggle the status: if opened, close it; if closed, open it
-                sourceViewDataCopy[index].status = sourceViewDataCopy[index].status === "opened" ? "closed" : "opened";
-                setSourceViewData(sourceViewDataCopy);
+// Tag selector
+const TagSelector = React.memo(({ selectedTag, onTagChange }: { selectedTag: string; onTagChange: (tag: string) => void }) => (
+    <FormControl size="small" sx={{ minWidth: 140 }}>
+        <InputLabel sx={{ fontSize: '12px' }}>Tag Filter</InputLabel>
+        <Select
+            value={selectedTag}
+            label="Tag Filter"
+            onChange={(e: SelectChangeEvent) => onTagChange(e.target.value)}
+            sx={{ fontSize: '12px', '& .MuiSelect-select': { py: 0.75 } }}
+        >
+            <MenuItem value=""><em>None</em></MenuItem>
+            <Divider />
+            {SOURCE_TAGS.map(tag => (
+                <MenuItem key={tag.id} value={tag.id} sx={{ fontSize: '12px', gap: 1 }}>
+                    <Box sx={{ width: 12, height: 12, borderRadius: '2px', backgroundColor: tag.color, border: '1px solid rgba(0,0,0,0.2)' }} />
+                    {tag.fullName}
+                </MenuItem>
+            ))}
+        </Select>
+    </FormControl>
+));
+TagSelector.displayName = 'TagSelector';
+
+// Build file tree structure
+const buildFileTree = (sourceViewData: { file_name: string; status: "opened" | "closed" }[]) => {
+    const root: FileType = { name: '/', fullPath: "/", type: "directory", subdir: [], status: "opened" };
+
+    sourceViewData.forEach(({ file_name, status }) => {
+        let current = root;
+        const parts = file_name.split("/").slice(1);
+        
+        parts.forEach((part, i) => {
+            const isFile = i === parts.length - 1;
+            const fullPath = "/" + parts.slice(0, i + 1).join('/');
+            
+            if (isFile) {
+                current.subdir!.push({ name: part, fullPath, type: "file", subdir: null, status });
+            } else {
+                let existing = current.subdir?.find(d => d.name === part);
+                if (!existing) {
+                    existing = { name: part, fullPath, type: "directory", subdir: [], status: "opened" };
+                    current.subdir!.push(existing);
+                }
+                current = existing;
             }
+        });
+    });
+
+    // Simplify nested single directories
+    const simplify = (node: FileType) => {
+        if (node.type === 'file') return;
+        while (node.subdir?.length === 1 && node.subdir[0].type !== 'file') {
+            const child = node.subdir[0];
+            node.name = node.name + '/' + child.name;
+            node.fullPath = child.fullPath;
+            node.subdir = child.subdir;
+        }
+        node.subdir?.forEach(simplify);
+    };
+    simplify(root);
+
+    // Build metadata and collect directory IDs
+    const metadataMap = new Map<string, { type: "file" | "directory"; status: "opened" | "closed" }>();
+    const directoryIds: string[] = [];
+    
+    const traverse = (node: FileType) => {
+        metadataMap.set(node.fullPath, { type: node.type, status: node.status });
+        if (node.type === 'directory') directoryIds.push(node.fullPath);
+        node.subdir?.forEach(traverse);
+    };
+    traverse(root);
+
+    const toTreeItems = (node: FileType): TreeViewBaseItem => ({
+        id: node.fullPath,
+        label: node.name,
+        children: node.subdir?.map(toTreeItems),
+    });
+
+    return {
+        items: root.subdir?.map(toTreeItems) || [],
+        metadataMap,
+        directoryIds,
+    };
+};
+
+// Main component
+function SourceFileTree({ sourceViewData, setSourceViewData }: {
+    sourceViewData: { file_name: string; status: "opened" | "closed" }[];
+    setSourceViewData: (data: { file_name: string; status: "opened" | "closed" }[]) => void;
+}) {
+    const selectedFiles = useAppSelector(selectSourceSelection).map(f => f.source_file);
+    const binaryPaths = useAppSelector(selectBinaryFilePaths).filter(f => f !== '');
+    const [selectedTag, setSelectedTag] = useState('');
+    const [expandedItems, setExpandedItems] = useState<string[]>([]);
+
+    // Build tree structure
+    const { items, metadataMap, directoryIds } = useMemo(
+        () => buildFileTree(sourceViewData), 
+        [sourceViewData]
+    );
+
+    // Fetch tag counts
+    const tagData = useMemo(
+        () => binaryPaths.length > 0 ? disvizProcessor.getAllSourceFileTagCounts(binaryPaths) : {},
+        [binaryPaths]
+    );
+
+    // Get tag counts for a file
+    const getTagCounts = useCallback((filePath: string): TagCountInfo => {
+        if (!selectedTag || !tagData[filePath]) return {};
+        return Object.fromEntries(
+            binaryPaths.map(bp => [bp, {
+                count: tagData[filePath][bp]?.counts?.[selectedTag] || 0,
+                lines: tagData[filePath][bp]?.lines?.[selectedTag] || []
+            }])
+        );
+    }, [tagData, selectedTag, binaryPaths]);
+
+    // Auto-expand directories on load
+    useEffect(() => { setExpandedItems(directoryIds); }, [directoryIds.join(',')]);
+
+    // Handle file click
+    const handleItemClick = useCallback((e: React.SyntheticEvent, itemId: string) => {
+        const idx = sourceViewData.findIndex(d => d.file_name === itemId);
+        if (idx !== -1 && !itemId.endsWith('/')) {
+            const updated = [...sourceViewData];
+            updated[idx] = { ...updated[idx], status: updated[idx].status === "opened" ? "closed" : "opened" };
+            setSourceViewData(updated);
         }
     }, [sourceViewData, setSourceViewData]);
 
-    // Build the file tree structure - memoized to avoid rebuilding on every render
-    const { items, fileMetadataMap, allDirectoryIds } = useMemo(() => {
-        const rootFile: FileType = {
-            name: '/',
-            fullPath: "/",
-            type: "directory",
-            subdir: [],
-            status: "opened"
-        }
-
-        sourceViewData.forEach(({ file_name, status }) => {
-            let currentLoc = rootFile
-            const list = file_name.split("/").slice(1)
-            list.forEach((fileOrFolder, i) => {
-                const isFile = i === list.length-1
-                if (isFile) {
-                    const newDir: FileType = {
-                        name: fileOrFolder,
-                        fullPath: "/"+list.slice(0,i+1).join('/'),
-                        type: "file",
-                        subdir: null,
-                        status: status,
-                    }
-                    currentLoc.subdir!.push(newDir)
-                }
-                else {
-                    if(currentLoc.subdir?.map(dir => dir.name).includes(fileOrFolder)) {
-                        currentLoc = currentLoc.subdir.find(dir => dir.name === fileOrFolder)!
-                    }
-                    else {
-                        const newDir: FileType = {
-                            name: fileOrFolder,
-                            fullPath: "/"+list.slice(0,i+1).join('/'),
-                            type: "directory",
-                            subdir: [],
-                            status: "opened",
-                        }
-                        currentLoc.subdir!.push(newDir)
-                        currentLoc = newDir
-                    }
-                }
-            })
-        })
-
-        // Simplify the nested single directories
-        function simplifyStructure(root: FileType) {
-            if (root.type === 'file') return
-            while(root.subdir && root.subdir.length === 1 && root.subdir[0].type !== 'file') {
-                root.name = root.name + '/' + root.subdir[0].name
-                root.fullPath = root.subdir[0].fullPath
-                root.status = root.subdir[0].status
-                root.type = root.subdir[0].type
-                root.subdir = root.subdir[0].subdir
-            }
-
-            root.subdir?.forEach(file => {
-                simplifyStructure(file)
-            })
-        }
-        simplifyStructure(rootFile);
-
-        // Convert to tree items and create lookup for file metadata
-        const createItemsWithMetadata = (file: FileType): TreeViewBaseItem[] => {
-            if (!file.subdir) return [];
-            
-            return file.subdir.map(child => convertToTreeItem(child));
-        };
-
-        // Create metadata lookup for custom tree items
-        const createFileMetadataMap = (file: FileType, map: Map<string, { type: "file" | "directory"; status: "opened" | "closed" }> = new Map()) => {
-            map.set(file.fullPath, { type: file.type, status: file.status });
-            if (file.subdir) {
-                file.subdir.forEach(child => createFileMetadataMap(child, map));
-            }
-            return map;
-        };
-
-        // Collect all directory IDs for auto-expansion
-        const getAllDirectoryIds = (file: FileType, dirIds: string[] = []): string[] => {
-            if (file.type === 'directory') {
-                dirIds.push(file.fullPath);
-            }
-            if (file.subdir) {
-                file.subdir.forEach(child => getAllDirectoryIds(child, dirIds));
-            }
-            return dirIds;
-        };
-
-        const items = createItemsWithMetadata(rootFile);
-        const fileMetadataMap = createFileMetadataMap(rootFile);
-        const allDirectoryIds = getAllDirectoryIds(rootFile);
-
-        return { items, fileMetadataMap, allDirectoryIds };
-    }, [sourceViewData]);
-
-    // State to manage expanded items
-    const [expandedItems, setExpandedItems] = useState<string[]>([]);
-
-    // Update expanded items when directory structure changes - use a ref to avoid infinite loops
-    const prevDirectoryIds = useMemo(() => allDirectoryIds.join(','), [allDirectoryIds]);
-    
-    useEffect(() => {
-        setExpandedItems(allDirectoryIds);
-    }, [prevDirectoryIds, allDirectoryIds]);
-
-    const handleExpandedItemsChange = useCallback((event: React.SyntheticEvent | null, itemIds: string[]) => {
-        setExpandedItems(itemIds);
-    }, []);
-
-    // Expand/Collapse all handlers
-    const handleExpandAll = useCallback(() => {
-        setExpandedItems(allDirectoryIds);
-    }, [allDirectoryIds]);
-
-    const handleCollapseAll = useCallback(() => {
-        setExpandedItems([]);
-    }, []);
-
-    // Helper function to check if an item has children
-    const hasChildren = useCallback((itemId: string): boolean => {
-        const findItem = (items: TreeViewBaseItem[]): boolean => {
-            for (const item of items) {
-                if (item.id === itemId) {
-                    return !!(item.children && item.children.length > 0);
-                }
-                if (item.children) {
-                    const found = findItem(item.children);
-                    if (found !== false) return found;
-                }
-            }
-            return false;
-        };
-        return findItem(items);
-    }, [items]);
-
-    // Memoized slots to prevent recreation on every render
+    // Tree slots
     const treeSlots = useMemo(() => ({
-        item: (itemProps: any) => {
-            const metadata = fileMetadataMap.get(itemProps.itemId);
-            const isSelected = selectedFiles.includes(itemProps.itemId);
-            const isOpened = sourceViewData.find(data => data.file_name === itemProps.itemId)?.status === "opened";
-            const isExpanded = expandedItems.includes(itemProps.itemId);
-            const itemHasChildren = hasChildren(itemProps.itemId);
-            
-            // Extract filename from the full path for icon determination
-            const fileName = itemProps.itemId.split('/').pop() || '';
-            
+        item: (props: any) => {
+            const meta = metadataMap.get(props.itemId);
             return (
                 <CustomTreeItem
-                    {...itemProps}
-                    fileType={metadata?.type}
-                    isSelected={isSelected}
-                    isOpened={isOpened}
-                    isExpanded={isExpanded}
-                    hasChildren={itemHasChildren}
-                    fileName={fileName}
+                    {...props}
+                    fileType={meta?.type}
+                    isSelected={selectedFiles.includes(props.itemId)}
+                    isOpened={sourceViewData.find(d => d.file_name === props.itemId)?.status === "opened"}
+                    isExpanded={expandedItems.includes(props.itemId)}
+                    fileName={props.itemId.split('/').pop() || ''}
+                    tagCounts={meta?.type === 'file' ? getTagCounts(props.itemId) : undefined}
+                    selectedTag={selectedTag}
+                    binaryPaths={binaryPaths}
                 />
             );
         },
-    }), [fileMetadataMap, selectedFiles, sourceViewData, expandedItems, hasChildren]);
+    }), [metadataMap, selectedFiles, sourceViewData, expandedItems, getTagCounts, selectedTag, binaryPaths]);
 
     return (
-        <Box sx={{ minHeight: 200, flexGrow: 1, maxWidth: 400 }}>
-            {/* Expand/Collapse Controls */}
-            <Stack 
-                direction="row" 
-                spacing={1} 
-                sx={{ 
-                    mb: 1, 
-                    px: 1,
-                    borderBottom: '1px solid #eee',
-                    pb: 1
-                }}
-            >
+        <Box sx={{ minHeight: 200, flexGrow: 1, maxWidth: 450, display: 'flex', flexDirection: 'column' }}>
+            {/* Controls */}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ px: 1, py: 1, borderBottom: '1px solid #e0e0e0', backgroundColor: '#fafafa' }}>
+                <TagSelector selectedTag={selectedTag} onTagChange={setSelectedTag} />
+                <Box sx={{ flexGrow: 1 }} />
                 <Tooltip title="Expand All">
-                    <IconButton 
-                        size="small" 
-                        onClick={handleExpandAll}
-                        sx={{ 
-                            '&:hover': { 
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)' 
-                            } 
-                        }}
-                    >
+                    <IconButton size="small" onClick={() => setExpandedItems(directoryIds)}>
                         <UnfoldMoreIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
                 <Tooltip title="Collapse All">
-                    <IconButton 
-                        size="small" 
-                        onClick={handleCollapseAll}
-                        sx={{ 
-                            '&:hover': { 
-                                backgroundColor: 'rgba(0, 0, 0, 0.04)' 
-                            } 
-                        }}
-                    >
+                    <IconButton size="small" onClick={() => setExpandedItems([])}>
                         <UnfoldLessIcon fontSize="small" />
                     </IconButton>
                 </Tooltip>
             </Stack>
 
-            {/* Tree View */}
-            <RichTreeView
-                items={items}
-                onItemClick={handleItemClick}
-                itemChildrenIndentation={20}
-                expandedItems={expandedItems}
-                onExpandedItemsChange={handleExpandedItemsChange}
-                slots={treeSlots}
-                sx={{ overflowX: 'hidden' }}
-            />
+            {/* Tree */}
+            <Box sx={{ flexGrow: 1, overflow: 'auto', py: 1 }}>
+                <RichTreeView
+                    items={items}
+                    onItemClick={handleItemClick}
+                    expandedItems={expandedItems}
+                    onExpandedItemsChange={(_, ids) => setExpandedItems(ids)}
+                    slots={treeSlots}
+                    sx={{ overflowX: 'hidden' }}
+                />
+            </Box>
         </Box>
     );
 }

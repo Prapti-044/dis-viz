@@ -235,6 +235,32 @@ export interface CallGraph {
   totalFunctions: number;
 }
 
+// ===== Lazy/Indexed Call Graph Types (for scalable visualization) =====
+
+export interface CallGraphNodeInfo {
+  id: string;
+  name: string;
+  entry: number;
+  isBuiltIn: boolean;
+  isInline: boolean;
+  parentFunction?: string;
+  simplifiedName?: string;
+  callsiteFile?: string;
+  callsiteLine?: number;
+  addressRanges?: Array<{ start: number; end: number }>;
+  callCount: number;
+}
+
+export interface CallGraphIndex {
+  nodes: Map<string, CallGraphNodeInfo>;
+  outgoing: Map<string, Set<string>>;
+  incoming: Map<string, Set<string>>;
+  edgeMap: Map<string, { id: string; source: string; target: string; callCount: number }>;
+  nameToId: Map<string, string>;
+  parentToInlineIds: Map<string, Set<string>>;
+  totalFunctions: number;
+}
+
 interface DisvizData {
   disassembly: {
     memory_order_blocks: BlockData[];
@@ -397,6 +423,128 @@ export function getSourceFiles(filepath: string): string[] {
   if (!file) return [];
   
   return file.data.source_code_info.map(info => info.file);
+}
+
+// Tag count result per source file
+export interface SourceFileTagCounts {
+  file: string;
+  tagCounts: {
+    [tagId: string]: number;
+  };
+  // Lines that have each tag (for detecting line-level differences)
+  tagLines: {
+    [tagId: string]: number[];
+  };
+}
+
+// Get tag counts for all source files in a binary
+export function getSourceFileTagCounts(binaryFilePath: string): SourceFileTagCounts[] {
+  const file = loadedFiles.get(binaryFilePath);
+  if (!file) return [];
+  
+  return file.data.source_code_info.map(sourceInfo => {
+    const tagCounts: { [tagId: string]: number } = {};
+    const tagLines: { [tagId: string]: number[] } = {};
+    
+    sourceInfo.lines.forEach(line => {
+      if (line.flags) {
+        line.flags.forEach(rawFlag => {
+          // Cast to string since raw data may have old flag names not in current type
+          const flag = rawFlag as string;
+          // Transform old memory flags to new merged format for counting
+          if (flag === 'MEMORY_READ' || flag === 'MEMORY_WRITE') {
+            tagCounts['MEMORY'] = (tagCounts['MEMORY'] || 0) + 1;
+            if (!tagLines['MEMORY']) tagLines['MEMORY'] = [];
+            if (!tagLines['MEMORY'].includes(line.line)) {
+              tagLines['MEMORY'].push(line.line);
+            }
+          }
+          tagCounts[flag] = (tagCounts[flag] || 0) + 1;
+          if (!tagLines[flag]) tagLines[flag] = [];
+          if (!tagLines[flag].includes(line.line)) {
+            tagLines[flag].push(line.line);
+          }
+        });
+      }
+    });
+    
+    return {
+      file: sourceInfo.file,
+      tagCounts,
+      tagLines
+    };
+  });
+}
+
+// Result type for tag info per binary
+export interface BinaryTagInfo {
+  counts: { [tagId: string]: number };
+  lines: { [tagId: string]: number[] };
+}
+
+// Get tag counts for a specific source file across multiple binaries
+export function getSourceFileTagCountsForFile(
+  binaryFilePaths: string[], 
+  sourceFile: string
+): { [binaryPath: string]: BinaryTagInfo } {
+  const result: { [binaryPath: string]: BinaryTagInfo } = {};
+  
+  for (const binaryPath of binaryFilePaths) {
+    const file = loadedFiles.get(binaryPath);
+    if (!file) continue;
+    
+    const sourceInfo = file.data.source_code_info.find(s => s.file === sourceFile);
+    if (sourceInfo) {
+      const tagCounts: { [tagId: string]: number } = {};
+      const tagLines: { [tagId: string]: number[] } = {};
+      
+      sourceInfo.lines.forEach(line => {
+        if (line.flags) {
+          line.flags.forEach(rawFlag => {
+            // Cast to string since raw data may have old flag names not in current type
+            const flag = rawFlag as string;
+            // Transform old memory flags to new merged format for counting
+            if (flag === 'MEMORY_READ' || flag === 'MEMORY_WRITE') {
+              tagCounts['MEMORY'] = (tagCounts['MEMORY'] || 0) + 1;
+              if (!tagLines['MEMORY']) tagLines['MEMORY'] = [];
+              if (!tagLines['MEMORY'].includes(line.line)) {
+                tagLines['MEMORY'].push(line.line);
+              }
+            }
+            tagCounts[flag] = (tagCounts[flag] || 0) + 1;
+            if (!tagLines[flag]) tagLines[flag] = [];
+            if (!tagLines[flag].includes(line.line)) {
+              tagLines[flag].push(line.line);
+            }
+          });
+        }
+      });
+      
+      result[binaryPath] = { counts: tagCounts, lines: tagLines };
+    }
+  }
+  
+  return result;
+}
+
+// Get all tag counts for all source files across all binaries
+export function getAllSourceFileTagCounts(binaryFilePaths: string[]): {
+  [sourceFile: string]: { [binaryPath: string]: BinaryTagInfo }
+} {
+  const result: { [sourceFile: string]: { [binaryPath: string]: BinaryTagInfo } } = {};
+  
+  for (const binaryPath of binaryFilePaths) {
+    const tagCounts = getSourceFileTagCounts(binaryPath);
+    
+    for (const { file, tagCounts: counts, tagLines: lines } of tagCounts) {
+      if (!result[file]) {
+        result[file] = {};
+      }
+      result[file][binaryPath] = { counts, lines };
+    }
+  }
+  
+  return result;
 }
 
 // Get minimap data
@@ -1406,4 +1554,361 @@ export function getFunctionContainingAddress(filepath: string, address: number):
   }
   
   return null;
-} 
+}
+
+// ===== Lazy Call Graph Index Functions =====
+// These build a lightweight adjacency index without running dagre layout,
+// then only layout the small visible subset on demand.
+
+const callGraphIndexCache = new Map<string, CallGraphIndex>();
+
+function addToAdjacencySet(map: Map<string, Set<string>>, from: string, to: string): void {
+  let set = map.get(from);
+  if (!set) { set = new Set(); map.set(from, set); }
+  set.add(to);
+}
+
+function processInlineFunctionForIndex(
+  inlineData: InlineEntryData,
+  parentFunctionName: string,
+  parentNodeId: string,
+  index: CallGraphIndex,
+  processedInlines: Set<string>,
+  directParentInlineId?: string
+): void {
+  const inlineId = `inline-${parentFunctionName}-${inlineData.simplified_name}-${inlineData.callsite_line}`;
+  if (processedInlines.has(inlineId)) return;
+  processedInlines.add(inlineId);
+
+  const entryAddress = inlineData.ranges.length > 0 ? inlineData.ranges[0].start : 0;
+
+  index.nodes.set(inlineId, {
+    id: inlineId,
+    name: inlineData.name,
+    entry: entryAddress,
+    isBuiltIn: false,
+    isInline: true,
+    parentFunction: parentFunctionName,
+    simplifiedName: inlineData.simplified_name,
+    callsiteFile: inlineData.callsite_file,
+    callsiteLine: inlineData.callsite_line,
+    addressRanges: inlineData.ranges,
+    callCount: 0,
+  });
+
+  // Track inline -> parent relationship
+  let inlineSet = index.parentToInlineIds.get(parentFunctionName);
+  if (!inlineSet) { inlineSet = new Set(); index.parentToInlineIds.set(parentFunctionName, inlineSet); }
+  inlineSet.add(inlineId);
+
+  // Edge: non-inline parent -> this inline
+  const parentEdgeKey = `${parentNodeId}|${inlineId}`;
+  if (!index.edgeMap.has(parentEdgeKey)) {
+    index.edgeMap.set(parentEdgeKey, {
+      id: `${parentNodeId}-${inlineId}`,
+      source: parentNodeId,
+      target: inlineId,
+      callCount: 1,
+    });
+    addToAdjacencySet(index.outgoing, parentNodeId, inlineId);
+    addToAdjacencySet(index.incoming, inlineId, parentNodeId);
+  }
+
+  // Edge: direct inline parent -> this inline (if nested)
+  if (directParentInlineId) {
+    const inlineEdgeKey = `${directParentInlineId}|${inlineId}`;
+    if (!index.edgeMap.has(inlineEdgeKey)) {
+      index.edgeMap.set(inlineEdgeKey, {
+        id: `${directParentInlineId}-${inlineId}`,
+        source: directParentInlineId,
+        target: inlineId,
+        callCount: 1,
+      });
+      addToAdjacencySet(index.outgoing, directParentInlineId, inlineId);
+      addToAdjacencySet(index.incoming, inlineId, directParentInlineId);
+    }
+  }
+
+  // Recursively process children
+  if (inlineData.children) {
+    for (const child of inlineData.children) {
+      processInlineFunctionForIndex(child, parentFunctionName, parentNodeId, index, processedInlines, inlineId);
+    }
+  }
+}
+
+export function buildCallGraphIndex(filepath: string): CallGraphIndex {
+  const cached = callGraphIndexCache.get(filepath);
+  if (cached) return cached;
+
+  const file = loadedFiles.get(filepath);
+  if (!file) throw new Error(`File not found: ${filepath}`);
+
+  const functionInfos = file.data.functionInfos || [];
+
+  const index: CallGraphIndex = {
+    nodes: new Map(),
+    outgoing: new Map(),
+    incoming: new Map(),
+    edgeMap: new Map(),
+    nameToId: new Map(),
+    parentToInlineIds: new Map(),
+    totalFunctions: functionInfos.length,
+  };
+
+  // Build function name -> info map for edge target resolution
+  const functionMap = new Map<string, FunctionInfo>();
+  functionInfos.forEach(func => functionMap.set(func.name, func));
+
+  const processedInlines = new Set<string>();
+
+  // Create nodes for all functions
+  functionInfos.forEach(func => {
+    const nodeId = `${func.name}-${func.entry}`;
+
+    index.nodes.set(nodeId, {
+      id: nodeId,
+      name: func.name,
+      entry: func.entry,
+      isBuiltIn: func.is_builtin,
+      isInline: false,
+      callCount: func.calls.length,
+    });
+
+    index.nameToId.set(func.name, nodeId);
+
+    // Process inlines
+    if (func.inlines) {
+      for (const inlineData of func.inlines) {
+        processInlineFunctionForIndex(inlineData, func.name, nodeId, index, processedInlines);
+      }
+    }
+  });
+
+  // Create edges from function calls (aggregate duplicates)
+  functionInfos.forEach(func => {
+    const sourceId = `${func.name}-${func.entry}`;
+
+    func.calls.forEach(call => {
+      const targetFuncName = call.target_func_names[0] || '';
+      const targetFunction = functionMap.get(targetFuncName);
+      if (!targetFunction) return; // Skip external calls
+
+      const targetId = `${targetFunction.name}-${targetFunction.entry}`;
+      const edgeKey = `${sourceId}|${targetId}`;
+
+      const existing = index.edgeMap.get(edgeKey);
+      if (existing) {
+        existing.callCount++;
+      } else {
+        index.edgeMap.set(edgeKey, {
+          id: `${func.name}-${targetFunction.name}-${call.address}`,
+          source: sourceId,
+          target: targetId,
+          callCount: 1,
+        });
+      }
+      addToAdjacencySet(index.outgoing, sourceId, targetId);
+      addToAdjacencySet(index.incoming, targetId, sourceId);
+    });
+  });
+
+  callGraphIndexCache.set(filepath, index);
+  return index;
+}
+
+export function getCallGraphStatsFromIndex(index: CallGraphIndex): {
+  totalNodes: number;
+  totalEdges: number;
+  averageCallsPerFunction: number;
+} {
+  let totalCalls = 0;
+  for (const [, edge] of index.edgeMap) {
+    totalCalls += edge.callCount;
+  }
+  return {
+    totalNodes: index.nodes.size,
+    totalEdges: index.edgeMap.size,
+    averageCallsPerFunction: index.totalFunctions > 0 ? totalCalls / index.totalFunctions : 0,
+  };
+}
+
+export function findMainInIndex(index: CallGraphIndex): string | null {
+  // Try exact name matches
+  const mainNames = ['main', '_main', '__main', 'Main', 'MAIN'];
+  for (const name of mainNames) {
+    const id = index.nameToId.get(name);
+    if (id) return id;
+  }
+
+  // Fallback: lowest entry address among non-inline functions
+  let minEntry = Infinity;
+  let minId: string | null = null;
+  for (const [id, node] of index.nodes) {
+    if (!node.isInline && node.entry < minEntry) {
+      minEntry = node.entry;
+      minId = id;
+    }
+  }
+  return minId;
+}
+
+export function getNeighborsFromIndex(index: CallGraphIndex, nodeId: string): Set<string> {
+  const neighbors = new Set<string>();
+
+  // Outgoing edges (O(degree) via adjacency set)
+  const outgoing = index.outgoing.get(nodeId);
+  if (outgoing) for (const id of outgoing) neighbors.add(id);
+
+  // Incoming edges (O(degree) via adjacency set)
+  const incoming = index.incoming.get(nodeId);
+  if (incoming) for (const id of incoming) neighbors.add(id);
+
+  // For inline functions, add siblings (via parentToInlineIds)
+  const node = index.nodes.get(nodeId);
+  if (node?.isInline && node.parentFunction) {
+    const siblings = index.parentToInlineIds.get(node.parentFunction);
+    if (siblings) {
+      for (const sibId of siblings) {
+        if (sibId !== nodeId) neighbors.add(sibId);
+      }
+    }
+  }
+
+  return neighbors;
+}
+
+export function layoutVisibleSubgraph(index: CallGraphIndex, visibleNodeIds: Set<string>): CallGraph {
+  const nodes: CallGraphNode[] = [];
+  const edges: CallGraphEdge[] = [];
+
+  // Create nodes from index metadata
+  for (const nodeId of visibleNodeIds) {
+    const info = index.nodes.get(nodeId);
+    if (!info) continue;
+
+    nodes.push({
+      id: info.id,
+      name: info.name,
+      entry: info.entry,
+      isExternal: false,
+      isBuiltIn: info.isBuiltIn,
+      isInline: info.isInline,
+      parentFunction: info.parentFunction,
+      simplifiedName: info.simplifiedName,
+      callsiteFile: info.callsiteFile,
+      callsiteLine: info.callsiteLine,
+      addressRanges: info.addressRanges,
+      callCount: info.callCount,
+      level: 0,
+      x: 0,
+      y: 0,
+      width: info.isInline ? 140 : 120,
+      height: info.isInline ? 50 : 60,
+    });
+  }
+
+  // Create edges between visible nodes only
+  for (const nodeId of visibleNodeIds) {
+    const outNeighbors = index.outgoing.get(nodeId);
+    if (!outNeighbors) continue;
+
+    for (const targetId of outNeighbors) {
+      if (!visibleNodeIds.has(targetId)) continue;
+
+      const edgeKey = `${nodeId}|${targetId}`;
+      const edgeInfo = index.edgeMap.get(edgeKey);
+      if (!edgeInfo) continue;
+
+      edges.push({
+        id: edgeInfo.id,
+        source: nodeId,
+        target: targetId,
+        callAddress: 0,
+        targetAddress: 0,
+        isExternal: false,
+        callCount: edgeInfo.callCount,
+      });
+    }
+  }
+
+  // Run dagre layout on this small visible subset only
+  const g = new dagre.graphlib.Graph();
+  g.setGraph({
+    rankdir: 'TB',
+    align: 'UL',
+    nodesep: 80,
+    edgesep: 40,
+    ranksep: 100,
+    marginx: 50,
+    marginy: 50,
+    acyclicer: 'greedy',
+    ranker: 'tight-tree',
+  });
+  g.setDefaultNodeLabel(() => ({}));
+  g.setDefaultEdgeLabel(() => ({}));
+
+  nodes.forEach(node => {
+    g.setNode(node.id, { width: node.width, height: node.height, label: node.name });
+  });
+
+  edges.forEach(edge => {
+    g.setEdge(edge.source, edge.target, { weight: edge.callCount });
+  });
+
+  dagre.layout(g);
+
+  let maxLevel = 0;
+  nodes.forEach(node => {
+    const dagreNode = g.node(node.id);
+    if (dagreNode) {
+      node.x = dagreNode.x - node.width / 2;
+      node.y = dagreNode.y - node.height / 2;
+      node.level = Math.floor(node.y / 100);
+      maxLevel = Math.max(maxLevel, node.level);
+    }
+  });
+
+  edges.forEach(edge => {
+    const dagreEdge = g.edge(edge.source, edge.target);
+    if (dagreEdge && dagreEdge.points) {
+      (edge as any).points = dagreEdge.points;
+    }
+  });
+
+  return {
+    nodes,
+    edges,
+    externalFunctions: new Set<string>(),
+    maxLevel,
+    totalFunctions: nodes.length,
+  };
+}
+
+export function searchFunctionsInIndex(index: CallGraphIndex, query: string, limit: number = 20): CallGraphNodeInfo[] {
+  const lowerQuery = query.toLowerCase();
+  const results: CallGraphNodeInfo[] = [];
+
+  for (const [, node] of index.nodes) {
+    if (node.isInline) continue; // Skip inlines in search
+    if (node.name.toLowerCase().includes(lowerQuery)) {
+      results.push(node);
+      if (results.length >= limit * 3) break; // Collect extra for sorting
+    }
+  }
+
+  // Sort: exact matches first, then prefix matches, then by name length
+  results.sort((a, b) => {
+    const aLower = a.name.toLowerCase();
+    const bLower = b.name.toLowerCase();
+    const aExact = aLower === lowerQuery ? 0 : 1;
+    const bExact = bLower === lowerQuery ? 0 : 1;
+    if (aExact !== bExact) return aExact - bExact;
+    const aPrefix = aLower.startsWith(lowerQuery) ? 0 : 1;
+    const bPrefix = bLower.startsWith(lowerQuery) ? 0 : 1;
+    if (aPrefix !== bPrefix) return aPrefix - bPrefix;
+    return a.name.length - b.name.length;
+  });
+
+  return results.slice(0, limit);
+}
