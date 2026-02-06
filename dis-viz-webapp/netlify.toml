@@ -1,0 +1,4 @@
+[build]
+  base = "dis-viz-webapp"
+  command = "pnpm build"
+  publish = ".next"
