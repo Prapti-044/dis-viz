@@ -1912,3 +1912,55 @@ export function searchFunctionsInIndex(index: CallGraphIndex, query: string, lim
 
   return results.slice(0, limit);
 }
+
+/**
+ * Given a binary file, a source file, and an array of 1-based source line numbers,
+ * find the function(s) whose definition contains those lines.
+ *
+ * Heuristic: sort all function definition lines for this source file and, for each
+ * selected line, return the function whose definition line is the greatest value ≤
+ * the selected line (i.e. the most-recently-opened function scope).
+ */
+export function getFunctionsForSourceLines(
+  binaryFilePath: string,
+  sourceFile: string,
+  sourceLines: number[]
+): FunctionInfo[] {
+  const file = loadedFiles.get(binaryFilePath);
+  if (!file) return [];
+
+  const allFunctions = file.data.functionInfos || [];
+
+  // Collect functions defined in the requested source file, sorted by line asc
+  const funcsInFile = allFunctions
+    .filter(f => f.source_info && f.source_info.file === sourceFile && f.source_info.line > 0)
+    .sort((a, b) => a.source_info.line - b.source_info.line);
+
+  if (funcsInFile.length === 0) return [];
+
+  const defLines = funcsInFile.map(f => f.source_info.line);
+
+  const result = new Map<string, FunctionInfo>(); // deduplicate by function name
+
+  for (const line of sourceLines) {
+    // Binary search for the last definition line <= line
+    let lo = 0;
+    let hi = defLines.length - 1;
+    let idx = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >>> 1;
+      if (defLines[mid] <= line) {
+        idx = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (idx >= 0) {
+      const func = funcsInFile[idx];
+      result.set(func.name, func);
+    }
+  }
+
+  return Array.from(result.values());
+}
