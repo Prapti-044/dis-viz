@@ -2,7 +2,7 @@ import React from 'react'
 import '../styles/disassemblyview.css'
 
 import openInNewTabImage from "../assets/newtab.png";
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { selectBinaryHoverHighlight, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
 
 import { Instruction, InstructionBlock, BLOCK_ORDERS } from '../types'
@@ -135,7 +135,7 @@ function DisassemblyLine({ binaryFilePath, block, instruction, isHighlighted, co
                         {/* {token} */}
                         
                         <button style={{
-                            backgroundImage: `url(${openInNewTabImage})`,
+                            backgroundImage: `url(${openInNewTabImage.src})`,
                             border: "none",
                             backgroundSize: "contain",
                             backgroundRepeat: "no-repeat",

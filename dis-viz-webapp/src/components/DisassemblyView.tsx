@@ -5,7 +5,7 @@ import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { BLOCK_ORDERS, InstructionBlock, Instruction } from '../types';
 import * as disvizProcessor from '../disvizProcessor';
 import DisassemblyMinimap from './DisassemblyMinimap';
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { MinimapType } from '../features/minimap/minimapSlice';
 import { isHex, toHex, HIGHLIGHT_COLOR, shortenName, INSTRUCTION_TAGS, findIntelDocs } from '../utils';
 import { selectAllTagStates } from '../features/tags/tagsSlice';
@@ -13,7 +13,7 @@ import Form from 'react-bootstrap/Form';
 import Button from 'react-bootstrap/Button';
 import Modal from 'react-bootstrap/Modal';
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH } from '../config';
-import { AppDispatch } from '../app/store';
+import { AppDispatch } from '../store/store';
 import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 import '../styles/disassemblyview.css';

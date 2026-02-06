@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../../app/store';
+import { RootState } from '../../store/store';
 import { SourceSelection, BinarySelection } from '../selections/selectionsSlice';
 
 const MAX_HISTORY_SIZE = 10;

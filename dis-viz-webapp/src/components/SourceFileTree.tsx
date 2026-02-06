@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useCallback } from 'react'
-import { useAppSelector } from '../app/hooks';
+import { useAppSelector } from '../store/hooks';
 import { selectSourceSelection } from '../features/selections/selectionsSlice';
 import { RichTreeView } from '@mui/x-tree-view/RichTreeView';
 import { TreeItem, TreeItemProps, treeItemClasses } from '@mui/x-tree-view/TreeItem';
@@ -43,15 +43,15 @@ const getFileIcon = (fileName: string) => {
     
     switch (extension) {
         case 'hpp':
-            return <img src={hppIcon} alt="HPP file" style={{ width: 16, height: 16 }} />;
+            return <img src={hppIcon.src} alt="HPP file" style={{ width: 16, height: 16 }} />;
         case 'h':
-            return <img src={headerIcon} alt="Header file" style={{ width: 16, height: 16 }} />;
+            return <img src={headerIcon.src} alt="Header file" style={{ width: 16, height: 16 }} />;
         case 'cpp':
         case 'cxx':
         case 'cc':
-            return <img src={cppIcon} alt="C++ file" style={{ width: 16, height: 16 }} />;
+            return <img src={cppIcon.src} alt="C++ file" style={{ width: 16, height: 16 }} />;
         case 'c':
-            return <img src={cIcon} alt="C file" style={{ width: 16, height: 16 }} />;
+            return <img src={cIcon.src} alt="C file" style={{ width: 16, height: 16 }} />;
         default:
             return <InsertDriveFileIcon />; // Default icon for files without specific extensions
     }

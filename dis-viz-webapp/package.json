@@ -8,17 +8,16 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
-    "@floating-ui/react": "^0.27.16",
-    "@mui/icons-material": "^7.3.6",
-    "@mui/material": "^7.3.6",
-    "@mui/x-tree-view": "^8.23.0",
+    "@floating-ui/react": "^0.27.17",
+    "@hpcc-js/wasm-graphviz": "^1.21.0",
+    "@mui/icons-material": "^7.3.7",
+    "@mui/material": "^7.3.7",
+    "@mui/x-tree-view": "^8.27.0",
     "@reduxjs/toolkit": "^2.11.2",
     "@szhsin/react-menu": "^4.5.1",
     "@types/pako": "^2.0.4",
     "@types/prismjs": "^1.26.5",
-    "@types/react-window": "^2.0.0",
     "@types/tar-stream": "^3.1.4",
-    "RichTreeView": "link:@mui/x-tree-view/RichTreeView",
     "bootstrap": "^5.3.8",
     "class-transformer": "^0.5.1",
     "csstype": "^3.2.3",
@@ -28,57 +27,42 @@
     "d3-transition": "^3.0.1",
     "d3-zoom": "^3.0.0",
     "dagre": "^0.8.5",
-    "graphviz-react": "^1.2.5",
     "jszip": "^3.10.1",
+    "next": "latest",
     "pako": "^2.1.0",
     "prismjs": "^1.30.0",
     "rc-dock": "4.0.0-alpha.2",
-    "react": "^19.2.3",
+    "react": "^19.2.4",
     "react-bootstrap": "^2.10.10",
-    "react-dom": "^19.2.3",
+    "react-dom": "^19.2.4",
     "react-grid-layout": "^2.2.2",
     "react-icons": "^5.5.0",
     "react-redux": "^9.2.0",
-    "react-scripts": "5.0.1",
     "react-toastify": "^11.0.5",
-    "react-window": "^2.2.5",
+    "react-window": "^2.2.6",
     "redux": "^5.0.1",
     "reflect-metadata": "^0.2.2",
-    "tar-stream": "^3.1.7",
-    "typescript": "^5.9.3"
+    "tar-stream": "^3.1.7"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
   "devDependencies": {
     "@types/d3-path": "^3.1.1",
     "@types/d3-selection": "^3.0.11",
-    "@types/d3-shape": "^3.1.7",
+    "@types/d3-shape": "^3.1.8",
     "@types/d3-transition": "^3.0.9",
     "@types/d3-zoom": "^3.0.8",
     "@types/dagre": "^0.7.53",
     "@types/jest": "^30.0.0",
-    "@types/node": "^25.0.3",
-    "@types/react": "^19.2.7",
-    "@types/react-dom": "^19.2.3"
+    "@types/node": "^25.2.1",
+    "@types/react": "^19.2.13",
+    "@types/react-dom": "^19.2.3",
+    "eslint": "^9.39.2",
+    "eslint-config-next": "latest",
+    "typescript": "^5.9.3"
   }
 }

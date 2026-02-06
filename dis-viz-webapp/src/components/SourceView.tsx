@@ -3,7 +3,7 @@ import { List, useListRef } from 'react-window';
 import '../styles/sourceview.css';
 import { clearHoverHighlight, setHoverHighlight, BinarySelection } from '../features/selections/selectionsSlice';
 import * as disvizProcessor from '../disvizProcessor';
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { selectSourceSelection, selectSourceHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import { SOURCE_TAGS } from '../utils';

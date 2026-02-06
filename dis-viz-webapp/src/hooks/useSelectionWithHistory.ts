@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { useAppDispatch } from '../app/hooks';
+import { useAppDispatch } from '../store/hooks';
 import { setSelection, SourceSelection, BinarySelection } from '../features/selections/selectionsSlice';
 import { addHistoryEntry, SelectionOrigin, HistoryEntryDetails } from '../features/history/historySlice';
 

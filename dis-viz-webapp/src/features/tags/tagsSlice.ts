@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { RootState } from '../../app/store';
+import { RootState } from '../../store/store';
 import { SOURCE_TAGS, INSTRUCTION_TAGS } from '../../utils';
 
 interface TagsState {

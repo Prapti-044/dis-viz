@@ -8,7 +8,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { toast } from 'react-toastify';
 
-import { useAppSelector } from '../app/hooks';
+import { useAppSelector } from '../store/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice'
 import { selectSourceSelection } from '../features/selections/selectionsSlice'
 import DisassemblyView from './DisassemblyView';
@@ -72,7 +72,7 @@ const App = () => {
       const curSourceViewStates: { [file_name: string]: "opened" | "closed" } = {}
       
       try {
-        binaryFilePaths.filter(binaryFilePath => binaryFilePath !== "").forEach((binaryFilePath) => {
+        binaryFilePaths.filter((binaryFilePath: string) => binaryFilePath !== "").forEach((binaryFilePath: string) => {
           const sourceFiles = disvizProcessor.getSourceFiles(binaryFilePath)
           sourceFiles.forEach(sourceFile => {
               if (!(sourceFile in curSourceViewStates)) {

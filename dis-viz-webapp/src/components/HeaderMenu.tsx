@@ -3,7 +3,7 @@ import { Menu, SubMenu, MenuItem, MenuButton } from '@szhsin/react-menu';
 import '@szhsin/react-menu/dist/index.css';
 import '@szhsin/react-menu/dist/transitions/zoom.css';
 
-import { useAppSelector, useAppDispatch } from '../app/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
 import {
     toggleTag,
     selectAllTagStates,

@@ -2,7 +2,7 @@ import React from 'react';
 import { MinimapType } from '../features/minimap/minimapSlice'
 import { selectBinarySelection } from '../features/selections/selectionsSlice'
 import { HIGHLIGHT_COLOR, hexToHSL, INSTRUCTION_TAGS } from '../utils'
-import { useAppSelector } from '../app/hooks';
+import { useAppSelector } from '../store/hooks';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
 import * as disvizProcessor from '../disvizProcessor';
 import { BLOCK_ORDERS } from '../types';

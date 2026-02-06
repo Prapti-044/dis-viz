@@ -9,7 +9,7 @@ import HidableDisassembly from "./HidableDisassembly";
 import * as disvizProcessor from "../disvizProcessor";
 import BackEdge from "./BackEdge";
 import { marginHorizontal, LOOP_INDENT_SIZE, BLOCK_MAX_WIDTH, marginSameVertical, marginDifferentVertical } from '../config';
-import { useAppSelector } from '../app/hooks';
+import { useAppSelector } from '../store/hooks';
 import useSelectionWithHistory from '../hooks/useSelectionWithHistory';
 
 

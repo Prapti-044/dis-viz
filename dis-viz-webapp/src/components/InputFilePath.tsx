@@ -11,7 +11,7 @@ import {
     syncWithLoadedFiles,
     selectBinaryFilePaths
 } from '../features/binary-data/binaryDataSlice'
-import { useAppDispatch, useAppSelector } from '../app/hooks'
+import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { toast } from 'react-toastify'
 import {
     DndContext,
