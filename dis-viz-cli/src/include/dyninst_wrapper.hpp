@@ -17,7 +17,8 @@ typedef enum {
   INST_SYSCALL,
   INST_BRANCH,
   INST_FP,
-  INST_HOISTED
+  INST_HOISTED,
+  INST_INLINE
 } INSTRUCTION_FLAGS;
 
 struct VarLocation {
@@ -57,6 +58,11 @@ struct Hidable {
   unsigned long start;
   unsigned long end;
 };
+struct InstructionInlineInfo {
+  std::string name;
+  std::string callsite_file;
+  unsigned long callsite_line; // 1-based line number
+};
 struct InstructionInfo {
   unsigned long address;
   std::string instruction;
@@ -64,6 +70,7 @@ struct InstructionInfo {
       correspondence;  // { source_file: [line_number] } - line_number is 1-based
   std::vector<VariableInfo> variables;
   std::unordered_set<INSTRUCTION_FLAGS> flags;
+  std::vector<InstructionInlineInfo> inline_info;
 };
 struct BasicBlock {
   std::string id;

@@ -83,6 +83,12 @@ export class SourceFile {
     }
 }
 
+export interface InstructionInlineInfo {
+    name: string;
+    callsite_file: string;
+    callsite_line: number; // 1-based line number from backend
+}
+
 export class Instruction {
     @Expose() instruction: string
     @Expose() address: number
@@ -91,13 +97,15 @@ export class Instruction {
         [source_file: string]: number[] // 1-based line numbers from backend
     }
     @Expose() flags: InstructionFlag[] = []
+    @Expose() inline_info: InstructionInlineInfo[] = []
 
-    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}, flags: InstructionFlag[] = []) {
+    constructor(instruction: string, address: number, variables: Variable[] = [], correspondence: { [source_file: string]: number[] } = {}, flags: InstructionFlag[] = [], inline_info: InstructionInlineInfo[] = []) {
         this.instruction = instruction
         this.address = address
         this.variables = variables === undefined ? [] : variables
         this.correspondence = correspondence === undefined ? {} : correspondence
         this.flags = flags === undefined ? [] : flags
+        this.inline_info = inline_info === undefined ? [] : inline_info
     }
 }
 

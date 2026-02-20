@@ -37,7 +37,8 @@ const std::unordered_map<INSTRUCTION_FLAGS, SOURCE_CODE_FLAGS> INSTRUCTION_FLAGS
   {INST_CALL, SOURCE_CODE_FLAGS::SOURCE_CODE_CALL},
   {INST_SYSCALL, SOURCE_CODE_FLAGS::SOURCE_CODE_SYSCALL},
   {INST_FP, SOURCE_CODE_FLAGS::SOURCE_CODE_FP},
-  {INST_HOISTED, SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED}
+  {INST_HOISTED, SOURCE_CODE_FLAGS::SOURCE_CODE_HOISTED},
+  {INST_INLINE, SOURCE_CODE_FLAGS::SOURCE_CODE_INLINE}
 };
 
 const std::vector<string> SYSTEM_LOCATIONS = {"/usr/"};
@@ -821,6 +822,26 @@ std::tuple<
     }
     auto inlineTree = buildInlineTree(inlineFuncs);
 
+    // Collect all inline ranges (flattened from tree) for per-instruction flagging
+    struct InlineRangeInfo {
+      unsigned long start;
+      unsigned long end;
+      std::string name;
+      std::string callsite_file;
+      unsigned long callsite_line;
+    };
+    auto allInlineRanges = vector<InlineRangeInfo>();
+    std::function<void(const vector<InlineEntry>&)> collectRanges =
+        [&](const vector<InlineEntry>& entries) {
+            for (const auto& entry : entries) {
+                for (const auto& range : entry.ranges) {
+                    allInlineRanges.push_back({range.first, range.second, entry.name, entry.callsite_file, entry.callsite_line});
+                }
+                collectRanges(entry.children);
+            }
+        };
+    collectRanges(inlineTree);
+
     // Traverse the inline tree to update sourceCodeInfo
     std::function<void(const vector<InlineEntry>&)> updateSourceCodeInfo = [&](const vector<InlineEntry>& entries) {
       for(const auto &inlineEntry : entries) {
@@ -941,12 +962,19 @@ std::tuple<
         // Correspondences
         auto cur_lines = vector<SymtabAPI::Statement::Ptr>();
         symtab->getSourceLines(cur_lines, instr.first);
-        // auto cur_lines = symtab->getSourceLines(instr.first);
         auto correspondences = unordered_map<string, vector<int> >();
         for (const auto &li : cur_lines) {
           const auto lineNumber = li->getLine(); // 1-based index from Dyninst
           correspondences[print_clean_string(li->getFile())].push_back(lineNumber);
           source_correspondences[print_clean_string(li->getFile())][lineNumber].push_back(instr.first);
+        }
+
+        auto instrInlineInfo = vector<InstructionInlineInfo>();
+        for (const auto& range : allInlineRanges) {
+          if (instr.first >= range.start && instr.first < range.end) {
+            instruction_flags[instr.first].insert(INST_INLINE);
+            instrInlineInfo.push_back({range.name, range.callsite_file, range.callsite_line});
+          }
         }
 
         blockInfo.instructions.push_back({
@@ -955,6 +983,7 @@ std::tuple<
             correspondences,
             getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format()),
             instruction_flags[instr.first],
+            instrInlineInfo,
         });
         
       }

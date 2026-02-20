@@ -89,28 +89,22 @@ const TagCountBadge = React.memo(({ counts, binaryPaths, tagId }: {
     const totalCount = binaryData.reduce((sum, b) => sum + b.count, 0);
     if (totalCount === 0) return null;
     
-    // Detect difference type for multi-binary
-    let diffType: 'count' | 'lines' | null = null;
+    // Detect if same count but different lines across binaries
+    let linesDiffer = false;
     if (isMultiBinary) {
-        const countsDiffer = new Set(binaryData.map(b => b.count)).size > 1;
-        if (countsDiffer) {
-            diffType = 'count';
-        } else if (binaryData[0].count > 0 && binaryData.slice(1).some(b => !arraysEqual(binaryData[0].lines, b.lines))) {
-            diffType = 'lines';
+        const allSame = new Set(binaryData.map(b => b.count)).size === 1;
+        if (allSame && binaryData[0].count > 0 && binaryData.slice(1).some(b => !arraysEqual(binaryData[0].lines, b.lines))) {
+            linesDiffer = true;
         }
     }
-    
-    const getBorderStyle = () => {
-        if (!diffType) return '1px solid transparent';
-        return diffType === 'count' ? '2px solid #ff9800' : '2px solid #9c27b0';
-    };
     
     const chipStyle = {
         height: 18,
         minWidth: 24,
         fontSize: '10px',
         fontWeight: 'bold',
-        backgroundColor: color,
+        backgroundColor: 'transparent',
+        border: `1.5px solid ${color}`,
         color: 'black',
         '& .MuiChip-label': { padding: '0 4px' },
     };
@@ -123,30 +117,35 @@ const TagCountBadge = React.memo(({ counts, binaryPaths, tagId }: {
         );
     }
 
+    const allSameCount = new Set(binaryData.map(b => b.count)).size === 1;
+
+    if (allSameCount) {
+        return (
+            <Tooltip title={linesDiffer ? 'Same count, different lines' : `${binaryData[0].count} ${shortName} tags (all binaries)`} arrow>
+                <Chip size="small" label={binaryData[0].count} sx={{ 
+                    ...chipStyle, 
+                    ...(linesDiffer && { border: '2px solid #9c27b0' }),
+                    '& .MuiChip-label': { padding: '0 6px' },
+                }} />
+            </Tooltip>
+        );
+    }
+
     return (
-        <Tooltip title={diffType === 'count' ? 'Different counts' : diffType === 'lines' ? 'Same count, different lines' : ''} arrow>
-            <Box sx={{ 
-                display: 'flex', 
-                border: getBorderStyle(),
-                borderRadius: 1,
-                padding: '1px 2px',
-            }}>
-                {binaryData.map((binary, idx) => (
-                    <Tooltip key={binary.path} title={`${binary.path}: ${binary.count}`} arrow>
-                        <Chip
-                            size="small"
-                            label={binary.count}
-                            sx={{
-                                ...chipStyle,
-                                opacity: binary.count === 0 ? 0.3 : 1,
-                                borderLeft: idx > 0 ? '1px solid rgba(0,0,0,0.2)' : 'none',
-                                borderRadius: idx === 0 ? '4px 0 0 4px' : idx === binaryData.length - 1 ? '0 4px 4px 0' : '0',
-                            }}
-                        />
-                    </Tooltip>
-                ))}
-            </Box>
-        </Tooltip>
+        <Box sx={{ display: 'flex', gap: '2px' }}>
+            {binaryData.map((binary) => (
+                <Tooltip key={binary.path} title={`${binary.path}: ${binary.count}`} arrow>
+                    <Chip
+                        size="small"
+                        label={binary.count}
+                        sx={{
+                            ...chipStyle,
+                            opacity: binary.count === 0 ? 0.3 : 1,
+                        }}
+                    />
+                </Tooltip>
+            ))}
+        </Box>
     );
 });
 TagCountBadge.displayName = 'TagCountBadge';

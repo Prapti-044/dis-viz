@@ -33,6 +33,13 @@ const BACKEDGE_LEVEL_OFFSET = 25;        // Additional offset per nesting level
 const BACKEDGE_ARROW_SIZE = 8;           // Size of arrow head
 const MAX_BACKEDGE_LEVELS = 8;           // Maximum supported nesting levels
 
+// Persists view state (scroll position, binary, block order) across dock/undock remounts
+const viewStateCache = new Map<number, {
+    binaryFilePath: string;
+    blockOrder: BLOCK_ORDERS;
+    firstVisibleRowIndex: number;
+}>();
+
 // Row types for virtualization
 type RowType = 
     | { type: 'block-header'; block: InstructionBlock; blockIndex: number; isFirstOfFunction: boolean }
@@ -704,13 +711,17 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     const validBinaryFilePaths = useMemo(() => binaryFilePaths.filter(p => p !== ''), [binaryFilePaths]);
     const enabledTags = useAppSelector(selectAllTagStates);
 
-    const [binaryFilePath, setBinaryFilePath] = useState(defaultBinaryFilePath ?? validBinaryFilePaths[0]);
+    const [binaryFilePath, setBinaryFilePath] = useState(
+        () => viewStateCache.get(id)?.binaryFilePath ?? defaultBinaryFilePath ?? validBinaryFilePaths[0]
+    );
     const thisBinarySelection = useMemo(
         () => selections.find(s => s.binary_file === binaryFilePath)?.addresses ?? [],
         [selections, binaryFilePath]
     );
 
-    const [blockOrder, setBlockOrder] = useState<BLOCK_ORDERS>('memory_order');
+    const [blockOrder, setBlockOrder] = useState<BLOCK_ORDERS>(
+        () => viewStateCache.get(id)?.blockOrder ?? 'memory_order'
+    );
     const [jumpAddress, setJumpAddress] = useState('0x0');
     const [jumpValidationError, setJumpValidationError] = useState('');
     const [binaryJumpAddressRange, setBinaryJumpAddressRange] = useState({ start: 0, end: 0 });
@@ -728,12 +739,34 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     const listRef = useListRef(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const listContainerRef = useRef<HTMLDivElement>(null);
+    const headerRef = useRef<HTMLDivElement>(null);
     const [containerHeight, setContainerHeight] = useState(600);
     const [containerWidth, setContainerWidth] = useState(800);
+    const [headerHeight, setHeaderHeight] = useState(60);
     const [visibleRange, setVisibleRange] = useState({ start: 0, end: 0 });
     // Use ref for scrollTop to avoid state update loops - only trigger re-render via forceUpdate
     const scrollTopRef = useRef(0);
     const [, forceUpdate] = useState(0);
+
+    // Refs for preserving scroll state across dock/undock remounts
+    const cachedOnMount = viewStateCache.get(id);
+    const firstVisibleRowIndexRef = useRef(cachedOnMount?.firstVisibleRowIndex ?? 0);
+    const scrollRestoredRef = useRef(false);
+    const scrollRestoreTargetRef = useRef(-1);
+    const binaryFilePathRef = useRef(binaryFilePath);
+    const blockOrderRef = useRef(blockOrder);
+    binaryFilePathRef.current = binaryFilePath;
+    blockOrderRef.current = blockOrder;
+
+    useEffect(() => {
+        return () => {
+            viewStateCache.set(id, {
+                binaryFilePath: binaryFilePathRef.current,
+                blockOrder: blockOrderRef.current,
+                firstVisibleRowIndex: firstVisibleRowIndexRef.current,
+            });
+        };
+    }, [id]);
 
     // Remove self if binary path is invalid
     useEffect(() => {
@@ -921,6 +954,24 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         return () => resizeObserver.disconnect();
     }, []);
 
+    // Track header height so the list starts below it
+    useEffect(() => {
+        if (!headerRef.current) return;
+
+        const updateHeaderHeight = () => {
+            if (headerRef.current) {
+                setHeaderHeight(headerRef.current.offsetHeight);
+            }
+        };
+
+        updateHeaderHeight();
+
+        const observer = new ResizeObserver(updateHeaderHeight);
+        observer.observe(headerRef.current);
+
+        return () => observer.disconnect();
+    }, []);
+
     // Compute row tops for scroll position estimation and back edges
     const rowTops = useMemo(() => {
         const tops: number[] = [0];
@@ -931,6 +982,18 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         }
         return tops;
     }, [rows]);
+
+    // Restore scroll position from cache after dock/undock remount
+    useEffect(() => {
+        if (scrollRestoredRef.current) return;
+        if (rows.length === 0 || !listRef.current) return;
+
+        const savedRow = firstVisibleRowIndexRef.current;
+        if (savedRow > 0 && savedRow < rows.length) {
+            listRef.current.scrollToRow({ index: savedRow, align: 'start' });
+        }
+        scrollRestoredRef.current = true;
+    }, [rows, listRef]);
 
     // Scroll to selection when it changes
     useEffect(() => {
@@ -1069,6 +1132,31 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         visibleRows: { startIndex: number; stopIndex: number },
         _allRows: { startIndex: number; stopIndex: number }
     ) => {
+        // Detect sudden scroll reset caused by rc-dock moving the DOM container
+        const prevRow = firstVisibleRowIndexRef.current;
+        const isScrollReset = scrollRestoreTargetRef.current < 0 && prevRow > 20 && visibleRows.startIndex <= 2;
+
+        if (isScrollReset) {
+            scrollRestoreTargetRef.current = prevRow;
+            listRef.current?.scrollToRow({ index: prevRow, align: 'start' });
+            return;
+        }
+
+        if (scrollRestoreTargetRef.current >= 0) {
+            if (visibleRows.startIndex > 2) {
+                scrollRestoreTargetRef.current = -1;
+            } else {
+                return;
+            }
+        }
+
+        firstVisibleRowIndexRef.current = visibleRows.startIndex;
+        viewStateCache.set(id, {
+            binaryFilePath: binaryFilePathRef.current,
+            blockOrder: blockOrderRef.current,
+            firstVisibleRowIndex: visibleRows.startIndex,
+        });
+
         // Estimate scroll position from first visible row
         const estimatedScrollTop = rowTops[visibleRows.startIndex] || 0;
         
@@ -1128,7 +1216,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
             }
             return { start: startBlockIdx, end: endBlockIdx };
         });
-    }, [rows, rowTops]);
+    }, [rows, rowTops, id, listRef]);
 
     // Handle minimap block click
     const handleMinimapBlockClick = useCallback((blockIndex: number) => {
@@ -1199,6 +1287,9 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         setBlockOrder('memory_order');
         setJumpAddress('0x0');
         setJumpValidationError('');
+        firstVisibleRowIndexRef.current = 0;
+        scrollRestoredRef.current = true;
+        scrollRestoreTargetRef.current = -1;
     }, []);
 
     // Minimal row props (avoid passing large arrays through react-window)
@@ -1253,11 +1344,12 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
             >
                 {/* Header toolbar */}
                 <div
+                    ref={headerRef}
                     style={{
                         position: 'absolute',
                         top: 0,
                         left: 0,
-                        right: showMinimap ? 150 : 0,
+                        right: showMinimap ? 120 : 0,
                         backgroundColor: '#f1f1f1',
                         padding: '10px',
                         fontWeight: 'bold',
@@ -1387,15 +1479,15 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                             ref={listContainerRef}
                             style={{
                                 position: 'absolute',
-                                top: '60px',
+                                top: headerHeight + 'px',
                                 left: 0,
-                                width: showMinimap ? 'calc(100% - 150px)' : '100%',
-                                height: containerHeight - 60,
+                                width: showMinimap ? 'calc(100% - 120px)' : '100%',
+                                height: containerHeight - headerHeight,
                             }}
                         >
                             <List<RowData>
                                 listRef={listRef}
-                                defaultHeight={containerHeight - 60}
+                                defaultHeight={containerHeight - headerHeight}
                                 rowCount={rows.length}
                                 rowHeight={(index: number) => getRowHeight(rows[index])}
                                 rowComponent={RowRenderer}
@@ -1415,8 +1507,8 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                                     blockToRowIndex={blockToRowIndex}
                                     allBlocks={allBlocks}
                                     scrollTop={scrollTopRef.current}
-                                    containerHeight={containerHeight - 60}
-                                    containerWidth={containerWidth - (showMinimap ? 150 : 0)}
+                                    containerHeight={containerHeight - headerHeight}
+                                    containerWidth={containerWidth - (showMinimap ? 120 : 0)}
                                 />
                             )}
                         </div>
@@ -1430,7 +1522,6 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                                 selectedAddresses={thisBinarySelection}
                                 onBlockClick={handleMinimapBlockClick}
                                 onScrollToBlock={handleMinimapScrollToBlock}
-                                width={150}
                                 containerHeight={containerHeight}
                                 highlightOption={highlightOption}
                             />

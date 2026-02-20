@@ -174,13 +174,25 @@ span.hex-number {
 
 .tooltipitem {
     position: absolute;
-    z-index: 5;
+    z-index: 100;
     background-color: white;
     border: 1px solid green;
-    padding: 3px;
+    padding: 3px 6px;
     color: green;
-    top: 20px;
-    left: 200px;
+    bottom: 100%;
+    left: 60px;
+    margin-bottom: 0;
+    max-width: 350px;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    height: auto;
+}
+
+.tooltipitem p {
+    margin: 2px 0;
 }
 
 button.opennewbutton:hover {

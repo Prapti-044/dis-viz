@@ -15,15 +15,14 @@ interface DisassemblyMinimapProps {
     highlightOption?: string;
 }
 
-const MINIMAP_PADDING_TOP = 50;
+const MINIMAP_PADDING_TOP = 20;
 const MINIMAP_PADDING_BOTTOM = 10;
-const MIN_BLOCK_HEIGHT = 1;
-const MAX_BLOCK_HEIGHT = 4;
 const BRUSH_BORDER_RADIUS = 3;
-const BLOCK_LINE_WIDTH = 90;
+const BLOCK_LINE_WIDTH = 60;
 const BLOCK_LINE_LEFT = 20;
 const LOOP_INDENT_SIZE = 6;
 const HIDDEN_ARROW_LEN = 20;
+const BLOCK_GAP = 2;
 
 const DisassemblyMinimap: React.FC<DisassemblyMinimapProps> = ({
     minimap,
@@ -33,7 +32,7 @@ const DisassemblyMinimap: React.FC<DisassemblyMinimapProps> = ({
     selectedAddresses,
     onBlockClick,
     onScrollToBlock,
-    width = 150,
+    width = 120,
     containerHeight,
     highlightOption = 'none',
 }) => {
@@ -52,7 +51,7 @@ const DisassemblyMinimap: React.FC<DisassemblyMinimapProps> = ({
         let total = 0;
         for (let i = 0; i < minimap.blockHeights.length; i++) {
             const h = Math.max(1, minimap.blockHeights[i]);
-            total += h;
+            total += h + BLOCK_GAP;
             heights.push(total);
         }
         return heights;

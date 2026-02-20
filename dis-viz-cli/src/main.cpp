@@ -68,6 +68,7 @@ std::vector<std::string> convertInstructionFlags(const std::unordered_set<INSTRU
             case INST_FP: result.emplace_back("FP"); break;
             case INST_HOISTED: result.emplace_back("HOISTED"); break;
             case INST_BRANCH: result.emplace_back("BRANCH"); break;
+            case INST_INLINE: result.emplace_back("INLINE"); break;
         }
     }
     
@@ -147,6 +148,18 @@ json convertInstructionInfoNlohmann(const InstructionInfo& instruction) {
     
     if (!instruction.correspondence.empty()) {
         result["correspondence"] = instruction.correspondence;
+    }
+
+    if (!instruction.inline_info.empty()) {
+        json inline_info = json::array();
+        for (const auto& info : instruction.inline_info) {
+            inline_info.emplace_back(json{
+                {"name", info.name},
+                {"callsite_file", info.callsite_file},
+                {"callsite_line", info.callsite_line}
+            });
+        }
+        result["inline_info"] = std::move(inline_info);
     }
     
     return result;
