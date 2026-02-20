@@ -1,7 +1,7 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
 import * as dagre from 'dagre';
-import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo, InstructionInlineInfo } from './types';
+import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo } from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
 import { INSTRUCTION_TAGS, SOURCE_TAGS } from './utils';
@@ -69,7 +69,6 @@ interface InstructionData {
     correspondence: {
         [source_file: string]: number[]; // Line numbers are 1-based from backend
     };
-    inline_info?: InstructionInlineInfo[];
 }
 
 interface MinimapData {
@@ -832,8 +831,7 @@ function convertToInstructionBlock(blockData: BlockData): InstructionBlock {
     address: inst.address,
     variables: [],
     correspondence: inst.correspondence || {},
-    flags: transformFlags(inst.flags || []) as any,
-    inline_info: inst.inline_info || []
+    flags: transformFlags(inst.flags || []) as any
   }));
   
   return new InstructionBlock(

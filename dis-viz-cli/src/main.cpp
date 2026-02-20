@@ -150,18 +150,6 @@ json convertInstructionInfoNlohmann(const InstructionInfo& instruction) {
         result["correspondence"] = instruction.correspondence;
     }
 
-    if (!instruction.inline_info.empty()) {
-        json inline_info = json::array();
-        for (const auto& info : instruction.inline_info) {
-            inline_info.emplace_back(json{
-                {"name", info.name},
-                {"callsite_file", info.callsite_file},
-                {"callsite_line", info.callsite_line}
-            });
-        }
-        result["inline_info"] = std::move(inline_info);
-    }
-    
     return result;
 }
 
