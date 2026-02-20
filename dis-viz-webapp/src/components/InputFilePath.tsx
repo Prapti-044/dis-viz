@@ -376,22 +376,13 @@ function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
     const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
     
     const exampleFiles = [
-        { name: 'inline_f1-O3.disviz', description: 'Inline function example with O3 optimization' },
         { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
-        { name: 'bubble-O1.disviz', description: 'Bubble sort with O1 optimization' },
         { name: 'bubble-O2.disviz', description: 'Bubble sort with O2 optimization' },
         { name: 'bubble-O3.disviz', description: 'Bubble sort with O3 optimization' },
-        { name: 'bubble_sort_clang_O3.disviz', description: 'Bubble sort with Clang O3 optimization' },
 
-        { name: 'codehoist-O0.disviz', description: 'Code hoisting example with O0 optimization' },
-        { name: 'codehoist-O3.disviz', description: 'Code hoisting example with O3 optimization' },
-
-        { name: 'raja-perf-gcc13.exe.disviz', description: 'Raja Performance Test compiled with GCC 13' },
         { name: 'raja-perf-O0.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O0 optimization' },
+        { name: 'raja-perf-O2.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O2 optimization' },
         { name: 'raja-perf-O3.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O3 optimization' },
-
-        { name: 'syscall.disviz', description: 'Syscall example' },
-        { name: 'syscall-O0.disviz', description: 'Syscall example with O0 optimization' },
     ];
 
     const toggleExpanded = () => {
