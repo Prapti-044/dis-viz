@@ -73,6 +73,12 @@
     "Opcode": "0xFA"
   },
   {
+    "Instruction": "CLTQ",
+    "Meaning": "Sign-extend EAX into RAX",
+    "Notes": "AT&T syntax for CDQE. RAX = sign-extend of EAX;",
+    "Opcode": "REX.W + 0x98"
+  },
+  {
     "Instruction": "CMC",
     "Meaning": "Complement carry flag",
     "Notes": "",
