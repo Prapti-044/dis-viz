@@ -76,8 +76,11 @@ if(DEFINED ${DYNINST_LOCATION})
 else()
     ExternalProject_Add(dyninst
         GIT_REPOSITORY https://github.com/dyninst/dyninst
-        GIT_TAG 5b6094b656828e785a9ac01ac488582bcea2c9dc
-        # 268b6300b59d507317b6c342ae9588eb6fedf2ac
+        GIT_TAG
+        # 8788c179e07e9970fff4fe358a98c5b0433999c1 # (19 Feb 2026, Instruction::format() does not give mnemonics)
+        # 268b6300b59d507317b6c342ae9588eb6fedf2ac # 13.0.0 (Does not compile at all)
+        # 334b6856e28fd34a698ad74aa277f1399a814183 # 12.3.0 (CMAKE < 3.5 Compatibility issue)
+        5b6094b656828e785a9ac01ac488582bcea2c9dc # last working one
         CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${EXTERNAL_INSTALL_LOCATION} -DCMAKE_BUILD_TYPE=Release
     )
 endif()
