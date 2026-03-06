@@ -376,12 +376,7 @@ function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
     const [isExpanded, setIsExpanded] = React.useState<boolean>(false);
     
     const exampleFiles = [
-        { name: 'raja-perf-O0.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O0 optimization' },
-        { name: 'raja-perf-O2.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O2 optimization' },
-        { name: 'raja-perf-O3.exe.disviz', description: 'Raja Performance Test compiled with GCC 13 with O3 optimization' },
-
         { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
-        { name: 'bubble-O2.disviz', description: 'Bubble sort with O2 optimization' },
         { name: 'bubble-O3.disviz', description: 'Bubble sort with O3 optimization' },
 
     ];
