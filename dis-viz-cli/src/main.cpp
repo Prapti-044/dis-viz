@@ -612,13 +612,15 @@ int main(int argc, char* argv[]) {
     std::vector<std::string> binary_paths;
     std::string binary_paths_file;
     std::string output_dir = ".";
+    bool json_only = false;
 
     po::options_description desc("Allowed options");
     desc.add_options()
         ("help,h", "produce help message")
         ("binary-paths,b", po::value(&binary_paths), "The paths to binary files to analyze")
         ("binary-paths-file,c", po::value(&binary_paths_file), "A file containing the paths to binary files to analyze")
-        ("output-dir,o", po::value(&output_dir)->default_value("."), "Output directory for .disviz files");
+        ("output-dir,o", po::value(&output_dir)->default_value("."), "Output directory for .disviz files")
+        ("json-only,j", po::bool_switch(&json_only), "Output only data.json without creating .disviz archive (useful for debugging)");
 
     try {
         po::variables_map vm;
@@ -684,25 +686,42 @@ int main(int argc, char* argv[]) {
                 continue;
             }
             
-            // First create the JSON without source mapping to get initial structure
-            std::unordered_map<std::string, std::string> empty_mapping;
-            auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
-            
-            // Create .disviz archive with source files and get the mapping
-            const auto source_mapping = createDisVizArchive(
-                binary_result->source_files, 
-                output_path, 
-                binary_name, 
-                binary_json
-            );
-            
-            // Update the JSON with correct source mapping
-            binary_json = convertBinaryDecodeNlohmann(*binary_result, source_mapping);
-            
-            // Recreate the archive with updated JSON
-            createDisVizArchive(binary_result->source_files, output_path, binary_name, binary_json);
-            
-            std::cout << "Saved analysis to: " << output_path / (binary_name + ".disviz") << std::endl;
+            if (json_only) {
+                // JSON-only mode: output data.json without packaging into .disviz
+                std::unordered_map<std::string, std::string> empty_mapping;
+                const auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
+                
+                const auto json_path = output_path / (binary_name + ".data.json");
+                std::ofstream json_file(json_path);
+                if (!json_file) {
+                    std::cerr << "Error: Cannot create JSON file: " << json_path << std::endl;
+                    continue;
+                }
+                json_file << binary_json.dump(2);
+                json_file.close();
+                
+                std::cout << "Saved JSON to: " << json_path << std::endl;
+            } else {
+                // Full mode: create .disviz archive with source files
+                std::unordered_map<std::string, std::string> empty_mapping;
+                auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
+                
+                // Create .disviz archive with source files and get the mapping
+                const auto source_mapping = createDisVizArchive(
+                    binary_result->source_files, 
+                    output_path, 
+                    binary_name, 
+                    binary_json
+                );
+                
+                // Update the JSON with correct source mapping
+                binary_json = convertBinaryDecodeNlohmann(*binary_result, source_mapping);
+                
+                // Recreate the archive with updated JSON
+                createDisVizArchive(binary_result->source_files, output_path, binary_name, binary_json);
+                
+                std::cout << "Saved analysis to: " << output_path / (binary_name + ".disviz") << std::endl;
+            }
         }
         
         std::cout << "Processing complete!" << std::endl;

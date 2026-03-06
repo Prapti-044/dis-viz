@@ -273,7 +273,6 @@ SourceCodeData parseSourceCode(const std::string &filePath) {
       index, filePath.c_str(), nullptr, 0, nullptr, 0, CXTranslationUnit_None);
 
   if (!translationUnit) {
-    std::cerr << "Failed to parse the translation unit." << std::endl;
     return SourceCodeData();
   }
 

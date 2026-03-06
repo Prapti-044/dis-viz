@@ -25,6 +25,7 @@ struct VarLocation {
   std::string start;
   std::string end;
   std::string location;
+  std::string reg_name;  // Register name for alias matching (empty for non-register locations)
 };
 struct VariableInfo {
   std::string name;

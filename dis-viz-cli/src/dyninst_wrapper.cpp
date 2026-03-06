@@ -16,6 +16,8 @@
 #include <fstream>
 #include <iostream>
 #include <functional>
+#include <chrono>
+#include <iomanip>
 
 #include <indicators/progress_bar.hpp> // https://github.com/p-ranav/indicators
 #include <vector>
@@ -90,6 +92,88 @@ string number_to_hex(T val) {
 inline string getRegFromFullName(const string &fullname) {
   const auto pos = fullname.rfind("::");
   return pos != string::npos ? fullname.substr(pos + 2) : fullname;
+}
+
+// x86_64 register family alias table - maps any register name to all its aliases
+static const std::unordered_map<std::string, std::vector<std::string>> REG_FAMILY = {
+  // RAX family
+  {"rax", {"rax", "eax", "ax", "ah", "al"}}, {"eax", {"rax", "eax", "ax", "ah", "al"}},
+  {"ax", {"rax", "eax", "ax", "ah", "al"}}, {"ah", {"rax", "eax", "ax", "ah", "al"}},
+  {"al", {"rax", "eax", "ax", "ah", "al"}},
+  // RBX family
+  {"rbx", {"rbx", "ebx", "bx", "bh", "bl"}}, {"ebx", {"rbx", "ebx", "bx", "bh", "bl"}},
+  {"bx", {"rbx", "ebx", "bx", "bh", "bl"}}, {"bh", {"rbx", "ebx", "bx", "bh", "bl"}},
+  {"bl", {"rbx", "ebx", "bx", "bh", "bl"}},
+  // RCX family
+  {"rcx", {"rcx", "ecx", "cx", "ch", "cl"}}, {"ecx", {"rcx", "ecx", "cx", "ch", "cl"}},
+  {"cx", {"rcx", "ecx", "cx", "ch", "cl"}}, {"ch", {"rcx", "ecx", "cx", "ch", "cl"}},
+  {"cl", {"rcx", "ecx", "cx", "ch", "cl"}},
+  // RDX family
+  {"rdx", {"rdx", "edx", "dx", "dh", "dl"}}, {"edx", {"rdx", "edx", "dx", "dh", "dl"}},
+  {"dx", {"rdx", "edx", "dx", "dh", "dl"}}, {"dh", {"rdx", "edx", "dx", "dh", "dl"}},
+  {"dl", {"rdx", "edx", "dx", "dh", "dl"}},
+  // RSI family
+  {"rsi", {"rsi", "esi", "si", "sil"}}, {"esi", {"rsi", "esi", "si", "sil"}},
+  {"si", {"rsi", "esi", "si", "sil"}}, {"sil", {"rsi", "esi", "si", "sil"}},
+  // RDI family
+  {"rdi", {"rdi", "edi", "di", "dil"}}, {"edi", {"rdi", "edi", "di", "dil"}},
+  {"di", {"rdi", "edi", "di", "dil"}}, {"dil", {"rdi", "edi", "di", "dil"}},
+  // RBP family
+  {"rbp", {"rbp", "ebp", "bp", "bpl"}}, {"ebp", {"rbp", "ebp", "bp", "bpl"}},
+  {"bp", {"rbp", "ebp", "bp", "bpl"}}, {"bpl", {"rbp", "ebp", "bp", "bpl"}},
+  // RSP family
+  {"rsp", {"rsp", "esp", "sp", "spl"}}, {"esp", {"rsp", "esp", "sp", "spl"}},
+  {"sp", {"rsp", "esp", "sp", "spl"}}, {"spl", {"rsp", "esp", "sp", "spl"}},
+  // R8 family
+  {"r8", {"r8", "r8d", "r8w", "r8b"}}, {"r8d", {"r8", "r8d", "r8w", "r8b"}},
+  {"r8w", {"r8", "r8d", "r8w", "r8b"}}, {"r8b", {"r8", "r8d", "r8w", "r8b"}},
+  // R9 family
+  {"r9", {"r9", "r9d", "r9w", "r9b"}}, {"r9d", {"r9", "r9d", "r9w", "r9b"}},
+  {"r9w", {"r9", "r9d", "r9w", "r9b"}}, {"r9b", {"r9", "r9d", "r9w", "r9b"}},
+  // R10 family
+  {"r10", {"r10", "r10d", "r10w", "r10b"}}, {"r10d", {"r10", "r10d", "r10w", "r10b"}},
+  {"r10w", {"r10", "r10d", "r10w", "r10b"}}, {"r10b", {"r10", "r10d", "r10w", "r10b"}},
+  // R11 family
+  {"r11", {"r11", "r11d", "r11w", "r11b"}}, {"r11d", {"r11", "r11d", "r11w", "r11b"}},
+  {"r11w", {"r11", "r11d", "r11w", "r11b"}}, {"r11b", {"r11", "r11d", "r11w", "r11b"}},
+  // R12 family
+  {"r12", {"r12", "r12d", "r12w", "r12b"}}, {"r12d", {"r12", "r12d", "r12w", "r12b"}},
+  {"r12w", {"r12", "r12d", "r12w", "r12b"}}, {"r12b", {"r12", "r12d", "r12w", "r12b"}},
+  // R13 family
+  {"r13", {"r13", "r13d", "r13w", "r13b"}}, {"r13d", {"r13", "r13d", "r13w", "r13b"}},
+  {"r13w", {"r13", "r13d", "r13w", "r13b"}}, {"r13b", {"r13", "r13d", "r13w", "r13b"}},
+  // R14 family
+  {"r14", {"r14", "r14d", "r14w", "r14b"}}, {"r14d", {"r14", "r14d", "r14w", "r14b"}},
+  {"r14w", {"r14", "r14d", "r14w", "r14b"}}, {"r14b", {"r14", "r14d", "r14w", "r14b"}},
+  // R15 family
+  {"r15", {"r15", "r15d", "r15w", "r15b"}}, {"r15d", {"r15", "r15d", "r15w", "r15b"}},
+  {"r15w", {"r15", "r15d", "r15w", "r15b"}}, {"r15b", {"r15", "r15d", "r15w", "r15b"}},
+};
+
+// Generate all alias forms of a location string by replacing the register name
+vector<string> getLocationAliases(const string& locationStr, const string& regName) {
+  if (regName.empty()) return {locationStr};
+  
+  // Convert regName to lowercase for table lookup
+  string lowerRegName = regName;
+  std::transform(lowerRegName.begin(), lowerRegName.end(), lowerRegName.begin(), ::tolower);
+  
+  auto it = REG_FAMILY.find(lowerRegName);
+  if (it == REG_FAMILY.end()) return {locationStr};
+  
+  vector<string> aliases;
+  for (const auto& alias : it->second) {
+    string alt = locationStr;
+    // Find the register in the location string (case-insensitive search)
+    string lowerLoc = locationStr;
+    std::transform(lowerLoc.begin(), lowerLoc.end(), lowerLoc.begin(), ::tolower);
+    auto pos = lowerLoc.find(lowerRegName);
+    if (pos != string::npos) {
+      alt.replace(pos, regName.size(), alias);
+    }
+    aliases.push_back(alt);
+  }
+  return aliases;
 }
 
 // Strip trailing top-level template arguments
@@ -247,7 +331,10 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
     auto mr_reg = location.mr_reg;
     auto full_regName = mr_reg.name();
     auto regName = getRegFromFullName(full_regName);
+    // Lowercase the register name to match instruction format
+    std::transform(regName.begin(), regName.end(), regName.begin(), ::tolower);
     auto finalVarString = string();
+    auto locRegName = string();  // Register name for alias matching
 
     // Match the variable format with the output in the disassembly
     // Cast frameOffset to uint32_t to match Dyninst's Instruction::format() which uses 32-bit hex
@@ -258,26 +345,26 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
         finalVarString =
             "($" + number_to_hex(static_cast<uint32_t>(frameOffset)) + ")";  // at&t syntax
       }
+      // locRegName stays empty for storageAddr
     } else if (location.stClass == Dyninst::storageReg) {
+      locRegName = regName;  // Store register name for alias matching
       if (location.refClass == Dyninst::storageNoRef) {
         finalVarString =
-            "%" + getRegFromFullName(location.mr_reg.name());  // at&t syntax
+            "%" + regName;  // at&t syntax
       } else if (location.refClass == Dyninst::storageRef) {
-        finalVarString = "(%" + getRegFromFullName(location.mr_reg.name()) +
-                         ")";  // at&t syntax
+        finalVarString = "(%" + regName + ")";  // at&t syntax
       }
     } else if (location.stClass == Dyninst::storageRegOffset) {
+      locRegName = regName;  // Store register name for alias matching
       if (location.refClass == Dyninst::storageNoRef) {
         finalVarString = number_to_hex(static_cast<uint32_t>(frameOffset)) + "(%" +
-                         getRegFromFullName(location.mr_reg.name()) +
-                         ")";  // at&t syntax
+                         regName + ")";  // at&t syntax
       } else if (location.refClass == Dyninst::storageRef) {
         finalVarString = number_to_hex(static_cast<uint32_t>(frameOffset)) + "(%" +
-                         getRegFromFullName(location.mr_reg.name()) +
-                         ")";  // at&t syntax
+                         regName + ")";  // at&t syntax
       }
     }
-    varLocations.push_back({lowPC_str, hiPC_str, finalVarString});
+    varLocations.push_back({lowPC_str, hiPC_str, finalVarString, locRegName});
   }
   return {print_clean_string(name), typeName, fileName, lineNum, varLocations}; // var_type set later
 }
@@ -433,22 +520,33 @@ string block_to_name(SymtabAPI::Symtab *symtab, const ParseAPI::Function *fn, co
 
 vector<VariableInfo> getInstructionVariables(
     const vector<VariableInfo> &localVars, const vector<VariableInfo> &params,
-    const string &instructionString) {
+    const string &instructionString, unsigned long instrAddr) {
   auto allVars = vector<VariableInfo>();
-  for (auto &varInfo : localVars) {
-    for(const auto &location : varInfo.locations) {
-      if(instructionString.find(location.location) != string::npos) {
-        allVars.push_back(varInfo);
+  
+  auto processVars = [&](const vector<VariableInfo> &vars) {
+    for (const auto &varInfo : vars) {
+      for (const auto &location : varInfo.locations) {
+        if (location.location.empty()) {
+          continue;
+        }
+        
+        auto aliases = getLocationAliases(location.location, location.reg_name);
+        
+        for (const auto &aliasLoc : aliases) {
+          if (!aliasLoc.empty() && instructionString.find(aliasLoc) != string::npos) {
+            VariableInfo matchedVar = varInfo;
+            matchedVar.locations.clear();
+            matchedVar.locations.push_back({location.start, location.end, aliasLoc, location.reg_name});
+            allVars.push_back(matchedVar);
+            break;
+          }
+        }
       }
     }
-  }
-  for (auto &varInfo : params) {
-    for(const auto &location : varInfo.locations) {
-      if(instructionString.find(location.location) != string::npos) {
-        allVars.push_back(varInfo);
-      }
-    }
-  }
+  };
+  
+  processVars(localVars);
+  processVars(params);
   
   return allVars;
 }
@@ -693,6 +791,59 @@ unsigned long getNumberOfLines(const string &file) {
 }
 
 
+struct StepProgress {
+  int total;
+  int current = 0;
+  std::chrono::steady_clock::time_point stepStart;
+  std::chrono::steady_clock::time_point overallStart;
+
+  explicit StepProgress(int totalSteps)
+    : total(totalSteps), overallStart(std::chrono::steady_clock::now()) {}
+
+  void begin(const std::string& desc) {
+    current++;
+    stepStart = std::chrono::steady_clock::now();
+    std::cout << "\033[1;34m[" << current << "/" << total << "]\033[0m "
+              << desc << "..." << std::flush;
+  }
+
+  void end() {
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - stepStart).count();
+    std::cout << " \033[32m✔\033[0m \033[90m" << fmtDuration(ms)
+              << "\033[0m" << std::endl;
+  }
+
+  void beginBar(const std::string& desc) {
+    current++;
+    stepStart = std::chrono::steady_clock::now();
+    std::cout << "\033[1;34m[" << current << "/" << total << "]\033[0m "
+              << desc << std::endl;
+  }
+
+  void endBar() {
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - stepStart).count();
+    std::cout << "     \033[32m✔\033[0m \033[90m" << fmtDuration(ms)
+              << "\033[0m" << std::endl;
+  }
+
+  void complete() {
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+      std::chrono::steady_clock::now() - overallStart).count();
+    std::cout << "\n\033[1;32m✔ Analysis complete\033[0m \033[90min "
+              << fmtDuration(ms) << "\033[0m" << std::endl;
+  }
+
+  static std::string fmtDuration(long long ms) {
+    if (ms < 1000) return std::to_string(ms) + "ms";
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(1) << (ms / 1000.0) << "s";
+    return ss.str();
+  }
+};
+
+
 std::tuple<
   vector<BlockInfo>, // Memory Order Blocks
   vector<BlockInfo>, // Loop Order Blocks
@@ -702,11 +853,7 @@ std::tuple<
   unordered_map<string, SourceCodeInfo> // Source Code Info { file: { line: { tags }, total_lines: int } }
 > getAssembly(SymtabAPI::Symtab *symtab, const ParseAPI::CodeObject::funclist &funcs) {
 
-  auto bar = indicators::ProgressBar{
-    indicators::option::MaxProgress{funcs.size()},
-    indicators::option::PrefixText{"Disassembling"},
-    indicators::option::ForegroundColor{indicators::Color::yellow},
-  };
+  auto steps = StepProgress(5);
 
   auto addressOrderBlocks = vector<BlockInfo>();
   auto loopOrderBlocks = vector<BlockInfo>();
@@ -725,7 +872,7 @@ std::tuple<
       anyfunc->isrc()->getPtrToInstruction(anyfunc->addr()),
       InstructionAPI::InstructionDecoder::maxInstructionLength, anyfunc->region()->getArch());
   
-  // Prepare all the addresses. This is needed in a separate for loop over function to get all addresses first
+  steps.begin("Preparing addresses");
   auto addresses = set<unsigned long>();
   for (const auto &f : funcs) {
     for (const auto &block : f->blocks()) {
@@ -745,8 +892,14 @@ std::tuple<
       }
     }
   }
+  steps.end();
 
-  // Create block names, unique source files and Inlines
+  steps.beginBar("Disassembling " + std::to_string(funcs.size()) + " functions");
+  auto bar = indicators::ProgressBar{
+    indicators::option::MaxProgress{funcs.size()},
+    indicators::option::PrefixText{"     "},
+    indicators::option::ForegroundColor{indicators::Color::yellow},
+  };
   for (const auto &f : funcs) {
     // Assign block names and get unique source files
     for (const auto &block : f->blocks()) {
@@ -982,7 +1135,7 @@ std::tuple<
             instr.first,
             instr.second.format(),
             correspondences,
-            getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format()),
+            getInstructionVariables(funcInfo.localVars, funcInfo.params, instr.second.format(), instr.first),
             instruction_flags[instr.first],
             instrInlineInfo,
         });
@@ -1161,7 +1314,9 @@ std::tuple<
     
     bar.tick();
   }
+  steps.endBar();
 
+  steps.begin("Processing source code");
   for (const auto &sourceFile : unique_sourcefiles) {
     auto sourceCodeData = parseSourceCode(sourceFile);
     for (const auto &loop : sourceCodeData.loops) {
@@ -1222,7 +1377,9 @@ std::tuple<
       }
     }
   }
+  steps.end();
 
+  steps.begin("Calculating call graph");
   // Calculate call graph in-degrees and out-degrees
   std::unordered_map<std::string, int> inDegreeMap;
   std::unordered_map<std::string, int> outDegreeMap;
@@ -1256,7 +1413,9 @@ std::tuple<
     funcInfo.call_graph_in_degree = inDegreeMap[funcInfo.name];
     funcInfo.call_graph_out_degree = outDegreeMap[funcInfo.name];
   }
+  steps.end();
   
+  steps.begin("Matching source functions");
   // Integrate source function information
   for (const auto &sourceFile : unique_sourcefiles) {
     auto sourceCodeData = parseSourceCode(sourceFile);
@@ -1448,6 +1607,9 @@ std::tuple<
     }
     // If no source_info.file, keep is_builtin=true (external/system function)
   }
+  steps.end();
+
+  steps.complete();
 
   return {addressOrderBlocks, loopOrderBlocks, source_correspondences, unique_sourcefiles, functionInfos, sourceCodeInfo};
 }

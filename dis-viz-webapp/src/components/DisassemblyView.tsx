@@ -412,21 +412,7 @@ const InstructionLineContent = React.memo<{
             );
         }
 
-        // Register
-        if (
-            (token.startsWith('%') && token.length === 4) ||
-            (token.startsWith('(') && token.endsWith(')') && token[1] === '%' && token.length === 6)
-        ) {
-            return <mark key={`reg-${i}`} data-type="register">{token}</mark>;
-        }
-
-        // Hex number
-        if (token.startsWith('$0x')) {
-            const title = buildHexTitle(token.slice(3));
-            return <span key={`hex-${i}`} className="hex-number" title={title}>{token}</span>;
-        }
-
-        // Variable check
+        // Variable check (must come before generic register styling)
         if (instruction.variables) {
             for (const variable of instruction.variables) {
                 for (const location of variable.locations) {
@@ -439,6 +425,20 @@ const InstructionLineContent = React.memo<{
                     }
                 }
             }
+        }
+
+        // Register
+        if (
+            (token.startsWith('%') && token.length === 4) ||
+            (token.startsWith('(') && token.endsWith(')') && token[1] === '%' && token.length === 6)
+        ) {
+            return <mark key={`reg-${i}`} data-type="register">{token}</mark>;
+        }
+
+        // Hex number
+        if (token.startsWith('$0x')) {
+            const title = buildHexTitle(token.slice(3));
+            return <span key={`hex-${i}`} className="hex-number" title={title}>{token}</span>;
         }
 
         // Jump target (last token of last instruction)
