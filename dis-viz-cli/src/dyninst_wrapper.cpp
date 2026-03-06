@@ -203,7 +203,7 @@ string getSimplifiedFunctionName(const string& signature) {
 template<typename LocationType>
 string formatVariableLocation(const LocationType &location) {
   const string regName = getRegFromFullName(location.mr_reg.name());
-  const string offsetStr = number_to_hex(location.frameOffset);
+  const string offsetStr = number_to_hex(static_cast<uint32_t>(location.frameOffset));
   
   switch (location.stClass) {
     case Dyninst::storageAddr:
@@ -250,12 +250,13 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
     auto finalVarString = string();
 
     // Match the variable format with the output in the disassembly
+    // Cast frameOffset to uint32_t to match Dyninst's Instruction::format() which uses 32-bit hex
     if (location.stClass == Dyninst::storageAddr) {
       if (location.refClass == Dyninst::storageNoRef) {
-        finalVarString = "$" + number_to_hex(frameOffset);  // at&t syntax
+        finalVarString = "$" + number_to_hex(static_cast<uint32_t>(frameOffset));  // at&t syntax
       } else if (location.refClass == Dyninst::storageRef) {
         finalVarString =
-            "($" + number_to_hex(frameOffset) + ")";  // at&t syntax
+            "($" + number_to_hex(static_cast<uint32_t>(frameOffset)) + ")";  // at&t syntax
       }
     } else if (location.stClass == Dyninst::storageReg) {
       if (location.refClass == Dyninst::storageNoRef) {
@@ -267,11 +268,11 @@ VariableInfo printVar(SymtabAPI::localVar *var) {
       }
     } else if (location.stClass == Dyninst::storageRegOffset) {
       if (location.refClass == Dyninst::storageNoRef) {
-        finalVarString = number_to_hex(frameOffset) + "(%" +
+        finalVarString = number_to_hex(static_cast<uint32_t>(frameOffset)) + "(%" +
                          getRegFromFullName(location.mr_reg.name()) +
                          ")";  // at&t syntax
       } else if (location.refClass == Dyninst::storageRef) {
-        finalVarString = number_to_hex(frameOffset) + "(%" +
+        finalVarString = number_to_hex(static_cast<uint32_t>(frameOffset)) + "(%" +
                          getRegFromFullName(location.mr_reg.name()) +
                          ")";  // at&t syntax
       }

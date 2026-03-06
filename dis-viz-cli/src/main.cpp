@@ -139,6 +139,8 @@ json convertMinimapInfoNlohmann(const MinimapInfo& minimap) {
     };
 }
 
+json convertVariableInfoNlohmann(const VariableInfo& var);
+
 json convertInstructionInfoNlohmann(const InstructionInfo& instruction) {
     json result{
         {"address", instruction.address},
@@ -148,6 +150,14 @@ json convertInstructionInfoNlohmann(const InstructionInfo& instruction) {
     
     if (!instruction.correspondence.empty()) {
         result["correspondence"] = instruction.correspondence;
+    }
+
+    if (!instruction.variables.empty()) {
+        json vars = json::array();
+        for (const auto& var : instruction.variables) {
+            vars.emplace_back(convertVariableInfoNlohmann(var));
+        }
+        result["variables"] = std::move(vars);
     }
 
     return result;

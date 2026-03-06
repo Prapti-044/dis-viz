@@ -1,7 +1,7 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
 import * as dagre from 'dagre';
-import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo } from './types';
+import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo, Variable, VariableLocation } from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
 import { INSTRUCTION_TAGS, SOURCE_TAGS } from './utils';
@@ -69,6 +69,7 @@ interface InstructionData {
     correspondence: {
         [source_file: string]: number[]; // Line numbers are 1-based from backend
     };
+    variables?: VariableInfo[];
 }
 
 interface MinimapData {
@@ -127,7 +128,7 @@ interface DisvizMetadata {
   time: string;
 }
 
-interface VariableLocation {
+interface VariableLocationData {
   start: string;
   end: string;
   location: string;
@@ -137,7 +138,7 @@ interface VariableInfo {
   name: string;
   file: string;
   line: number; // 1-based line number from backend
-  locations: VariableLocation[];
+  locations: VariableLocationData[];
   var_type: "local" | "param";
 }
 
@@ -829,7 +830,17 @@ function convertToInstructionBlock(blockData: BlockData): InstructionBlock {
   const instructions = blockData.instructions.map(inst => ({
     instruction: inst.instruction,
     address: inst.address,
-    variables: [],
+    variables: (inst.variables || []).map(v => new Variable(
+      v.name,
+      v.file,
+      v.line,
+      v.locations.map(loc => new VariableLocation(
+        loc.location,
+        parseInt(loc.start, 16),
+        parseInt(loc.end, 16),
+        0
+      ))
+    )),
     correspondence: inst.correspondence || {},
     flags: transformFlags(inst.flags || []) as any
   }));
