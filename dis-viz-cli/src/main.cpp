@@ -147,10 +147,6 @@ json convertInstructionInfoNlohmann(const InstructionInfo& instruction) {
         {"instruction", instruction.instruction},
         {"flags", convertInstructionFlags(instruction.flags)}
     };
-    
-    if (!instruction.correspondence.empty()) {
-        result["correspondence"] = instruction.correspondence;
-    }
 
     if (!instruction.variables.empty()) {
         json vars = json::array();
@@ -381,20 +377,6 @@ json convertFunctionInfoNlohmann(const FunctionInfo& func) {
     source_info["parameters"] = std::move(source_params);
     result["source_info"] = std::move(source_info);
     
-    // Convert local variables
-    json local_vars = json::array();
-    for (const auto& var : func.localVars) {
-        local_vars.emplace_back(convertVariableInfoNlohmann(var));
-    }
-    result["local_vars"] = std::move(local_vars);
-    
-    // Convert parameters
-    json params = json::array();
-    for (const auto& param : func.params) {
-        params.emplace_back(convertVariableInfoNlohmann(param));
-    }
-    result["params"] = std::move(params);
-    
     // Convert calls
     json calls = json::array();
     for (const auto& call : func.calls) {
@@ -429,15 +411,26 @@ json convertFunctionInfoNlohmann(const FunctionInfo& func) {
 json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res, 
                                 const std::unordered_map<std::string, std::string>& source_mapping) {
     
-    // Convert disassembly blocks
-    json memory_order_blocks = json::array();
+    // Build blocks dict keyed by block name (store each block only once)
+    json blocks = json::object();
     for (const auto& block : res.disassembly.memory_order_blocks) {
-        memory_order_blocks.emplace_back(convertBlockInfoNlohmann(block));
+        blocks[block.name] = convertBlockInfoNlohmann(block);
     }
     
-    json loop_order_blocks = json::array();
-    for (const auto& block : res.disassembly.loop_order_blocks) {
-        loop_order_blocks.emplace_back(convertBlockInfoNlohmann(block));
+    // Build ordering arrays (just block names)
+    json memory_order = json::array();
+    for (const auto& block : res.disassembly.memory_order_blocks) {
+        memory_order.emplace_back(block.name);
+    }
+    
+    json loop_order = json::array();
+    json looporder_pseudoblocks = json::array();
+    for (size_t i = 0; i < res.disassembly.loop_order_blocks.size(); i++) {
+        const auto& block = res.disassembly.loop_order_blocks[i];
+        loop_order.emplace_back(block.name);
+        if (block.block_type == BlockInfo::BLOCK_TYPE_PSEUDOLOOP) {
+            looporder_pseudoblocks.emplace_back(i);
+        }
     }
 
     return json{
@@ -449,8 +442,10 @@ json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res,
             {"flags", res.metadata.compiler_flags}
         }},
         {"disassembly", json{
-            {"memory_order_blocks", std::move(memory_order_blocks)},
-            {"loop_order_blocks", std::move(loop_order_blocks)}
+            {"blocks", std::move(blocks)},
+            {"memory_order", std::move(memory_order)},
+            {"loop_order", std::move(loop_order)},
+            {"looporder_pseudoblocks", std::move(looporder_pseudoblocks)}
         }},
         {"minimap", json{
             {"memory_order", convertMinimapInfoNlohmann(res.minimap.memory_order)},

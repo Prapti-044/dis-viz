@@ -86,39 +86,10 @@ echo "Compiling Sample Inputs"
 echo "=========================================="
 echo ""
 
-# C++ samples - hello.cpp
-echo -e "${YELLOW}>>> hello.cpp${NC}"
-compile_file "g++" "-g -O0" "hello.cpp" "bin/hello-O0" "O0"
-compile_file "g++" "-g -O3" "hello.cpp" "bin/hello-O3" "O3"
-echo ""
-
-# C samples - codehoist.c
-echo -e "${YELLOW}>>> codehoist.c${NC}"
-compile_file "gcc" "-g -O0" "codehoist.c" "bin/codehoist-O0" "O0"
-compile_file "gcc" "-g -O3" "codehoist.c" "bin/codehoist-O3" "O3"
-echo ""
-
 # C++ samples - bubble_sort.cpp
 echo -e "${YELLOW}>>> bubble_sort.cpp${NC}"
 compile_file "g++" "-g -O0" "bubble_sort.cpp" "bin/bubble-O0" "O0"
 compile_file "g++" "-g -O3" "bubble_sort.cpp" "bin/bubble-O3" "O3"
-echo ""
-
-# C++ samples - eg1.cpp
-echo -e "${YELLOW}>>> eg1.cpp${NC}"
-compile_file "g++" "-g -O0" "eg1.cpp" "bin/eg1-O0" "O0"
-compile_file "g++" "-g -O3" "eg1.cpp" "bin/eg1-O3" "O3"
-echo ""
-
-# C++ samples - inlines/file2.cpp
-echo -e "${YELLOW}>>> inlines/file2.cpp${NC}"
-compile_file "g++" "-g -O0" "inlines/file2.cpp" "bin/inlines-O0" "O0"
-compile_file "g++" "-g -O3" "inlines/file2.cpp" "bin/inlines-O3" "O3"
-echo ""
-
-# C++ samples - inline_f1.cpp
-echo -e "${YELLOW}>>> inline_f1.cpp${NC}"
-compile_file "g++" "-g -O3" "inline_f1.cpp" "bin/inline_f1-O3" "O3"
 echo ""
 
 # C++ samples - comprehensive_code.cpp

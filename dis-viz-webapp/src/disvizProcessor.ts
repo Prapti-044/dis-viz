@@ -66,9 +66,6 @@ interface InstructionData {
     address: number;
     flags: (typeof INSTRUCTION_TAGS)[number]['id'][];
     instruction: string;
-    correspondence: {
-        [source_file: string]: number[]; // Line numbers are 1-based from backend
-    };
     variables?: VariableInfo[];
 }
 
@@ -184,8 +181,6 @@ interface FunctionInfo {
   name: string;
   entry: number;
   basic_blocks: string[];
-  local_vars: VariableInfo[];
-  params: VariableInfo[];
   calls: CallInfo[];
   inlines: InlineEntryData[];
   loops: LoopInfo[];
@@ -264,8 +259,10 @@ export interface CallGraphIndex {
 
 interface DisvizData {
   disassembly: {
-    memory_order_blocks: BlockData[];
-    loop_order_blocks: BlockData[];
+    blocks: { [name: string]: BlockData };
+    memory_order: string[];
+    loop_order: string[];
+    looporder_pseudoblocks: number[];
   };
   minimap: {
     memory_order: MinimapData;
@@ -280,10 +277,13 @@ interface DisvizData {
 interface LoadedDisvizFile {
   name: string;
   data: DisvizData;
-  sourceFiles: Map<string, string>; // Maps source file paths to content
+  sourceFiles: Map<string, string>;
   addressRange: { start: number; end: number };
+  memoryOrderBlocks: BlockData[];
+  loopOrderBlocks: BlockData[];
   memoryOrderPages: BlockData[][];
   loopOrderPages: BlockData[][];
+  addressCorrespondenceMap: Map<number, { [file: string]: number[] }>;
 }
 
 const loadedFiles: Map<string, LoadedDisvizFile> = new Map();
@@ -359,24 +359,64 @@ export async function loadDisvizFile(file: File): Promise<string> {
       }
     }
     
+    // Resolve block orderings from dict + name arrays
+    const memoryOrderBlocks: BlockData[] = data.disassembly.memory_order
+      .map(name => data.disassembly.blocks[name])
+      .filter(Boolean);
+    
+    // For loop_order, mark pseudo blocks based on looporder_pseudoblocks indices
+    const pseudoBlockIndices = new Set(data.disassembly.looporder_pseudoblocks || []);
+    const loopOrderBlocks: BlockData[] = data.disassembly.loop_order
+      .map((name, index) => {
+        const block = data.disassembly.blocks[name];
+        if (!block) return null;
+        if (pseudoBlockIndices.has(index)) {
+          return { ...block, block_type: 'pseudoloop' as const };
+        }
+        return block;
+      })
+      .filter(Boolean) as BlockData[];
+    
     // Calculate address range
     let minAddress = Number.MAX_SAFE_INTEGER;
     let maxAddress = Number.MIN_SAFE_INTEGER;
     
-    for (const block of [...data.disassembly.memory_order_blocks, ...data.disassembly.loop_order_blocks]) {
+    for (const block of memoryOrderBlocks) {
       if (block.start_address < minAddress) minAddress = block.start_address;
       if (block.end_address > maxAddress) maxAddress = block.end_address;
     }
     
     // Pre-compute pages for both orders
     const memoryOrderPages: BlockData[][] = [];
-    for (let i = 0; i < data.disassembly.memory_order_blocks.length; i += PAGE_SIZE) {
-      memoryOrderPages.push(data.disassembly.memory_order_blocks.slice(i, i + PAGE_SIZE));
+    for (let i = 0; i < memoryOrderBlocks.length; i += PAGE_SIZE) {
+      memoryOrderPages.push(memoryOrderBlocks.slice(i, i + PAGE_SIZE));
     }
     
     const loopOrderPages: BlockData[][] = [];
-    for (let i = 0; i < data.disassembly.loop_order_blocks.length; i += PAGE_SIZE) {
-      loopOrderPages.push(data.disassembly.loop_order_blocks.slice(i, i + PAGE_SIZE));
+    for (let i = 0; i < loopOrderBlocks.length; i += PAGE_SIZE) {
+      loopOrderPages.push(loopOrderBlocks.slice(i, i + PAGE_SIZE));
+    }
+    
+    // Build address-to-correspondence map from source_code_info
+    const addressCorrespondenceMap = new Map<number, { [file: string]: number[] }>();
+    for (const sourceInfo of data.source_code_info || []) {
+      const sourceFile = sourceInfo.file;
+      for (const lineInfo of sourceInfo.lines || []) {
+        const lineNumber = lineInfo.line;
+        for (const address of lineInfo.correspondences || []) {
+          let entry = addressCorrespondenceMap.get(address);
+          if (!entry) {
+            entry = {};
+            addressCorrespondenceMap.set(address, entry);
+          }
+          if (!entry[sourceFile]) {
+            entry[sourceFile] = [];
+          }
+          if (!entry[sourceFile].includes(lineNumber)) {
+            entry[sourceFile].push(lineNumber);
+          }
+        }
+      }
     }
     
     let fileName = file.name.replace('.disviz', '');
@@ -394,8 +434,11 @@ export async function loadDisvizFile(file: File): Promise<string> {
       data,
       sourceFiles,
       addressRange: { start: minAddress, end: maxAddress },
+      memoryOrderBlocks,
+      loopOrderBlocks,
       memoryOrderPages,
-      loopOrderPages
+      loopOrderPages,
+      addressCorrespondenceMap
     });
     
     // Add to file order if not already present
@@ -826,7 +869,10 @@ function convertInlineEntryData(data: InlineEntryData): InlineEntry {
 }
 
 // Convert block data to InstructionBlock instances
-function convertToInstructionBlock(blockData: BlockData): InstructionBlock {
+function convertToInstructionBlock(
+  blockData: BlockData,
+  addressCorrespondenceMap: Map<number, { [file: string]: number[] }>
+): InstructionBlock {
   const instructions = blockData.instructions.map(inst => ({
     instruction: inst.instruction,
     address: inst.address,
@@ -841,7 +887,7 @@ function convertToInstructionBlock(blockData: BlockData): InstructionBlock {
         0
       ))
     )),
-    correspondence: inst.correspondence || {},
+    correspondence: addressCorrespondenceMap.get(inst.address) || {},
     flags: transformFlags(inst.flags || []) as any
   }));
   
@@ -872,7 +918,7 @@ export function getDisassemblyPage(filepath: string, pageNo: number, order: BLOC
     throw new Error(`Page ${pageNo} is out of range. Available pages: 0-${pages.length - 1}`);
   }
   
-  const pageBlocks = pages[pageNo].map(convertToInstructionBlock);
+  const pageBlocks = pages[pageNo].map(b => convertToInstructionBlock(b, file.addressCorrespondenceMap));
   
   // Calculate page address range
   let startAddress = Number.MAX_SAFE_INTEGER;
@@ -900,12 +946,12 @@ export function getDisassemblyBlock(filepath: string, blockId: string, order: BL
   const file = loadedFiles.get(filepath);
   if (!file) throw new Error(`File not found: ${filepath}`);
   
-  const blocks = file.data.disassembly[`${order}_blocks`];
+  const blocks = order === 'memory_order' ? file.memoryOrderBlocks : file.loopOrderBlocks;
   const blockData = blocks.find(b => b.name === blockId);
   
   if (!blockData) throw new Error(`Block not found: ${blockId}`);
   
-  return convertToInstructionBlock(blockData);
+  return convertToInstructionBlock(blockData, file.addressCorrespondenceMap);
 }
 
 // Get disassembly page by address
@@ -924,7 +970,7 @@ export function getDisassemblyPageByAddress(filepath: string, startAddress: numb
     throw new Error(`No block found containing address: ${startAddress}`);
   }
 
-  const pageBlocks = pages[pageIndex].map(convertToInstructionBlock);
+  const pageBlocks = pages[pageIndex].map(b => convertToInstructionBlock(b, file.addressCorrespondenceMap));
 
   // Calculate page address range
   let pageStartAddress = Number.MAX_SAFE_INTEGER;
@@ -952,12 +998,12 @@ export function getDisassemblyBlockByAddress(filepath: string, order: BLOCK_ORDE
   const file = loadedFiles.get(filepath);
   if (!file) throw new Error(`File not found: ${filepath}`);
   
-  const blocks = file.data.disassembly[`${order}_blocks`];
+  const blocks = order === 'memory_order' ? file.memoryOrderBlocks : file.loopOrderBlocks;
   const blockData = blocks.find(b => b.start_address === blockStartAddress);
   
   if (!blockData) throw new Error(`Block not found at address: ${blockStartAddress}`);
   
-  return convertToInstructionBlock(blockData);
+  return convertToInstructionBlock(blockData, file.addressCorrespondenceMap);
 }
 
 // Get source file correspondences from binary address
@@ -965,20 +1011,7 @@ export function getSourceFromBinary(binary_file: string, address: number): { [so
   const file = loadedFiles.get(binary_file);
   if (!file) throw new Error(`File not found: ${binary_file}`);
   
-  const result: { [source_file: string]: number[] } = {};
-  
-  // Look through all blocks to find instructions at this address
-  for (const block of file.data.disassembly.memory_order_blocks) {
-    const instruction = block.instructions?.find(inst => inst.address === address);
-    if (instruction && instruction.correspondence) {
-      for (const [sourceFile, lineNumbers] of Object.entries(instruction.correspondence)) {
-        if (!result[sourceFile]) result[sourceFile] = [];
-        result[sourceFile].push(...(lineNumbers as number[]));
-      }
-    }
-  }
-  
-  return result;
+  return file.addressCorrespondenceMap.get(address) || {};
 }
 
 // Get binary addresses from source file line
@@ -1008,7 +1041,7 @@ export function downloadDisassembly(filepath: string, includeAddresses: boolean)
   // Generate a text representation of the disassembly
   let content = `Disassembly of ${filepath}\n\n`;
   
-  for (const block of file.data.disassembly.memory_order_blocks) {
+  for (const block of file.memoryOrderBlocks) {
     content += `Block: ${block.name} (${block.function_name})\n`;
     if (includeAddresses) {
       content += `Address Range: 0x${block.start_address.toString(16)} - 0x${block.end_address.toString(16)}\n`;
@@ -1150,7 +1183,7 @@ export function getFunctionStats(filepath: string): {
     
     // Count instructions by looking at blocks
     for (const blockName of func.basic_blocks) {
-      const block = file.data.disassembly.memory_order_blocks.find(b => b.name === blockName);
+      const block = file.memoryOrderBlocks.find(b => b.name === blockName);
       if (block) {
         totalInstructions += block.n_instructions;
       }
@@ -1557,7 +1590,7 @@ export function getFunctionContainingAddress(filepath: string, address: number):
   // Find function whose basic blocks contain the address
   for (const func of functionInfos) {
     for (const blockName of func.basic_blocks) {
-      const block = file.data.disassembly.memory_order_blocks.find(b => b.name === blockName);
+      const block = file.memoryOrderBlocks.find(b => b.name === blockName);
       if (block && address >= block.start_address && address <= block.end_address) {
         return func;
       }
