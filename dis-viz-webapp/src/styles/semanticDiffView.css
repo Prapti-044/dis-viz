@@ -1,0 +1,265 @@
+/* Light theme — matches disassembly / app chrome */
+.semantic-diff-root {
+  min-height: 100%;
+  background-color: #fafafa;
+  color: #252525;
+  box-sizing: border-box;
+}
+
+.semantic-diff-root *,
+.semantic-diff-root *::before,
+.semantic-diff-root *::after {
+  box-sizing: border-box;
+}
+
+.semantic-diff-scroll {
+  overflow: auto;
+  max-height: calc(100vh - 24px);
+  padding: 12px 14px 24px;
+}
+
+.semantic-diff-hint {
+  font-size: 12px;
+  color: #666;
+  margin: 0 0 12px;
+  line-height: 1.4;
+}
+
+.semantic-diff-row-toggle {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  box-sizing: border-box;
+}
+
+.semantic-diff-row-toggle:hover {
+  background: #f5f5f5;
+  border-color: #aaa;
+}
+
+.semantic-diff-row-toggle-main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.semantic-diff-row-unit-id {
+  font-size: 11px;
+  color: #444;
+  background: #eee;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.semantic-diff-row-kinds {
+  font-size: 12px;
+  color: #333;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.semantic-diff-arrow-inline {
+  color: #888;
+  font-weight: 600;
+}
+
+.semantic-diff-row-blocks {
+  font-size: 11px;
+  color: #666;
+}
+
+.semantic-diff-row-toggle-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.semantic-diff-row-chevron {
+  font-size: 12px;
+  color: #1565c0;
+  font-weight: 600;
+}
+
+.semantic-diff-row-expanded-wrap {
+  margin-bottom: 16px;
+}
+
+.semantic-diff-row-expanded-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.semantic-diff-collapse-btn {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid #aaa;
+  border-radius: 4px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.semantic-diff-collapse-btn:hover {
+  background: #eee;
+}
+
+.semantic-diff-transform--static {
+  cursor: default;
+}
+
+.semantic-diff-fn {
+  margin-bottom: 1.75rem;
+}
+
+.semantic-diff-fn-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #333;
+  margin: 0 0 12px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ccc;
+}
+
+.semantic-diff-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(120px, auto) minmax(0, 1fr);
+  gap: 10px 12px;
+  align-items: start;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 900px) {
+  .semantic-diff-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.semantic-diff-card {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 8px 10px 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.semantic-diff-card--empty {
+  opacity: 0.8;
+  min-height: 80px;
+}
+
+.semantic-diff-region-meta {
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #eee;
+}
+
+.semantic-diff-kind {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #eee;
+  color: #333;
+  margin-right: 6px;
+  margin-bottom: 4px;
+}
+
+.semantic-diff-subkind {
+  display: inline-block;
+  font-size: 11px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.semantic-diff-card-id {
+  font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", Consolas, monospace;
+  font-size: 11px;
+  color: #555;
+  word-break: break-all;
+  margin-top: 4px;
+}
+
+.semantic-diff-block-list {
+  margin-top: 4px;
+}
+
+.semantic-diff-block-missing {
+  font-size: 12px;
+  color: #b71c1c;
+  margin: 8px 0;
+  font-family: "JetBrains Mono", "Fira Code", "Source Code Pro", Consolas, monospace;
+}
+
+.semantic-diff-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 6px;
+  padding: 8px 0;
+  position: sticky;
+  top: 8px;
+}
+
+@media (max-width: 900px) {
+  .semantic-diff-center {
+    flex-direction: row;
+    justify-content: flex-start;
+    position: static;
+  }
+}
+
+.semantic-diff-arrow {
+  font-size: 1.5rem;
+  color: #555;
+  line-height: 1;
+}
+
+.semantic-diff-transform {
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.35;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid #bbb;
+  color: #333;
+  max-width: 170px;
+}
+
+.semantic-diff-transform--hoverable {
+  cursor: help;
+}
+
+.semantic-diff-transform--hoverable:hover {
+  border-color: #888;
+  background: #f5f5f5;
+}
+
+.semantic-diff-confidence {
+  font-size: 11px;
+  color: #666;
+  font-weight: 500;
+}

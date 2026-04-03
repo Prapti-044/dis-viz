@@ -1,10 +1,22 @@
 import * as pako from 'pako';
 import * as tar from 'tar-stream';
 import * as dagre from 'dagre';
-import { BlockPage, SourceFile, InstructionBlock, BLOCK_ORDERS, SourceLine, Hidable, InlineEntry, MemoryInfo, Variable, VariableLocation } from './types';
+import {
+  BlockPage,
+  SourceFile,
+  InstructionBlock,
+  BLOCK_ORDERS,
+  SourceLine,
+  Hidable,
+  InlineEntry,
+  MemoryInfo,
+  Variable,
+  VariableLocation,
+} from './types';
 import { MinimapType } from './features/minimap/minimapSlice';
 import { Selection } from './features/selections/selectionsSlice';
 import { INSTRUCTION_TAGS, SOURCE_TAGS } from './utils';
+import type { DisvizSemanticBlob } from './semantic/semanticTypes';
 
 // Helper function to transform old memory flags to new merged flag
 function transformMemoryFlags(flags: string[]): string[] {
@@ -67,6 +79,12 @@ interface InstructionData {
     flags: (typeof INSTRUCTION_TAGS)[number]['id'][];
     instruction: string;
     variables?: VariableInfo[];
+    /** CLI semantic enrichment */
+    opcode?: string;
+    operands?: string;
+    normalized_flags?: string[];
+    families?: string[];
+    source_line_refs?: Record<string, number[]>;
 }
 
 interface MinimapData {
@@ -94,6 +112,9 @@ interface BlockData {
     next_block_numbers: string[];
     start_address: number;
     hidables: Hidable[];
+    predecessor_block_names?: string[];
+    canonical_block_id?: string;
+    source_line_span?: { file: string | null; line_start: number; line_end: number } | null;
 }
 
 interface InlineEntryData {
@@ -257,20 +278,51 @@ export interface CallGraphIndex {
   totalFunctions: number;
 }
 
-interface DisvizData {
+export interface DisvizData {
   disassembly: {
     blocks: { [name: string]: BlockData };
     memory_order: string[];
     loop_order: string[];
     looporder_pseudoblocks: number[];
   };
-  minimap: {
+  /** Present in file; may be removed after load once copied to `LoadedDisvizFile.minimapRaw`. */
+  minimap?: {
     memory_order: MinimapData;
     loop_order: MinimapData;
   };
   source_code_info: SourceCodeInfo[];
   functionInfos: FunctionInfo[];
   metadata?: DisvizMetadata;
+  semantic?: DisvizSemanticBlob;
+}
+
+function emptyMinimapPlane(): MinimapData {
+  return {
+    block_heights: [],
+    block_loop_indents: [],
+    block_start_address: [],
+    block_types: [],
+    built_in_block: [],
+  };
+}
+
+/** Drop redundant per-instruction semantic fields (still present in legacy exports). */
+function stripHeavyInstructionFields(data: DisvizData): void {
+  const blocks = data.disassembly?.blocks;
+  if (!blocks || typeof blocks !== 'object') return;
+  for (const k of Object.keys(blocks)) {
+    const instrs = blocks[k]?.instructions;
+    if (!Array.isArray(instrs)) continue;
+    for (const ins of instrs) {
+      if (!ins || typeof ins !== 'object') continue;
+      const row = ins as Record<string, unknown>;
+      delete row.opcode;
+      delete row.operands;
+      delete row.normalized_flags;
+      delete row.families;
+      delete row.source_line_refs;
+    }
+  }
 }
 
 // Global storage for loaded .disviz files
@@ -284,6 +336,14 @@ interface LoadedDisvizFile {
   memoryOrderPages: BlockData[][];
   loopOrderPages: BlockData[][];
   addressCorrespondenceMap: Map<number, { [file: string]: number[] }>;
+  minimapRaw: {
+    memory_order: MinimapData;
+    loop_order: MinimapData;
+  };
+  /** Lazily built InstructionBlock graph for semantic diff / tools (one conversion per order per file). */
+  semanticDiffAssemblyCache?: Partial<
+    Record<BLOCK_ORDERS, { allBlocks: InstructionBlock[]; pages: BlockPage[] }>
+  >;
 }
 
 const loadedFiles: Map<string, LoadedDisvizFile> = new Map();
@@ -348,8 +408,17 @@ export async function loadDisvizFile(file: File): Promise<string> {
     }
     
     const dataJsonText = new TextDecoder().decode(dataJsonBytes);
-    const data: DisvizData = JSON.parse(dataJsonText);
-    
+    // Let the UI paint "uploading" before the blocking parse.
+    await new Promise<void>((r) => setTimeout(r, 0));
+    const data: DisvizData = JSON.parse(dataJsonText) as DisvizData;
+    stripHeavyInstructionFields(data);
+
+    const minimapRaw = {
+      memory_order: data.minimap?.memory_order ?? emptyMinimapPlane(),
+      loop_order: data.minimap?.loop_order ?? emptyMinimapPlane(),
+    };
+    delete (data as { minimap?: unknown }).minimap;
+
     // Extract source files
     const sourceFiles = new Map<string, string>();
     for (const [path, content] of Array.from(extractedFiles)) {
@@ -438,9 +507,15 @@ export async function loadDisvizFile(file: File): Promise<string> {
       loopOrderBlocks,
       memoryOrderPages,
       loopOrderPages,
-      addressCorrespondenceMap
+      addressCorrespondenceMap,
+      minimapRaw,
     });
-    
+
+    // Release duplicate ordering arrays (blocks map + memoryOrderBlocks keep the data).
+    data.disassembly.memory_order = [];
+    data.disassembly.loop_order = [];
+    data.disassembly.looporder_pseudoblocks = [];
+
     // Add to file order if not already present
     if (!fileOrder.includes(fileName)) {
       fileOrder.push(fileName);
@@ -596,7 +671,7 @@ export function getMinimapData(filepath: string, order: BLOCK_ORDERS): MinimapTy
   const file = loadedFiles.get(filepath);
   if (!file) throw new Error(`File not found: ${filepath}`);
   
-  const minimapData = file.data.minimap[order];
+  const minimapData = file.minimapRaw[order];
   return {
     blockHeights: minimapData.block_heights,
     builtInBlock: minimapData.built_in_block,
@@ -954,6 +1029,63 @@ export function getDisassemblyBlock(filepath: string, blockId: string, order: BL
   return convertToInstructionBlock(blockData, file.addressCorrespondenceMap);
 }
 
+/** All basic blocks for a function in disassembly order (same order as the disassembly view for that order mode). */
+export function getInstructionBlocksForFunction(
+  filepath: string,
+  functionName: string,
+  order: BLOCK_ORDERS = 'memory_order'
+): InstructionBlock[] {
+  const file = loadedFiles.get(filepath);
+  if (!file) return [];
+  const raw = order === 'memory_order' ? file.memoryOrderBlocks : file.loopOrderBlocks;
+  return raw
+    .filter((b) => b.function_name === functionName)
+    .map((b) => convertToInstructionBlock(b, file.addressCorrespondenceMap));
+}
+
+/**
+ * Single cached conversion of loaded BlockData → InstructionBlock[] + BlockPage list.
+ * Avoids calling getDisassemblyPage in a loop (which would allocate duplicate InstructionBlocks).
+ */
+export function getSemanticDiffAssemblyContext(
+  filepath: string,
+  order: BLOCK_ORDERS = 'memory_order'
+): { allBlocks: InstructionBlock[]; pages: BlockPage[] } {
+  const f = loadedFiles.get(filepath);
+  if (!f) return { allBlocks: [], pages: [] };
+  f.semanticDiffAssemblyCache ??= {};
+  const hit = f.semanticDiffAssemblyCache[order];
+  if (hit) return hit;
+
+  const rawBlocks = order === 'memory_order' ? f.memoryOrderBlocks : f.loopOrderBlocks;
+  const rawPages = order === 'memory_order' ? f.memoryOrderPages : f.loopOrderPages;
+  const map = f.addressCorrespondenceMap;
+
+  const allBlocks = rawBlocks.map((b) => convertToInstructionBlock(b, map));
+  const pages: BlockPage[] = [];
+  let offset = 0;
+  for (let i = 0; i < rawPages.length; i++) {
+    const chunkLen = rawPages[i].length;
+    const slice = allBlocks.slice(offset, offset + chunkLen);
+    offset += chunkLen;
+    let startAddress = Number.MAX_SAFE_INTEGER;
+    let endAddress = Number.MIN_SAFE_INTEGER;
+    let totalInstructions = 0;
+    for (const block of slice) {
+      if (block.start_address < startAddress) startAddress = block.start_address;
+      if (block.end_address > endAddress) endAddress = block.end_address;
+      totalInstructions += block.n_instructions;
+    }
+    pages.push(
+      new BlockPage(slice, i, i === rawPages.length - 1, startAddress, endAddress, totalInstructions)
+    );
+  }
+
+  const entry = { allBlocks, pages };
+  f.semanticDiffAssemblyCache[order] = entry;
+  return entry;
+}
+
 // Get disassembly page by address
 export function getDisassemblyPageByAddress(filepath: string, startAddress: number, order: BLOCK_ORDERS): BlockPage {
   const file = loadedFiles.get(filepath);
@@ -1097,6 +1229,12 @@ export function getLoadedFileNames(): string[] {
   const missingFiles = allLoaded.filter(name => !validOrder.includes(name));
   
   return [...validOrder, ...missingFiles];
+}
+
+/** Raw parsed `data.json` for a loaded binary (includes optional `semantic` from current CLI). */
+export function getDisvizData(filepath: string): DisvizData | null {
+  const file = loadedFiles.get(filepath);
+  return file ? file.data : null;
 }
 
 // Reorder files

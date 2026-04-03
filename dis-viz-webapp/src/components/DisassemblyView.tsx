@@ -2,6 +2,14 @@ import React, { useCallback, useMemo, useRef, useEffect, useState, Suspense, CSS
 import { List, useListRef } from 'react-window';
 import { selectBinarySelection, clearHoverHighlight, setHoverHighlight } from '../features/selections/selectionsSlice';
 import { selectBinaryFilePaths } from '../features/binary-data/binaryDataSlice';
+import { Chip, Tooltip } from '@mui/material';
+import {
+    buildSemanticLayersForBinary,
+    semanticLayerChipLabel,
+    semanticLayerColor,
+    semanticLayerTooltip,
+} from '../semantic/blockSemanticLayers';
+import type { BlockSemanticLayerAnnotation } from '../semantic/blockSemanticLayers';
 import { BLOCK_ORDERS, InstructionBlock, Instruction } from '../types';
 import * as disvizProcessor from '../disvizProcessor';
 import DisassemblyMinimap from './DisassemblyMinimap';
@@ -63,6 +71,8 @@ interface DisassemblyContextType {
     onLineLeave: () => void;
     onPseudoloopClick: (block: InstructionBlock) => void;
     onJumpClick: (targetBlockName: string) => void;
+    /** Per-block semantic regions from embedded CLI `semantic` (loops, entry, calls, …). */
+    semanticLayerAnnotations: Map<string, BlockSemanticLayerAnnotation[]> | null;
 }
 
 const DisassemblyContext = createContext<DisassemblyContextType | null>(null);
@@ -553,6 +563,7 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
         onLineLeave,
         onPseudoloopClick,
         onJumpClick,
+        semanticLayerAnnotations,
     } = useDisassemblyContext();
 
     const row = rows[index];
@@ -565,6 +576,9 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
         }
 
         case 'block-header': {
+            const layerAnns = semanticLayerAnnotations?.get(row.block.name);
+            const borderColor =
+                layerAnns && layerAnns.length > 0 ? semanticLayerColor(layerAnns[0].kind) : undefined;
             return (
                 <div
                     className="disassembly-block-header"
@@ -576,21 +590,58 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: 6,
+                        boxSizing: 'border-box',
+                        ...(borderColor ? { borderLeft: `4px solid ${borderColor}`, paddingLeft: 6 } : {}),
                     }}
                     title={row.block.name}
                 >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                         {shortenName(row.block.name, 24)}
                     </span>
-                    <span style={{ fontStyle: 'italic', fontSize: '14px', marginLeft: '10px', whiteSpace: 'nowrap', color: '#666' }}>
-                        {row.block.loops.length > 0 &&
-                            `${row.block.is_loop_header ? '⟳ ' : ''}${row.block.loops[row.block.loops.length - 1].name}: ${row.block.loops[row.block.loops.length - 1].loop_count}/${row.block.loops[row.block.loops.length - 1].loop_total}`}
+                    <span
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            flexShrink: 0,
+                            flexWrap: 'wrap',
+                            justifyContent: 'flex-end',
+                        }}
+                    >
+                        {layerAnns?.map((lay) => (
+                            <Tooltip
+                                key={lay.region_id}
+                                title={<span style={{ whiteSpace: 'pre-wrap' }}>{semanticLayerTooltip(lay)}</span>}
+                            >
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    label={semanticLayerChipLabel(lay.kind, lay.subkind)}
+                                    sx={{
+                                        height: 20,
+                                        fontSize: 10,
+                                        '& .MuiChip-label': { px: 0.5 },
+                                        borderColor: semanticLayerColor(lay.kind),
+                                        color: semanticLayerColor(lay.kind),
+                                        bgcolor: semanticLayerColor(lay.kind) + '14',
+                                    }}
+                                />
+                            </Tooltip>
+                        ))}
+                        <span style={{ fontStyle: 'italic', fontSize: '14px', whiteSpace: 'nowrap', color: '#666' }}>
+                            {row.block.loops.length > 0 &&
+                                `${row.block.is_loop_header ? '⟳ ' : ''}${row.block.loops[row.block.loops.length - 1].name}: ${row.block.loops[row.block.loops.length - 1].loop_count}/${row.block.loops[row.block.loops.length - 1].loop_total}`}
+                        </span>
                     </span>
                 </div>
             );
         }
 
         case 'pseudoloop': {
+            const layerAnns = semanticLayerAnnotations?.get(row.block.name);
+            const borderColor =
+                layerAnns && layerAnns.length > 0 ? semanticLayerColor(layerAnns[0].kind) : undefined;
             return (
                 <div
                     className="pseudoloop"
@@ -610,12 +661,35 @@ const RowRenderer = (props: RowRendererProps): ReactElement | null => {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
+                        gap: 6,
                         background: '#f8f8f8',
+                        ...(borderColor ? { borderLeft: `4px solid ${borderColor}`, paddingLeft: 8 } : {}),
                     }}
                     title={row.block.name}
                 >
                     <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 500 }}>
                         📦 {shortenName(row.block.name, 20)}
+                    </span>
+                    <span style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {layerAnns?.map((lay) => (
+                            <Tooltip
+                                key={lay.region_id}
+                                title={<span style={{ whiteSpace: 'pre-wrap' }}>{semanticLayerTooltip(lay)}</span>}
+                            >
+                                <Chip
+                                    size="small"
+                                    variant="outlined"
+                                    label={semanticLayerChipLabel(lay.kind, lay.subkind)}
+                                    sx={{
+                                        height: 20,
+                                        fontSize: 10,
+                                        borderColor: semanticLayerColor(lay.kind),
+                                        color: semanticLayerColor(lay.kind),
+                                        bgcolor: semanticLayerColor(lay.kind) + '14',
+                                    }}
+                                />
+                            </Tooltip>
+                        ))}
                     </span>
                     <span style={{ fontStyle: 'italic', fontSize: '12px', color: '#666' }}>
                         {row.block.loops.length > 0 &&
@@ -710,13 +784,17 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
     const binaryFilePaths = useAppSelector(selectBinaryFilePaths);
     const validBinaryFilePaths = useMemo(() => binaryFilePaths.filter(p => p !== ''), [binaryFilePaths]);
     const enabledTags = useAppSelector(selectAllTagStates);
-
     const [binaryFilePath, setBinaryFilePath] = useState(
         () => viewStateCache.get(id)?.binaryFilePath ?? defaultBinaryFilePath ?? validBinaryFilePaths[0]
     );
     const thisBinarySelection = useMemo(
         () => selections.find(s => s.binary_file === binaryFilePath)?.addresses ?? [],
         [selections, binaryFilePath]
+    );
+
+    const semanticLayerAnnotations = useMemo(
+        () => buildSemanticLayersForBinary(binaryFilePath),
+        [binaryFilePath]
     );
 
     const [blockOrder, setBlockOrder] = useState<BLOCK_ORDERS>(
@@ -1312,6 +1390,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         onLineLeave: handleLineLeave,
         onPseudoloopClick: handlePseudoloopClick,
         onJumpClick: handleJumpClick,
+        semanticLayerAnnotations,
     }), [
         rows,
         allBlocks,
@@ -1325,6 +1404,7 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
         handleLineLeave,
         handlePseudoloopClick,
         handleJumpClick,
+        semanticLayerAnnotations,
     ]);
 
     if (validBinaryFilePaths.length === 0) {
@@ -1375,6 +1455,15 @@ function DisassemblyView({ id, removeSelf, defaultBinaryFilePath, showMinimap = 
                             ))}
                         </Form.Select>
                     </Form.Group>
+
+                    {semanticLayerAnnotations && semanticLayerAnnotations.size > 0 && (
+                        <span
+                            style={{ fontSize: 11, color: '#444', fontWeight: 600 }}
+                            title="Outlined chips on block headers: function entry, loops, calls, returns, etc. (from .disviz semantic section)"
+                        >
+                            Semantic layers
+                        </span>
+                    )}
 
                     <Form.Group className="d-flex align-items-center gap-2">
                         <Form.Label className="mb-0" style={{ whiteSpace: 'nowrap' }}>Order:</Form.Label>

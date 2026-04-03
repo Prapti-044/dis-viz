@@ -4,12 +4,24 @@ import Alert from 'react-bootstrap/Alert'
 import 'bootstrap/dist/css/bootstrap.min.css'
 import * as disvizProcessor from "../disvizProcessor"
 import '../styles/inputsourcefilepath.css'
-import { Tooltip } from '@mui/material'
+import {
+    Tooltip,
+    Alert as MuiAlert,
+    Box,
+    Button as MuiButton,
+    FormControl,
+    InputLabel,
+    MenuItem,
+    Select,
+} from '@mui/material'
 import { 
     reorderBinaryFilePaths, 
     removeLoadedFile, 
     syncWithLoadedFiles,
-    selectBinaryFilePaths
+    selectBinaryFilePaths,
+    selectSemanticCompareLeft,
+    selectSemanticCompareRight,
+    setSemanticComparePair,
 } from '../features/binary-data/binaryDataSlice'
 import { useAppDispatch, useAppSelector } from '../store/hooks'
 import { toast } from 'react-toastify'
@@ -33,6 +45,11 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { MdDragIndicator, MdDelete, MdUpload, MdCloudUpload, MdFileDownload, MdPlayArrow, MdExpandMore, MdExpandLess, MdInfo } from 'react-icons/md'
+import {
+    buildSemanticDiffDocument,
+    downloadSemanticDiffJson,
+    extractSemanticBlob,
+} from '../semantic/buildSemanticDiff'
 
 // Helper function to get metadata for a loaded file
 function getFileMetadata(fileName: string) {
@@ -377,8 +394,8 @@ function ExampleFiles({ onLoadExample, isLoading }: ExampleFilesProps) {
     
     const exampleFiles = [
         { name: 'bubble-O0.disviz', description: 'Bubble sort with O0 optimization' },
+        { name: 'bubble-O1.disviz', description: 'Bubble sort with O1 optimization (semantic diff demo)' },
         { name: 'bubble-O3.disviz', description: 'Bubble sort with O3 optimization' },
-
     ];
 
     const toggleExpanded = () => {
@@ -508,6 +525,8 @@ function InputFilePath() {
 
     const dispatch = useAppDispatch();
     const loadedFileNames = useAppSelector(selectBinaryFilePaths);
+    const semanticCompareLeft = useAppSelector(selectSemanticCompareLeft);
+    const semanticCompareRight = useAppSelector(selectSemanticCompareRight);
 
     // Sync Redux state with loaded files on component mount and when files change
     React.useEffect(() => {
@@ -599,6 +618,23 @@ function InputFilePath() {
         toast.success(`Removed ${fileName}`);
     };
 
+    const handleSemanticDiffDownload = () => {
+        if (!semanticCompareLeft || !semanticCompareRight) return;
+        const ld = disvizProcessor.getDisvizData(semanticCompareLeft);
+        const rd = disvizProcessor.getDisvizData(semanticCompareRight);
+        if (!ld || !rd) return;
+        const doc = buildSemanticDiffDocument(semanticCompareLeft, semanticCompareRight, ld, rd);
+        const safe = (s: string) => s.replace(/[^a-zA-Z0-9_-]+/g, '_');
+        downloadSemanticDiffJson(doc, `semantic-diff_${safe(semanticCompareLeft)}_vs_${safe(semanticCompareRight)}.json`);
+    };
+
+    const leftHasSemantic = semanticCompareLeft
+        ? extractSemanticBlob(disvizProcessor.getDisvizData(semanticCompareLeft) ?? {}) != null
+        : false;
+    const rightHasSemantic = semanticCompareRight
+        ? extractSemanticBlob(disvizProcessor.getDisvizData(semanticCompareRight) ?? {}) != null
+        : false;
+
     return (
         <div style={{ margin: "25px" }}>
             <div style={{ marginBottom: "30px" }}>
@@ -646,6 +682,103 @@ function InputFilePath() {
                         </DndContext>
                     </div>
                 </div>
+            )}
+
+            {loadedFileNames.length > 0 && (
+                <Box
+                    sx={{
+                        mb: 2,
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        bgcolor: 'action.hover',
+                    }}
+                >
+                    <div style={{ fontSize: 12, color: '#586069', marginBottom: 8, fontWeight: 600 }}>
+                        Semantic compare (left → right)
+                    </div>
+                    <div style={{ fontSize: 11, color: '#586069', marginBottom: 10 }}>
+                        Disassembly highlights blocks when the open binary is the left or right side of this pair.
+                    </div>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <InputLabel id="inp-sem-left">Left</InputLabel>
+                            <Select
+                                labelId="inp-sem-left"
+                                label="Left"
+                                value={semanticCompareLeft}
+                                onChange={(e) =>
+                                    dispatch(
+                                        setSemanticComparePair({
+                                            left: e.target.value,
+                                            right: semanticCompareRight,
+                                        })
+                                    )
+                                }
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                {loadedFileNames.map((name) => (
+                                    <MenuItem key={name} value={name}>
+                                        {name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <span style={{ fontSize: 14, color: '#666' }}>→</span>
+                        <FormControl size="small" sx={{ minWidth: 160 }}>
+                            <InputLabel id="inp-sem-right">Right</InputLabel>
+                            <Select
+                                labelId="inp-sem-right"
+                                label="Right"
+                                value={semanticCompareRight}
+                                onChange={(e) =>
+                                    dispatch(
+                                        setSemanticComparePair({
+                                            left: semanticCompareLeft,
+                                            right: e.target.value,
+                                        })
+                                    )
+                                }
+                            >
+                                <MenuItem value="">
+                                    <em>None</em>
+                                </MenuItem>
+                                {loadedFileNames.map((name) => (
+                                    <MenuItem key={name} value={name}>
+                                        {name}
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                        </FormControl>
+                        <MuiButton
+                            variant="outlined"
+                            size="small"
+                            startIcon={<MdFileDownload size={18} />}
+                            disabled={!semanticCompareLeft || !semanticCompareRight}
+                            onClick={handleSemanticDiffDownload}
+                        >
+                            Download diff JSON
+                        </MuiButton>
+                    </Box>
+                    {semanticCompareLeft && !leftHasSemantic && (
+                        <MuiAlert severity="warning" sx={{ mt: 1, py: 0 }}>
+                            Left file has no <code>semantic</code> section — re-export with current DisViz CLI.
+                        </MuiAlert>
+                    )}
+                    {semanticCompareRight && !rightHasSemantic && (
+                        <MuiAlert severity="warning" sx={{ mt: 1, py: 0 }}>
+                            Right file has no <code>semantic</code> section — re-export with current DisViz CLI.
+                        </MuiAlert>
+                    )}
+                    {loadedFileNames.length < 2 && (
+                        <MuiAlert severity="info" sx={{ mt: 1, py: 0 }}>
+                            Load two binaries to set a compare pair.
+                        </MuiAlert>
+                    )}
+                </Box>
             )}
 
             <ExampleFiles 

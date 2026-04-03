@@ -20,11 +20,17 @@ interface HeaderMenuProps {
     showMinimaps: boolean;
     setShowMinimaps: React.Dispatch<React.SetStateAction<boolean>>;
     onAddCallGraphView: () => void;
+    onOpenSemanticDiff: () => void;
 }
 
 
 
-const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps, onAddCallGraphView }) => {
+const HeaderMenu: React.FC<HeaderMenuProps> = ({
+    showMinimaps,
+    setShowMinimaps,
+    onAddCallGraphView,
+    onOpenSemanticDiff,
+}) => {
     const dispatch = useAppDispatch();
     const enabledTags = useAppSelector(selectAllTagStates);
     const showOnlyDifferingTags = useAppSelector(selectShowOnlyDifferingTags);
@@ -98,6 +104,9 @@ const HeaderMenu: React.FC<HeaderMenuProps> = ({ showMinimaps, setShowMinimaps, 
                         onClick={onAddCallGraphView}
                     >
                         Add Call Tree
+                    </MenuItem>
+                    <MenuItem className="header-menu-item" onClick={onOpenSemanticDiff}>
+                        Semantic diff…
                     </MenuItem>
                     <SubMenu label="Tags" className="header-menu-item">
                         {[...SOURCE_TAGS, ...INSTRUCTION_TAGS]

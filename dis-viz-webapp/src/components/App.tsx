@@ -17,6 +17,7 @@ import InputFilePath from './InputFilePath';
 import SourceFileTree from "./SourceFileTree";
 import HeaderMenu from './HeaderMenu';
 import CallGraphView from './CallGraphView';
+import SemanticDiffView from './SemanticDiffView';
 import HistoryBar from './HistoryBar';
 
 import '../styles/app.css';
@@ -179,6 +180,27 @@ const App = () => {
       toast.error("No valid binary file paths found")
     }
   }, [callGraphViewIds, removeSelfCallGraphView])
+
+  const onOpenSemanticDiff = React.useCallback(() => {
+    const tabId = 'SemanticDiff:1';
+    if (!dockRef.current) return;
+    if (dockRef.current.find(tabId)) {
+      toast.info('Semantic diff is already open');
+      return;
+    }
+    const tab: TabData = {
+      id: tabId,
+      title: 'Semantic diff',
+      content: (
+        <TabContent key="tab-SemanticDiff-1">
+          <SemanticDiffView />
+        </TabContent>
+      ),
+      closable: true,
+      minHeight: 200,
+    };
+    dockRef.current.dockMove(tab, 'DisassemblyViewPanel', 'middle');
+  }, []);
   
   React.useEffect(() => {
     if (dockRef.current === null) return;
@@ -278,7 +300,7 @@ const App = () => {
                   closable: false,
                   minHeight: 150,
                   minWidth: 250
-                }
+                },
               ],
             },
           ]
@@ -355,7 +377,12 @@ const App = () => {
         draggable
         pauseOnHover
       />
-      <HeaderMenu showMinimaps={showMinimaps} setShowMinimaps={setShowMinimaps} onAddCallGraphView={onAddCallGraphView} />
+      <HeaderMenu
+        showMinimaps={showMinimaps}
+        setShowMinimaps={setShowMinimaps}
+        onAddCallGraphView={onAddCallGraphView}
+        onOpenSemanticDiff={onOpenSemanticDiff}
+      />
       <HistoryBar />
       <div className="main-content">
         <DockLayout

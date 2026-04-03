@@ -13,6 +13,7 @@
 
 #include <nlohmann/json.hpp>
 #include <dyninst_wrapper.hpp>
+#include <semantic_analysis.hpp>
 #include <archive.h>
 #include <archive_entry.h>
 
@@ -408,8 +409,9 @@ json convertFunctionInfoNlohmann(const FunctionInfo& func) {
     return result;
 }
 
-json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res, 
-                                const std::unordered_map<std::string, std::string>& source_mapping) {
+json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res,
+                                const std::unordered_map<std::string, std::string>& source_mapping,
+                                bool emit_instruction_semantic_extras) {
     
     // Build blocks dict keyed by block name (store each block only once)
     json blocks = json::object();
@@ -433,7 +435,7 @@ json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res,
         }
     }
 
-    return json{
+    json out = json{
         {"metadata", {
             {"architecture", res.metadata.architecture},
             {"date", res.metadata.analysis_date},
@@ -460,6 +462,8 @@ json convertBinaryDecodeNlohmann(const BinaryDecodeResult& res,
             return function_infos;
         }()}
     };
+    disviz_semantic::applySemanticToJson(out, res, emit_instruction_semantic_extras);
+    return out;
 }
 
 std::string generateUniqueFilename(const std::string& filename, const std::unordered_set<std::string>& used_names) {
@@ -555,7 +559,7 @@ std::unordered_map<std::string, std::string> createDisVizArchive(
     // Add binary JSON as data.json
     {
         struct archive_entry* entry = archive_entry_new();
-        const auto json_str = binary_json.dump(2);
+        const auto json_str = binary_json.dump();
         
         archive_entry_set_pathname(entry, "data.json");
         archive_entry_set_size(entry, json_str.size());
@@ -613,6 +617,8 @@ int main(int argc, char* argv[]) {
     std::string binary_paths_file;
     std::string output_dir = ".";
     bool json_only = false;
+    bool json_pretty = false;
+    bool emit_instruction_semantic_extras = false;
 
     po::options_description desc("Allowed options");
     desc.add_options()
@@ -620,7 +626,10 @@ int main(int argc, char* argv[]) {
         ("binary-paths,b", po::value(&binary_paths), "The paths to binary files to analyze")
         ("binary-paths-file,c", po::value(&binary_paths_file), "A file containing the paths to binary files to analyze")
         ("output-dir,o", po::value(&output_dir)->default_value("."), "Output directory for .disviz files")
-        ("json-only,j", po::bool_switch(&json_only), "Output only data.json without creating .disviz archive (useful for debugging)");
+        ("json-only,j", po::bool_switch(&json_only), "Output only data.json without creating .disviz archive (useful for debugging)")
+        ("json-pretty", po::bool_switch(&json_pretty), "Pretty-print JSON (with --json-only); .disviz data.json is always compact")
+        ("emit-instruction-semantic-extras", po::bool_switch(&emit_instruction_semantic_extras),
+         "Emit per-instruction opcode/operands/families/source_line_refs in JSON (large); default off for smaller web payloads");
 
     try {
         po::variables_map vm;
@@ -689,23 +698,25 @@ int main(int argc, char* argv[]) {
             if (json_only) {
                 // JSON-only mode: output data.json without packaging into .disviz
                 std::unordered_map<std::string, std::string> empty_mapping;
-                const auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
-                
+                const auto binary_json =
+                    convertBinaryDecodeNlohmann(*binary_result, empty_mapping, emit_instruction_semantic_extras);
+
                 const auto json_path = output_path / (binary_name + ".data.json");
                 std::ofstream json_file(json_path);
                 if (!json_file) {
                     std::cerr << "Error: Cannot create JSON file: " << json_path << std::endl;
                     continue;
                 }
-                json_file << binary_json.dump(2);
+                json_file << (json_pretty ? binary_json.dump(2) : binary_json.dump());
                 json_file.close();
                 
                 std::cout << "Saved JSON to: " << json_path << std::endl;
             } else {
                 // Full mode: create .disviz archive with source files
                 std::unordered_map<std::string, std::string> empty_mapping;
-                auto binary_json = convertBinaryDecodeNlohmann(*binary_result, empty_mapping);
-                
+                auto binary_json =
+                    convertBinaryDecodeNlohmann(*binary_result, empty_mapping, emit_instruction_semantic_extras);
+
                 // Create .disviz archive with source files and get the mapping
                 const auto source_mapping = createDisVizArchive(
                     binary_result->source_files, 
@@ -715,7 +726,8 @@ int main(int argc, char* argv[]) {
                 );
                 
                 // Update the JSON with correct source mapping
-                binary_json = convertBinaryDecodeNlohmann(*binary_result, source_mapping);
+                binary_json =
+                    convertBinaryDecodeNlohmann(*binary_result, source_mapping, emit_instruction_semantic_extras);
                 
                 // Recreate the archive with updated JSON
                 createDisVizArchive(binary_result->source_files, output_path, binary_name, binary_json);
